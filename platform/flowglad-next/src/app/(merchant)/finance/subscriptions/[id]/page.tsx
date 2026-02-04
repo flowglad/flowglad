@@ -1,7 +1,7 @@
 import { Price } from '@db-core/schema/prices'
 import { Result } from 'better-result'
 import { notFound } from 'next/navigation'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
@@ -21,7 +21,7 @@ const SubscriptionPage = async ({
 }) => {
   const { id } = await params
   const result = (
-    await authenticatedTransactionWithResult(
+    await authenticatedTransaction(
       async ({ transaction, cacheRecomputationContext }) => {
         const [subscription] =
           await selectRichSubscriptionsAndActiveItems(

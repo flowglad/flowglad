@@ -37,10 +37,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunById } from '@/db/tableMethods/billingRunMethods'
 import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import {
@@ -195,7 +192,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Verify initial claims
     const initialClaims = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectActiveResourceClaims(
             {
@@ -233,7 +230,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Assert: All 3 claims still exist and are accessible via (subscriptionId, resourceId)
     const claimsAfterAdjustment = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectActiveResourceClaims(
             {
@@ -253,7 +250,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     // Assert: getResourceUsage returns correct aggregated capacity from new features
     // Note: The new subscription item should have its own resource feature created
     const usage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getResourceUsage(
             subscription.id,
@@ -281,7 +278,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Billing run is created (in Scheduled status) but not executed yet
     const currentBillingRun = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingRunById(billingRun.id, transaction).then(
             (r) => r.unwrap()
@@ -294,7 +291,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Assert: Claims still accessible (old features still active)
     const claims = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectActiveResourceClaims(
             {
@@ -310,7 +307,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Assert: Can still release claims
     const releaseResult = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await releaseResourceTransaction(
             {
@@ -332,7 +329,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Assert: Cannot claim beyond current capacity
     const usage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getResourceUsage(
             subscription.id,
@@ -347,9 +344,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     expect(usage.available).toBe(3) // 5 - 2
 
     // Attempting to claim more than available should fail
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        await claimResourceTransaction(
+    const claimResult = await adminTransaction(
+      async ({ transaction }) => {
+        return claimResourceTransaction(
           {
             organizationId: organization.id,
             customerId: customer.id,
@@ -361,8 +358,14 @@ describe('executeBillingRun with adjustment and resource claims', () => {
           },
           transaction
         )
-      })
-    ).rejects.toThrow('No available capacity')
+      }
+    )
+    expect(Result.isError(claimResult)).toBe(true)
+    if (Result.isError(claimResult)) {
+      expect(claimResult.error.message).toContain(
+        'No available capacity'
+      )
+    }
   })
 
   it('preserves claims through the full async adjustment lifecycle', async () => {
@@ -379,7 +382,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Phase 1: Before adjustment - verify initial state
     let usage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getResourceUsage(
             subscription.id,
@@ -416,7 +419,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Phase 3: After adjustment - claims accessible, verify new capacity
     usage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getResourceUsage(
             subscription.id,
@@ -431,7 +434,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // All original claims should still be accessible
     const claimsAfterAdjustment = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectActiveResourceClaims(
             {
@@ -451,20 +454,18 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     // Phase 4: Claim more resources (up to new capacity if available)
     // Create 2 more claims
     const newClaimResult = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return Result.ok(
-          await claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                externalIds: ['new-user-0', 'new-user-1'],
-              },
+      await adminTransaction(async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              externalIds: ['new-user-0', 'new-user-1'],
             },
-            transaction
-          )
+          },
+          transaction
         )
       })
     ).unwrap()
@@ -472,7 +473,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Phase 5: All claims (old and new) should be visible
     const allClaims = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectActiveResourceClaims(
             {
@@ -494,7 +495,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
 
     // Verify final usage
     usage = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await getResourceUsage(
             subscription.id,

@@ -33,6 +33,7 @@ export const validateAndResolvePricingModelId = async ({
       transaction
     )
     if (!validPricingModel) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message:
@@ -48,6 +49,7 @@ export const validateAndResolvePricingModelId = async ({
     transaction
   )
   if (!defaultPM) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message: 'No default pricing model found for organization',

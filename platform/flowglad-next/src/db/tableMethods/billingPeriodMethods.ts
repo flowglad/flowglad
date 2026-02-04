@@ -45,6 +45,7 @@ import {
   or,
 } from 'drizzle-orm'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { CancellationReason } from '@/types'
 import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
@@ -222,7 +223,7 @@ export const safelyUpdateBillingPeriodStatus = async (
     status === BillingPeriodStatus.Upcoming &&
     billingPeriod.startDate < Date.now()
   ) {
-    throw new Error(
+    panic(
       `Cannot set billing period ${billingPeriod.id} to ${status} if it has already started (startDate: ${billingPeriod.startDate})`
     )
   }
@@ -231,7 +232,7 @@ export const safelyUpdateBillingPeriodStatus = async (
     status === BillingPeriodStatus.ScheduledToCancel &&
     billingPeriod.startDate < Date.now()
   ) {
-    throw new Error(
+    panic(
       `Cannot set billing period ${billingPeriod.id} to ${status} if it has already started. Instead, this billing period will be marked as completed. (startDate: ${billingPeriod.startDate})`
     )
   }
@@ -240,7 +241,7 @@ export const safelyUpdateBillingPeriodStatus = async (
     status === BillingPeriodStatus.Active &&
     billingPeriod.startDate > Date.now()
   ) {
-    throw new Error(
+    panic(
       `Cannot set billing period ${billingPeriod.id} to ${status} if it has not started yet (startDate: ${billingPeriod.startDate})`
     )
   }

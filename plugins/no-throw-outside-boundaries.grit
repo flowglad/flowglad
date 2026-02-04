@@ -1,0 +1,23 @@
+engine biome(1.0)
+language js
+
+// Prohibits `throw` statements outside of designated boundary contexts.
+// Per the Result-based error handling migration, business logic should return
+// Result types instead of throwing exceptions.
+//
+// Allowed contexts (configured via biome.json overrides):
+// - SSR components (src/app/**)
+// - TRPC routers (src/server/routers/**)
+// - Trigger tasks (src/trigger/**)
+// - User scripts (src/scripts/**)
+// - Test files (*.test.ts, *.spec.ts)
+//
+// Alternatives to throw:
+// - Result.err(new SomeError(...)) for business errors
+// - panic('...') for invariant violations
+//
+// To suppress: // biome-ignore lint/plugin: <justification>
+
+`throw $expr` as $throw where {
+  register_diagnostic(span=$throw, message="Throw statements are not allowed outside boundary contexts. Use Result.err() for business errors or panic() for invariant violations.", severity="error")
+}

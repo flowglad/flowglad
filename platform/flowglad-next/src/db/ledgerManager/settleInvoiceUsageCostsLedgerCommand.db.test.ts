@@ -41,10 +41,7 @@ import {
   setupUsageLedgerScenario,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import type { SettleInvoiceUsageCostsLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
   processSettleInvoiceUsageCostsLedgerCommand,
@@ -87,7 +84,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
     // 3. Link the usage cost entry to the billing run. This simulates the tabulation process.
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await transaction
           .update(ledgerEntries)
           .set({ claimedByBillingRunId: billingRun.id })
@@ -106,7 +103,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       status: InvoiceStatus.Paid,
     })
     invoice = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await updateInvoice(
             {
@@ -209,7 +206,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await processSettleInvoiceUsageCostsLedgerCommand(
@@ -287,7 +284,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // 6. The ledger balance for this usage meter should be zeroed out.
       const finalBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -349,7 +346,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await transaction
             .update(ledgerEntries)
             .set({ claimedByBillingRunId: billingRun.id })
@@ -388,7 +385,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await processSettleInvoiceUsageCostsLedgerCommand(
@@ -426,7 +423,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(creditAppEntries).toHaveLength(2)
 
       const finalBalance1 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -437,7 +434,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         })
       ).unwrap()
       const finalBalance2 = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount2.id },
@@ -483,7 +480,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await processSettleInvoiceUsageCostsLedgerCommand(
@@ -503,7 +500,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(createdLedgerEntries).toHaveLength(3) // Only the 3 entries for the single usage item
 
       const finalBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -532,7 +529,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // 2. Successfully execute the command once.
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
               command,
@@ -545,20 +542,19 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute & expects:
       // 3. Calling the command processing function a second time should fail.
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          ;(
-            await processSettleInvoiceUsageCostsLedgerCommand(
-              command,
-              transaction
-            )
-          ).unwrap()
-        })
-      ).rejects.toThrow()
+      const secondResult = await adminTransaction(
+        async ({ transaction }) => {
+          return processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        }
+      )
+      expect(Result.isError(secondResult)).toBe(true)
 
       // 4. Query the database to ensure no duplicate records were created.
       const txns = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await transaction
               .select()
@@ -572,7 +568,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(txns).toHaveLength(1) // Only the first transaction should exist.
     })
 
-    it('should throw an error if there is a data scope mismatch', async () => {
+    it('should return an error if there is a data scope mismatch', async () => {
       // setup:
       // The beforeEach creates invoice and line items for the default organization.
       // 1. Create a second, valid organization to use for the mismatch.
@@ -591,21 +587,23 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       }
 
       // execute & expects:
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          ;(
-            await processSettleInvoiceUsageCostsLedgerCommand(
-              command,
-              transaction
-            )
-          ).unwrap()
-        })
-      ).rejects.toThrowError(
-        'Expected 1 ledger accounts for usage line items, but got 0'
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Expected 1 ledger accounts for usage line items, but got 0'
+        )
+      }
 
       const finalBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -647,7 +645,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await processSettleInvoiceUsageCostsLedgerCommand(
@@ -664,7 +662,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       expect(createdLedgerEntries).toHaveLength(0)
 
       const finalBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -692,7 +690,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         livemode: false,
       })
       const invoiceTest = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const inv = await setupInvoice({
             organizationId: scenario.organization.id,
             customerId: scenario.customer.id,
@@ -735,7 +733,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await (
               await processSettleInvoiceUsageCostsLedgerCommand(
@@ -754,7 +752,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       ).toBe(true)
 
       const finalBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: scenario.ledgerAccount.id },
@@ -801,7 +799,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       })
 
       const initialBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -828,7 +826,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
               command,
@@ -841,7 +839,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // expects:
       const finalBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -899,7 +897,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
               command,
@@ -912,7 +910,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // expects:
       const finalBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },
@@ -986,7 +984,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute:
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           ;(
             await processSettleInvoiceUsageCostsLedgerCommand(
               command,
@@ -999,7 +997,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // expects:
       const finalBalance = (
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           return Result.ok(
             await aggregateBalanceForLedgerAccountFromEntries(
               { ledgerAccountId: ledgerAccount.id },

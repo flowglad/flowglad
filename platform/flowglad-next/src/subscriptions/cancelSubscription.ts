@@ -44,6 +44,7 @@ import { NotFoundError, ValidationError } from '@/errors'
 import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
 import { createBillingRun } from '@/subscriptions/billingRunHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
+import { hasScheduledAdjustment } from '@/subscriptions/scheduledAdjustmentHelpers'
 import {
   type ScheduleSubscriptionCancellationParams,
   scheduleSubscriptionCancellationSchema,
@@ -272,6 +273,17 @@ export const cancelSubscriptionImmediately = async (
     )
     return Result.ok(subscription)
   }
+
+  // Check for pending scheduled adjustment
+  if (hasScheduledAdjustment(subscription)) {
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'A scheduled adjustment is pending. Cancel the scheduled adjustment before canceling the subscription.'
+      )
+    )
+  }
+
   if (
     subscription.canceledAt &&
     subscription.status !== SubscriptionStatus.Canceled
@@ -484,6 +496,16 @@ export const scheduleSubscriptionCancellation = async (
     return Result.ok(subscription)
   }
 
+  // Check for pending scheduled adjustment
+  if (hasScheduledAdjustment(subscription)) {
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'A scheduled adjustment is pending. Cancel the scheduled adjustment before canceling the subscription.'
+      )
+    )
+  }
+
   let endDate: number
 
   if (
@@ -649,6 +671,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = transactionCtx
   // Construct context for internal function calls
   const ctx: TransactionEffectsContext = {
@@ -657,6 +680,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   }
 
   // Fetch subscription first to check if it's a free plan
@@ -989,6 +1013,7 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   } = transactionCtx
   const ctx: TransactionEffectsContext = {
     transaction,
@@ -996,6 +1021,7 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
+    enqueueTriggerTask,
   }
 
   const subscription = (

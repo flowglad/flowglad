@@ -60,6 +60,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
@@ -122,7 +123,7 @@ export const derivePricingModelIdForPrice = async (
   }
 
   if (!pricingModelId) {
-    throw new Error(
+    panic(
       `Pricing model id must be provided or derivable from productId or usageMeterId. ` +
         `Got productId: ${priceInsert.productId}, usageMeterId: ${priceInsert.usageMeterId}`
     )
@@ -207,7 +208,7 @@ const enrichPriceInsertsWithPricingModelIds = async (
     }
     if (!pricingModelId) {
       // Use the same error message format as derivePricingModelIdForPrice
-      throw new Error(
+      panic(
         `Pricing model id must be provided or derivable from productId or usageMeterId. ` +
           `Got productId: ${priceInsert.productId}, usageMeterId: ${priceInsert.usageMeterId}`
       )
@@ -521,7 +522,7 @@ export const selectPricesAndProductByProductId = async (
     transaction
   )
   if (!results.length) {
-    throw new Error(
+    panic(
       `selectPricesAndProductByProductId: No product found with id ${productId}`
     )
   }
@@ -542,7 +543,7 @@ export const selectDefaultPriceAndProductByProductId = async (
     prices.find((price) => price.isDefault) ?? prices[0]
 
   if (!defaultPrice) {
-    throw new Error(`No default price found for product ${productId}`)
+    panic(`No default price found for product ${productId}`)
   }
   return {
     defaultPrice,
@@ -681,7 +682,7 @@ export const selectPriceBySlugForDefaultPricingModel = async (
     )
 
   if (!pricingModel) {
-    throw new Error(
+    panic(
       `No default pricing model found for organization ${params.organizationId}`
     )
   }
@@ -1021,7 +1022,7 @@ export const ensureUsageMeterHasDefaultPrice = async (
   )
 
   if (noChargePrices.length === 0) {
-    throw new Error(
+    panic(
       `No charge price with slug ${noChargeSlug} not found for usage meter ${usageMeterId}`
     )
   }

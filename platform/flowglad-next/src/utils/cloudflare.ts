@@ -2,6 +2,7 @@ import { PutObjectCommand, S3 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import axios from 'axios'
 import { createHmac } from 'crypto'
+import { panic } from '@/errors'
 import core from './core'
 import { r2Traced } from './tracing'
 
@@ -91,7 +92,7 @@ const putImageCore = async ({
   } catch (error) {
     const errorMessage = `Failed to save the image from ${imageURL} to R2. Error: ${error}`
     console.error(errorMessage)
-    throw Error(errorMessage)
+    panic(errorMessage)
   }
 }
 
@@ -118,7 +119,7 @@ const putCsvCore = async ({
   } catch (error) {
     const errorMessage = `Failed to save the CSV to R2. Key: ${key}. Error: ${error}`
     console.error(errorMessage)
-    throw Error(errorMessage)
+    panic(errorMessage)
   }
 }
 
@@ -145,7 +146,7 @@ const putPDFCore = async ({
   } catch (error) {
     const errorMessage = `Failed to save the PDF to R2. Key: ${key}. Error: ${error}`
     console.error(errorMessage)
-    throw Error(errorMessage)
+    panic(errorMessage)
   }
 }
 
@@ -234,7 +235,7 @@ const deleteObjectCore = async (key: string): Promise<void> => {
     console.error(
       `Failed to delete object with key: ${key}. Error: ${error}`
     )
-    throw new Error(`Failed to delete object from R2: ${error}`)
+    panic(`Failed to delete object from R2: ${error}`)
   }
 }
 
@@ -258,7 +259,7 @@ const getObjectCore = async (key: string) => {
     console.error(
       `Failed to get object with key: ${key}. Error: ${error}`
     )
-    throw new Error(`Failed to get object from R2: ${error}`)
+    panic(`Failed to get object from R2: ${error}`)
   }
 }
 
@@ -309,7 +310,7 @@ const putTextFileCore = async ({
   } catch (error) {
     const errorMessage = `Failed to save the text to R2. Key: ${key}. Error: ${error}`
     console.error(errorMessage)
-    throw Error(errorMessage)
+    panic(errorMessage)
   }
 }
 
@@ -416,7 +417,7 @@ const getMarkdownFileCore = async ({
         return null
       }
     }
-    // Re-throw unexpected errors
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }

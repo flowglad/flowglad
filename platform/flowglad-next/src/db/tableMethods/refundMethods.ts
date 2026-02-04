@@ -13,6 +13,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { selectPaymentById } from './paymentMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -41,9 +42,7 @@ export const derivePricingModelIdFromPayment = async (
     await selectPaymentById(paymentId, transaction)
   ).unwrap()
   if (!payment.pricingModelId) {
-    throw new Error(
-      `Payment ${paymentId} does not have a pricingModelId`
-    )
+    panic(`Payment ${paymentId} does not have a pricingModelId`)
   }
   return payment.pricingModelId
 }

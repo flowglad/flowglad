@@ -1,7 +1,7 @@
 import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { completeStripeOAuthFlow } from '@/utils/stripe'
 import {
@@ -27,7 +27,7 @@ export default async function StripeOAuthCallbackPage({
 
     // Step 2: Get the current authenticated user
     const userId = (
-      await authenticatedTransactionWithResult(async ({ userId }) =>
+      await authenticatedTransaction(async ({ userId }) =>
         Result.ok(userId)
       )
     ).unwrap()
@@ -50,7 +50,7 @@ export default async function StripeOAuthCallbackPage({
     }
     // Step 5: Update the organization with the Stripe account ID
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateOrganization(
           {
             id: validation.organizationId,

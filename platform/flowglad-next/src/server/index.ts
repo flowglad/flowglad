@@ -3,7 +3,11 @@ import { getPresignedURL } from '@/server/mutations/getPresignedURL'
 import { pong } from '@/server/mutations/pong'
 import { resetPassword } from '@/server/mutations/resetPassword'
 import { inviteUserToOrganization } from './mutations/inviteUserToOrganization'
-import { logout } from './mutations/logout'
+import {
+  logout,
+  logoutCustomer,
+  logoutMerchant,
+} from './mutations/logout'
 import { setReferralSelection } from './mutations/setReferralSelection'
 import { getFundsFlowEligibilityForCountry } from './queries/getFundsFlowEligibilityForCountry'
 import { ping } from './queries/ping'
@@ -59,6 +63,8 @@ export const appRouter = router({
     getPresignedURL,
     inviteUserToOrganization,
     logout,
+    logoutMerchant,
+    logoutCustomer,
     setReferralSelection,
     resetPassword,
   }),

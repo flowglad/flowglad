@@ -33,6 +33,8 @@ export const endpointKeyToActionKey: Record<
   listResourceClaims: FlowgladActionKey.ListResourceClaims,
   getUsageMeterBalances: FlowgladActionKey.GetUsageMeterBalances,
   getFeatureAccess: FlowgladActionKey.GetFeatureAccess,
+  getPaymentMethods: FlowgladActionKey.GetPaymentMethods,
+  getCustomerDetails: FlowgladActionKey.GetCustomerDetails,
 }
 
 /**
@@ -68,6 +70,8 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
   [FlowgladActionKey.GetUsageMeterBalances]: 'getUsageMeterBalances',
   [FlowgladActionKey.GetFeatureAccess]: 'getFeatureAccess',
+  [FlowgladActionKey.GetPaymentMethods]: 'getPaymentMethods',
+  [FlowgladActionKey.GetCustomerDetails]: 'getCustomerDetails',
 } satisfies Record<
   AuthenticatedActionKey,
   keyof typeof endpointKeyToActionKey

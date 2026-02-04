@@ -1,14 +1,19 @@
-import { HTTPMethod } from '@flowglad/shared'
+import {
+  type GetSubscriptionsResponse,
+  HTTPMethod,
+} from '@flowglad/shared'
 import { describe, expect, it, vi } from 'vitest'
 import type { FlowgladServer } from '../FlowgladServer'
 import {
   assert200Success,
   assert405MethodNotAllowed,
   assert500Error,
+  assertHandlerResponse,
 } from './__tests__/test-utils'
 import {
   adjustSubscription,
   cancelSubscription,
+  getSubscriptions,
   uncancelSubscription,
 } from './subscriptionHandlers'
 
@@ -33,11 +38,13 @@ const createMockFlowgladServer = () => {
   const mockCancelSubscription = vi.fn()
   const mockUncancelSubscription = vi.fn()
   const mockAdjustSubscription = vi.fn()
+  const mockGetSubscriptions = vi.fn()
 
   const server = {
     cancelSubscription: mockCancelSubscription,
     uncancelSubscription: mockUncancelSubscription,
     adjustSubscription: mockAdjustSubscription,
+    getSubscriptions: mockGetSubscriptions,
   } as unknown as FlowgladServer
 
   return {
@@ -46,6 +53,7 @@ const createMockFlowgladServer = () => {
       cancelSubscription: mockCancelSubscription,
       uncancelSubscription: mockUncancelSubscription,
       adjustSubscription: mockAdjustSubscription,
+      getSubscriptions: mockGetSubscriptions,
     },
   }
 }
@@ -566,40 +574,201 @@ describe('Subscription subroute handlers', () => {
   })
 
   describe('getSubscriptions handler', () => {
-    it.skip('returns 405 for GET request', async () => {
-      // Test stub: Verify GET requests return 405 Method Not Allowed
+    const mockActiveSubscription = {
+      id: 'sub_active',
+      status: 'active',
+      customerId: 'cust_123',
+    }
+
+    const mockCanceledSubscription = {
+      id: 'sub_canceled',
+      status: 'canceled',
+      customerId: 'cust_123',
+      canceledAt: Date.now(),
+    }
+
+    const emptyData = {
+      subscriptions: [],
+      currentSubscriptions: [],
+      currentSubscription: null,
+    }
+
+    it('returns 405 for GET request', async () => {
+      const { server } = createMockFlowgladServer()
+      const result = await getSubscriptions(
+        { method: HTTPMethod.GET, data: {} } as unknown as Parameters<
+          typeof getSubscriptions
+        >[0],
+        server
+      )
+      assertHandlerResponse(result, {
+        status: 405,
+        error: { code: 'Method not allowed', json: {} },
+        data: emptyData,
+      })
     })
 
-    it.skip('returns 405 for PUT request', async () => {
-      // Test stub: Verify PUT requests return 405 Method Not Allowed
+    it('returns 405 for PUT request', async () => {
+      const { server } = createMockFlowgladServer()
+      const result = await getSubscriptions(
+        { method: HTTPMethod.PUT, data: {} } as unknown as Parameters<
+          typeof getSubscriptions
+        >[0],
+        server
+      )
+      assertHandlerResponse(result, {
+        status: 405,
+        error: { code: 'Method not allowed', json: {} },
+        data: emptyData,
+      })
     })
 
-    it.skip('returns subscriptions via FlowgladServer', async () => {
-      // Test stub: Verify handler delegates to FlowgladServer.getSubscriptions()
+    it('returns subscriptions via FlowgladServer', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const mockResponse = {
+        subscriptions: [mockActiveSubscription],
+        currentSubscriptions: [mockActiveSubscription],
+        currentSubscription: mockActiveSubscription,
+      }
+      mocks.getSubscriptions.mockResolvedValue(mockResponse)
+
+      const result = await getSubscriptions(
+        { method: HTTPMethod.POST, data: {} },
+        server
+      )
+
+      assert200Success(result, mockResponse)
+      expect(mocks.getSubscriptions).toHaveBeenCalledWith({})
     })
 
-    it.skip('returns currentSubscriptions', async () => {
-      // Test stub: Verify response includes currentSubscriptions array
+    it('returns currentSubscriptions', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const mockResponse = {
+        subscriptions: [
+          mockActiveSubscription,
+          mockCanceledSubscription,
+        ],
+        currentSubscriptions: [mockActiveSubscription],
+        currentSubscription: mockActiveSubscription,
+      }
+      mocks.getSubscriptions.mockResolvedValue(mockResponse)
+
+      const result = await getSubscriptions(
+        { method: HTTPMethod.POST, data: {} },
+        server
+      )
+
+      expect(result.status).toBe(200)
+      const data = result.data as GetSubscriptionsResponse
+      expect(data.currentSubscriptions).toEqual([
+        mockActiveSubscription,
+      ])
     })
 
-    it.skip('returns currentSubscription (singular)', async () => {
-      // Test stub: Verify response includes currentSubscription (single object or null)
+    it('returns currentSubscription (singular)', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const mockResponse = {
+        subscriptions: [mockActiveSubscription],
+        currentSubscriptions: [mockActiveSubscription],
+        currentSubscription: mockActiveSubscription,
+      }
+      mocks.getSubscriptions.mockResolvedValue(mockResponse)
+
+      const result = await getSubscriptions(
+        { method: HTTPMethod.POST, data: {} },
+        server
+      )
+
+      expect(result.status).toBe(200)
+      const data = result.data as GetSubscriptionsResponse
+      expect(data.currentSubscription).toEqual(mockActiveSubscription)
     })
 
-    it.skip('includes historical when flag is true', async () => {
-      // Test stub: Verify includeHistorical=true returns all subscriptions
+    it('includes historical when flag is true', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const allSubscriptions = [
+        mockActiveSubscription,
+        mockCanceledSubscription,
+      ]
+      const mockResponse = {
+        subscriptions: allSubscriptions,
+        currentSubscriptions: [mockActiveSubscription],
+        currentSubscription: mockActiveSubscription,
+      }
+      mocks.getSubscriptions.mockResolvedValue(mockResponse)
+
+      const result = await getSubscriptions(
+        {
+          method: HTTPMethod.POST,
+          data: { includeHistorical: true },
+        },
+        server
+      )
+
+      expect(result.status).toBe(200)
+      expect(mocks.getSubscriptions).toHaveBeenCalledWith({
+        includeHistorical: true,
+      })
+      const data = result.data as GetSubscriptionsResponse
+      expect(data.subscriptions).toEqual(allSubscriptions)
     })
 
-    it.skip('excludes historical by default', async () => {
-      // Test stub: Verify default behavior only returns current subscriptions
+    it('excludes historical by default', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const mockResponse = {
+        subscriptions: [mockActiveSubscription],
+        currentSubscriptions: [mockActiveSubscription],
+        currentSubscription: mockActiveSubscription,
+      }
+      mocks.getSubscriptions.mockResolvedValue(mockResponse)
+
+      const result = await getSubscriptions(
+        { method: HTTPMethod.POST, data: {} },
+        server
+      )
+
+      expect(result.status).toBe(200)
+      expect(mocks.getSubscriptions).toHaveBeenCalledWith({})
+      const data = result.data as GetSubscriptionsResponse
+      expect(data.subscriptions).toEqual([mockActiveSubscription])
     })
 
-    it.skip('returns empty arrays when no subscriptions', async () => {
-      // Test stub: Verify response structure when customer has no subscriptions
+    it('returns empty arrays when no subscriptions', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      const mockResponse = {
+        subscriptions: [],
+        currentSubscriptions: [],
+        currentSubscription: null,
+      }
+      mocks.getSubscriptions.mockResolvedValue(mockResponse)
+
+      const result = await getSubscriptions(
+        { method: HTTPMethod.POST, data: {} },
+        server
+      )
+
+      assert200Success(result, mockResponse)
     })
 
-    it.skip('returns 500 with parsed error on failure', async () => {
-      // Test stub: Verify error handling when FlowgladServer method throws
+    it('returns 500 with parsed error on failure', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getSubscriptions.mockRejectedValue(
+        new Error('Customer not authenticated')
+      )
+
+      const result = await getSubscriptions(
+        { method: HTTPMethod.POST, data: {} },
+        server
+      )
+
+      assertHandlerResponse(result, {
+        status: 500,
+        error: {
+          code: 'subscription_list_failed',
+          json: { message: 'Customer not authenticated' },
+        },
+        data: emptyData,
+      })
     })
   })
 })

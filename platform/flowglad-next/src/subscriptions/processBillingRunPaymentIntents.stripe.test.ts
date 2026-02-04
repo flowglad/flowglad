@@ -38,10 +38,7 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { settleInvoiceUsageCostsLedgerCommandSchema } from '@/db/ledgerManager/ledgerManagerTypes'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -209,7 +206,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const event = createMockPaymentIntentEventResponse(
           'succeeded',
           {
@@ -236,7 +233,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           )
         ).unwrap()
         expect(result?.processingSkipped).toBe(true)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -272,7 +269,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: invoice.id,
     })
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
         const event = createMockPaymentIntentEventResponse(
@@ -334,7 +331,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         expect(
           Array.isArray(invoiceLedgerCommand.payload.invoiceLineItems)
         ).toBe(true)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -390,7 +387,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     )
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx: ctx1, effects: effects1 } =
           createCapturingEffectsContext(transaction)
         await processOutcomeForBillingRun({ input: event }, ctx1)
@@ -402,7 +399,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         await processOutcomeForBillingRun({ input: event }, ctx2)
 
         expect(effects2.ledgerCommands.length).toBe(0)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -437,7 +434,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: failedInvoice.id,
     })
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
         const event = createMockPaymentIntentEventResponse(
@@ -469,7 +466,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
         expect(typeof updatedInvoice).toBe('object')
         expect(effects.ledgerCommands.length).toBe(0)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -507,7 +504,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
         const canceledInvoice = await setupInvoice({
@@ -562,7 +559,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           SubscriptionStatus.PastDue
         )
         expect(effects.ledgerCommands.length).toBe(0)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -594,7 +591,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: invoice.id,
     })
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
         const event = createMockPaymentIntentEventResponse(
@@ -636,7 +633,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         )
         expect(updatedPayment.status).toBe(PaymentStatus.Processing)
         expect(effects.ledgerCommands.length).toBe(0)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -673,7 +670,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       focusedPricingModelId: pricingModel.id,
     })
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const { ctx, effects } =
           createCapturingEffectsContext(transaction)
         const requiresActionInvoice = await setupInvoice({
@@ -725,7 +722,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         expect(updatedInvoice.status).toBe(InvoiceStatus.Open)
         expect(updatedPayment.status).toBe(PaymentStatus.Processing)
         expect(effects.ledgerCommands.length).toBe(0)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -741,7 +738,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         // Do not seed any invoice for billingPeriodId 'bp_no_invoice'
         const event = createMockPaymentIntentEventResponse(
           'succeeded',
@@ -771,7 +768,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           expect(result.error).toBeInstanceOf(NotFoundError)
           expect(result.error.message).toContain('Invoice not found')
         }
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -786,7 +783,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupInvoice({
           billingPeriodId: billingPeriod.id,
           customerId: customer.id,
@@ -825,7 +822,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
             /LatestCharge not found: pi_no_charge/
           )
         }
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -939,19 +936,19 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Verify isFirstPayment returns true before processing
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const isFirst = await isFirstPayment(
           testSubscription,
           transaction
         )
         expect(isFirst).toBe(true)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
 
     // Process the failed payment intent
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const event = createMockPaymentIntentEventResponse(
           'requires_payment_method',
           {
@@ -970,21 +967,23 @@ describe('processOutcomeForBillingRun integration tests', async () => {
             livemode: true,
           }
         )
-        return Result.ok(
-          await processOutcomeForBillingRun(
-            { input: event },
-            createDiscardingEffectsContext(transaction)
-          )
+        return await processOutcomeForBillingRun(
+          { input: event },
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).unwrap()
 
     // Verify subscription was canceled
     const canceledSubscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return await selectSubscriptionById(
-          testSubscription.id,
-          transaction
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          (
+            await selectSubscriptionById(
+              testSubscription.id,
+              transaction
+            )
+          ).unwrap()
         )
       })
     ).unwrap()
@@ -997,7 +996,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Verify no retry was scheduled (cancellation should abort scheduled runs)
     const scheduledBillingRuns = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingRuns(
             {
@@ -1097,19 +1096,19 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Verify isFirstPayment returns true before processing
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const isFirst = await isFirstPayment(
           testSubscription,
           transaction
         )
         expect(isFirst).toBe(true)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
 
     // Process the failed payment intent
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const event = createMockPaymentIntentEventResponse(
           'requires_payment_method',
           {
@@ -1128,21 +1127,23 @@ describe('processOutcomeForBillingRun integration tests', async () => {
             livemode: true,
           }
         )
-        return Result.ok(
-          await processOutcomeForBillingRun(
-            { input: event },
-            createDiscardingEffectsContext(transaction)
-          )
+        return await processOutcomeForBillingRun(
+          { input: event },
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).unwrap()
 
     // Verify subscription was NOT canceled (unlike paid plans)
     const updatedSubscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return await selectSubscriptionById(
-          testSubscription.id,
-          transaction
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          (
+            await selectSubscriptionById(
+              testSubscription.id,
+              transaction
+            )
+          ).unwrap()
         )
       })
     ).unwrap()
@@ -1154,7 +1155,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Verify retry was scheduled (unlike paid plans which get canceled)
     const scheduledBillingRuns = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingRuns(
             {
@@ -1225,7 +1226,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Update billing run with payment intent ID
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await updateBillingRun(
           {
             id: adjustmentBillingRun.id,
@@ -1233,7 +1234,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           },
           transaction
         )
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
 
@@ -1253,7 +1254,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     const initialSubscriptionStatus = testSubscription.status
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const event = createMockPaymentIntentEventResponse(
           'requires_payment_method',
           {
@@ -1286,7 +1287,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Assertions after transaction
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const updatedBillingRun = (
           await selectBillingRunById(
             adjustmentBillingRun.id,
@@ -1325,7 +1326,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         expect(updatedSubscription.status).toBe(
           initialSubscriptionStatus
         )
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
 
@@ -1334,7 +1335,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Verify no overages/ledger entries were created
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const ledgerEntries = await selectLedgerEntries(
           {
             claimedByBillingRunId: adjustmentBillingRun.id,
@@ -1342,13 +1343,13 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           transaction
         )
         expect(ledgerEntries.length).toBe(0)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
 
     // Verify no retry was scheduled
     const scheduledRetries = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingRuns(
             {
@@ -1422,10 +1423,10 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Create subscription with autoStart (creates billing run)
-    const workflowResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const workflowResult = (
+      await adminTransaction(async (params) => {
         const stripeSetupIntentId = `setupintent_once_grant_${core.nanoid()}`
-        return await createSubscriptionWorkflow(
+        const result = await createSubscriptionWorkflow(
           {
             organization: orgForGrants,
             product,
@@ -1442,13 +1443,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
           },
           createProcessingEffectsContext(params)
         )
-      }
-    )
+        return Result.ok(result.unwrap())
+      })
+    ).unwrap()
     const testSubscription = workflowResult.subscription
 
     // Get the billing run that was created
     const billingRuns = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingRuns(
             { subscriptionId: testSubscription.id },
@@ -1464,10 +1466,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     // Get the billing period
     const testBillingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return await selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          (
+            await selectBillingPeriodById(
+              testBillingRun.billingPeriodId,
+              transaction
+            )
+          ).unwrap()
         )
       })
     ).unwrap()
@@ -1495,39 +1501,41 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Process payment intent event (this should grant credits)
-    // Use comprehensiveAdminTransaction so ledger commands are processed
-    await comprehensiveAdminTransaction(async (params) => {
-      const event = createMockPaymentIntentEventResponse(
-        'succeeded',
-        {
-          id: stripePaymentIntentId,
-          status: 'succeeded',
-          metadata: {
-            billingRunId: testBillingRun.id,
-            type: IntentMetadataType.BillingRun,
-            billingPeriodId: testBillingPeriod.id,
+    // Use adminTransaction so ledger commands are processed
+    ;(
+      await adminTransaction(async (params) => {
+        const event = createMockPaymentIntentEventResponse(
+          'succeeded',
+          {
+            id: stripePaymentIntentId,
+            status: 'succeeded',
+            metadata: {
+              billingRunId: testBillingRun.id,
+              type: IntentMetadataType.BillingRun,
+              billingPeriodId: testBillingPeriod.id,
+            },
+            latest_charge: stripeChargeId,
+            livemode: true,
           },
-          latest_charge: stripeChargeId,
-          livemode: true,
-        },
-        {
-          created: 3000,
-          livemode: true,
-        }
-      )
-
-      const result = (
-        await processOutcomeForBillingRun(
-          { input: event },
-          createProcessingEffectsContext(params)
+          {
+            created: 3000,
+            livemode: true,
+          }
         )
-      ).unwrap()
-      return Result.ok(result)
-    })
+
+        const result = (
+          await processOutcomeForBillingRun(
+            { input: event },
+            createProcessingEffectsContext(params)
+          )
+        ).unwrap()
+        return Result.ok(result)
+      })
+    ).unwrap()
 
     // Assertions
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const ledgerAccounts = await selectLedgerAccounts(
           {
             subscriptionId: testSubscription.id,
@@ -1558,7 +1566,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             transaction
           )
         expect(balance).toBe(grantAmount)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -1615,10 +1623,10 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Create subscription with autoStart (creates billing run)
-    const workflowResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const workflowResult = (
+      await adminTransaction(async (params) => {
         const stripeSetupIntentId = `setupintent_recurring_grant_${core.nanoid()}`
-        return await createSubscriptionWorkflow(
+        const result = await createSubscriptionWorkflow(
           {
             organization: orgForGrants,
             product,
@@ -1635,13 +1643,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
           },
           createProcessingEffectsContext(params)
         )
-      }
-    )
+        return Result.ok(result.unwrap())
+      })
+    ).unwrap()
     const testSubscription = workflowResult.subscription
 
     // Get the billing run that was created
     const billingRuns = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingRuns(
             { subscriptionId: testSubscription.id },
@@ -1656,10 +1665,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     // Get the billing period
     const testBillingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return await selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          (
+            await selectBillingPeriodById(
+              testBillingRun.billingPeriodId,
+              transaction
+            )
+          ).unwrap()
         )
       })
     ).unwrap()
@@ -1687,39 +1700,41 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Process payment intent event (this should grant credits)
-    // Use comprehensiveAdminTransaction so ledger commands are processed
-    await comprehensiveAdminTransaction(async (params) => {
-      const event = createMockPaymentIntentEventResponse(
-        'succeeded',
-        {
-          id: stripePaymentIntentId,
-          status: 'succeeded',
-          metadata: {
-            billingRunId: testBillingRun.id,
-            type: IntentMetadataType.BillingRun,
-            billingPeriodId: testBillingPeriod.id,
+    // Use adminTransaction so ledger commands are processed
+    ;(
+      await adminTransaction(async (params) => {
+        const event = createMockPaymentIntentEventResponse(
+          'succeeded',
+          {
+            id: stripePaymentIntentId,
+            status: 'succeeded',
+            metadata: {
+              billingRunId: testBillingRun.id,
+              type: IntentMetadataType.BillingRun,
+              billingPeriodId: testBillingPeriod.id,
+            },
+            latest_charge: stripeChargeId,
+            livemode: true,
           },
-          latest_charge: stripeChargeId,
-          livemode: true,
-        },
-        {
-          created: 3000,
-          livemode: true,
-        }
-      )
-
-      const result = (
-        await processOutcomeForBillingRun(
-          { input: event },
-          createProcessingEffectsContext(params)
+          {
+            created: 3000,
+            livemode: true,
+          }
         )
-      ).unwrap()
-      return Result.ok(result)
-    })
+
+        const result = (
+          await processOutcomeForBillingRun(
+            { input: event },
+            createProcessingEffectsContext(params)
+          )
+        ).unwrap()
+        return Result.ok(result)
+      })
+    ).unwrap()
 
     // Assertions: similar to "Once" grant, as the first grant is always issued.
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const ledgerAccounts = await selectLedgerAccounts(
           {
             subscriptionId: testSubscription.id,
@@ -1751,7 +1766,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             transaction
           )
         expect(balance).toBe(grantAmount)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -1803,10 +1818,10 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       livemode: true,
     })
 
-    const workflowResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const workflowResult = (
+      await adminTransaction(async (params) => {
         const stripeSetupIntentId = `setupintent_idempotent_${core.nanoid()}`
-        return await createSubscriptionWorkflow(
+        const result = await createSubscriptionWorkflow(
           {
             organization: orgForGrants,
             product,
@@ -1823,12 +1838,13 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
           },
           createProcessingEffectsContext(params)
         )
-      }
-    )
+        return Result.ok(result.unwrap())
+      })
+    ).unwrap()
     const testSubscription = workflowResult.subscription
 
     const billingRuns = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingRuns(
             { subscriptionId: testSubscription.id },
@@ -1842,10 +1858,14 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     const testBillingRun = billingRuns[0]
 
     const testBillingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
-        return await selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          (
+            await selectBillingPeriodById(
+              testBillingRun.billingPeriodId,
+              transaction
+            )
+          ).unwrap()
         )
       })
     ).unwrap()
@@ -1875,50 +1895,52 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     // Verify isFirstPayment returns true before processing first payment
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const isFirst = await isFirstPayment(
           testSubscription,
           transaction
         )
         expect(isFirst).toBe(true)
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
 
     // 1. First payment succeeds - should grant credits and create transition
-    // Use comprehensiveAdminTransaction so ledger commands are processed
-    await comprehensiveAdminTransaction(async (params) => {
-      const firstEvent = createMockPaymentIntentEventResponse(
-        'succeeded',
-        {
-          id: firstStripePaymentIntentId,
-          status: 'succeeded',
-          metadata: {
-            billingRunId: testBillingRun.id,
-            type: IntentMetadataType.BillingRun,
-            billingPeriodId: testBillingPeriod.id,
+    // Use adminTransaction so ledger commands are processed
+    ;(
+      await adminTransaction(async (params) => {
+        const firstEvent = createMockPaymentIntentEventResponse(
+          'succeeded',
+          {
+            id: firstStripePaymentIntentId,
+            status: 'succeeded',
+            metadata: {
+              billingRunId: testBillingRun.id,
+              type: IntentMetadataType.BillingRun,
+              billingPeriodId: testBillingPeriod.id,
+            },
+            latest_charge: firstStripeChargeId,
+            livemode: true,
           },
-          latest_charge: firstStripeChargeId,
-          livemode: true,
-        },
-        {
-          created: 3000,
-          livemode: true,
-        }
-      )
-
-      const result = (
-        await processOutcomeForBillingRun(
-          { input: firstEvent },
-          createProcessingEffectsContext(params)
+          {
+            created: 3000,
+            livemode: true,
+          }
         )
-      ).unwrap()
-      return Result.ok(result)
-    })
+
+        const result = (
+          await processOutcomeForBillingRun(
+            { input: firstEvent },
+            createProcessingEffectsContext(params)
+          )
+        ).unwrap()
+        return Result.ok(result)
+      })
+    ).unwrap()
 
     // Verify credits were granted after first payment
     const creditsAfterFirst = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectUsageCredits(
             { subscriptionId: testSubscription.id },
@@ -1947,7 +1969,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     // 2. Second payment fails - should NOT create new transition or revoke credits
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const secondEvent = createMockPaymentIntentEventResponse(
           'requires_payment_method',
           {
@@ -1967,18 +1989,16 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
           }
         )
 
-        return Result.ok(
-          await processOutcomeForBillingRun(
-            { input: secondEvent },
-            createDiscardingEffectsContext(transaction)
-          )
+        return await processOutcomeForBillingRun(
+          { input: secondEvent },
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).unwrap()
 
     // 3. Verify credits still exist (not revoked)
     const creditsAfterSecond = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectUsageCredits(
             { subscriptionId: testSubscription.id },
@@ -1995,7 +2015,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     // Verify no duplicate transition was created
     const allTransitions = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectLedgerTransactions(
             {
@@ -2115,7 +2135,7 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const event = createMockPaymentIntentEventResponse(
           'succeeded',
           {
@@ -2164,7 +2184,7 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
         expect(parsedCommand.data.organizationId).toBe(
           organization.id
         )
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -2232,7 +2252,7 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
     })
 
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const event = createMockPaymentIntentEventResponse(
           'canceled',
           {
@@ -2272,7 +2292,7 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
         expect(effects.cacheInvalidations).toContain(
           customerSubscriptionsKey
         )
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })
@@ -2308,7 +2328,7 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
       invoiceId: successInvoice.id,
     })
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         const event = createMockPaymentIntentEventResponse(
           'succeeded',
           {
@@ -2337,7 +2357,7 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
         expect(effects.cacheInvalidations).toContain(
           customerSubscriptionsKey
         )
-        return Result.ok(undefined)
+        return Result.ok(null)
       })
     ).unwrap()
   })

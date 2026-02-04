@@ -1,15 +1,13 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
-    container_name: flowglad-postgres
+    container_name: flowglad-pg-generation
     environment:
       POSTGRES_USER: flowglad
       POSTGRES_PASSWORD: flowglad_dev_password
       POSTGRES_DB: flowglad_db
     ports:
-      - '5432:5432'
+      - '5434:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

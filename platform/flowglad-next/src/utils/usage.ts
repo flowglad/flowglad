@@ -5,9 +5,10 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import {
-  type AuthenticatedTransactionParams,
   noopTransactionCallbacks,
+  type TransactionEffectsContext,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { CacheDependency } from '@/utils/cache'
 import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
 
@@ -42,17 +43,18 @@ export const createUsageMeterTransaction = async (
     cacheRecomputationContext,
     emitEvent,
     enqueueLedgerCommand,
-  }: Omit<AuthenticatedTransactionParams, 'userId'> &
-    Required<Pick<AuthenticatedTransactionParams, 'invalidateCache'>>
+    enqueueTriggerTask,
+  }: TransactionEffectsContext & {
+    livemode: boolean
+    organizationId: string
+  }
 ): Promise<{
   usageMeter: UsageMeter.Record
   price: Price.Record
   noChargePrice: Price.Record
 }> => {
   if (!organizationId) {
-    throw new Error(
-      'organizationId is required to create a usage meter'
-    )
+    panic('organizationId is required to create a usage meter')
   }
 
   const { usageMeter: usageMeterInput, price: priceInput } = payload
@@ -70,6 +72,9 @@ export const createUsageMeterTransaction = async (
     enqueueLedgerCommand:
       enqueueLedgerCommand ??
       noopTransactionCallbacks.enqueueLedgerCommand,
+    enqueueTriggerTask:
+      enqueueTriggerTask ??
+      noopTransactionCallbacks.enqueueTriggerTask,
   }
 
   const usageMeter = await insertUsageMeter(
@@ -139,14 +144,14 @@ export const createUsageMeterTransaction = async (
     (p) => p.slug === noChargePriceInsert.slug
   )
   if (!noChargePrice) {
-    throw new Error('Failed to resolve no-charge usage price')
+    panic('Failed to resolve no-charge usage price')
   }
 
   const price = hasUserSpecifiedPrice
     ? insertedPrices.find((p) => p.slug === usageMeter.slug)
     : noChargePrice
   if (!price) {
-    throw new Error('Failed to resolve inserted usage price')
+    panic('Failed to resolve inserted usage price')
   }
 
   return {

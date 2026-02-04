@@ -7,6 +7,7 @@ import {
 } from '@/db/tableMethods/discountRedemptionMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 
 export const incrementNumberOfPaymentsForDiscountRedemption = async (
   discountRedemption: DiscountRedemption.Record,
@@ -19,7 +20,7 @@ export const incrementNumberOfPaymentsForDiscountRedemption = async (
   const purchaseId = discountRedemption.purchaseId
   const subscriptionId = discountRedemption.subscriptionId
   if (!subscriptionId && !purchaseId) {
-    throw new Error(
+    panic(
       `Expected discountRedemption to have purchaseId or subscriptionId (id=${discountRedemption.id}).`
     )
   }

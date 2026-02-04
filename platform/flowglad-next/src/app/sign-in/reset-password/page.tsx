@@ -132,7 +132,7 @@ export default function ResetPasswordPage() {
               onClick={() => router.push('/sign-in')}
               className="w-full"
             >
-              Back to Sign In
+              Back to Log In
             </Button>
           </div>
         </CardContent>
@@ -229,7 +229,7 @@ export default function ResetPasswordPage() {
               className="text-primary hover:underline"
               disabled={isLoading || isSubmitting}
             >
-              Back to Sign In
+              Back to Log In
             </button>
           </div>
         </form>

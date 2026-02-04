@@ -71,7 +71,7 @@ export default function SignUpPage() {
           >
             here
           </Link>{' '}
-          to sign in
+          to log in
         </p>
       </form>
     </div>

@@ -27,7 +27,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { DbTransaction } from '@/db/types'
 import core from '@/utils/core'
 import {
@@ -44,7 +44,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -71,7 +71,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -88,7 +88,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a billing period that overlaps with our test date range
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -101,7 +101,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 2,
@@ -124,7 +124,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -168,7 +168,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -185,7 +185,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a billing period that does NOT overlap with our test date range
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -198,7 +198,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 1,
@@ -214,7 +214,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -241,7 +241,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -258,7 +258,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a billing period that partially overlaps with our test date range
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -271,7 +271,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 1,
@@ -287,7 +287,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -317,7 +317,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -334,7 +334,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a billing period that completely contains our test date range
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -347,7 +347,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 1,
@@ -363,7 +363,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -393,7 +393,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -410,7 +410,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create multiple billing periods that overlap with our test date range
     const billingPeriod1 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -423,7 +423,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
 
     const billingPeriod2 = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -436,7 +436,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod1.id,
           quantity: 1,
@@ -459,7 +459,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -497,7 +497,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -514,7 +514,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a billing period
     const billingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -527,7 +527,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
     // Create multiple billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: billingPeriod.id,
           quantity: 1,
@@ -557,7 +557,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -605,7 +605,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a monthly subscription
     const monthlySubscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -622,7 +622,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a yearly subscription
     const yearlySubscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -639,7 +639,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing periods for both subscriptions
     const monthlyBillingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: monthlySubscription.id,
@@ -652,7 +652,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
 
     const yearlyBillingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: yearlySubscription.id,
@@ -665,7 +665,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: monthlyBillingPeriod.id,
           quantity: 1,
@@ -688,7 +688,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -727,7 +727,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create a subscription
     const subscription = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupSubscription({
             organizationId: organization.id,
@@ -744,7 +744,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
 
     // Create billing periods with different statuses
     const activeBillingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -757,7 +757,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
 
     const canceledBillingPeriod = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await setupBillingPeriod({
             subscriptionId: subscription.id,
@@ -770,7 +770,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     ).unwrap()
     // Create billing period items
     ;(
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         await setupBillingPeriodItem({
           billingPeriodId: activeBillingPeriod.id,
           quantity: 1,
@@ -793,7 +793,7 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
     const result = (
-      await adminTransactionWithResult(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction }) => {
         return Result.ok(
           await selectBillingPeriodsWithItemsAndSubscriptionForDateRange(
             organization.id,
@@ -880,7 +880,7 @@ describe('pricingModelId derivation', () => {
   describe('insertBillingPeriodItem', () => {
     it('should derive pricingModelId from billing period', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const billingPeriodItem = await insertBillingPeriodItem(
             {
               billingPeriodId: billingPeriod.id,
@@ -907,7 +907,7 @@ describe('pricingModelId derivation', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const billingPeriodItem = await insertBillingPeriodItem(
             {
               billingPeriodId: billingPeriod.id,
@@ -931,12 +931,12 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw error when billing period does not exist', async () => {
-      ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           const nonExistentBillingPeriodId = `bp_${core.nanoid()}`
 
-          await expect(
-            insertBillingPeriodItem(
+          try {
+            await insertBillingPeriodItem(
               {
                 billingPeriodId: nonExistentBillingPeriodId,
                 quantity: 1,
@@ -948,17 +948,20 @@ describe('pricingModelId derivation', () => {
               },
               transaction
             )
-          ).rejects.toThrow()
-          return Result.ok(undefined)
-        })
-      ).unwrap()
+            return Result.ok('should have thrown')
+          } catch (error) {
+            return Result.err(error as Error)
+          }
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
   describe('bulkInsertBillingPeriodItems', () => {
     it('should derive pricingModelId for each item in bulk insert', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const billingPeriodItems = (
             await bulkInsertBillingPeriodItems(
               [
@@ -999,7 +1002,7 @@ describe('pricingModelId derivation', () => {
 
     it('should return Result.err when one billing period does not exist', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const nonExistentBillingPeriodId = `bp_${core.nanoid()}`
 
           const result = await bulkInsertBillingPeriodItems(

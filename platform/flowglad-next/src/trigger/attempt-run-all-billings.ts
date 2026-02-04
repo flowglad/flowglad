@@ -1,4 +1,5 @@
 import { idempotencyKeys, logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingRunsDueForExecution } from '@/db/tableMethods/billingRunMethods'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
@@ -10,22 +11,24 @@ export const attemptBillingRunsTask = task({
     const {
       livemodeBillingRunsToAttempt,
       testmodeBillingRunsToAttempt,
-    } = await adminTransaction(async ({ transaction }) => {
-      const livemodeBillingRunsToAttempt =
-        await selectBillingRunsDueForExecution(
-          { livemode: true },
-          transaction
-        )
-      const testmodeBillingRunsToAttempt =
-        await selectBillingRunsDueForExecution(
-          { livemode: false },
-          transaction
-        )
-      return {
-        livemodeBillingRunsToAttempt,
-        testmodeBillingRunsToAttempt,
-      }
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        const livemodeBillingRunsToAttempt =
+          await selectBillingRunsDueForExecution(
+            { livemode: true },
+            transaction
+          )
+        const testmodeBillingRunsToAttempt =
+          await selectBillingRunsDueForExecution(
+            { livemode: false },
+            transaction
+          )
+        return Result.ok({
+          livemodeBillingRunsToAttempt,
+          testmodeBillingRunsToAttempt,
+        })
+      })
+    ).unwrap()
     if (livemodeBillingRunsToAttempt.length > 0) {
       /**
        * Ensure that billing runs are not attempted again if the cron job is retried

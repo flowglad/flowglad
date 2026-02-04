@@ -16,6 +16,7 @@ import {
   onConflictDoUpdateSetValues,
 } from '@db-core/tableUtils'
 import { eq } from 'drizzle-orm'
+import { panic } from '@/errors'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import type {
@@ -261,7 +262,7 @@ export const bulkInsertOrDoNothingPaymentMethodsByExternalId = async (
       insert.pricingModelId ??
       pricingModelIdMap.get(insert.customerId)
     if (!pricingModelId) {
-      throw new Error(
+      panic(
         `Customer ${insert.customerId} does not have a pricingModelId`
       )
     }
@@ -304,7 +305,7 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
       insert.pricingModelId ??
       pricingModelIdMap.get(insert.customerId)
     if (!pricingModelId) {
-      throw new Error(
+      panic(
         `Customer ${insert.customerId} does not have a pricingModelId`
       )
     }
@@ -317,7 +318,7 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
   const parsedData = insertsWithPricingModelId.map((insert) => {
     const result = config.insertSchema.safeParse(insert)
     if (!result.success) {
-      throw new Error(result.error.message)
+      panic(result.error.message)
     }
     // pricingModelId is guaranteed to be set from insertsWithPricingModelId
     return result.data as PaymentMethod.Insert & {

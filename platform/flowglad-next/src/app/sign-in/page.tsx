@@ -165,10 +165,10 @@ export default function SignIn() {
   }
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full">
       {/* Title */}
       <h1 className="text-2xl font-semibold text-center mb-6">
-        Sign in to Flowglad
+        Log in to Flowglad
       </h1>
 
       {/* Social login buttons */}
@@ -187,7 +187,7 @@ export default function SignIn() {
         }}
       >
         <GoogleLogo />
-        Sign in with Google
+        Log in with Google
       </Button>
 
       {/* Or divider */}
@@ -246,7 +246,7 @@ export default function SignIn() {
             {loading || isSubmitting ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
-              'Sign in'
+              'Log in'
             )}
           </Button>
         </div>
@@ -288,7 +288,7 @@ export default function SignIn() {
         </button>
         <Link
           href="/sign-up"
-          className="hover:text-foreground transition-colors"
+          className="text-[hsl(var(--brownstone-foreground))] hover:text-[hsl(var(--citrine-foreground))] hover:underline hover:decoration-dashed transition-colors"
         >
           Sign up
         </Link>

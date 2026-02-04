@@ -3,6 +3,71 @@ import type { CacheDependencyKey } from '@/utils/cache'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 
 /**
+ * Options passed to task.trigger() when dispatching.
+ */
+export interface TriggerTaskOptions {
+  idempotencyKey?: string
+}
+
+/**
+ * Represents a trigger task invocation to be dispatched after transaction commit.
+ * Generic over the task type to preserve payload type safety.
+ */
+export interface QueuedTriggerTask<TPayload = unknown> {
+  /** User-provided key for retrieving the handle after dispatch */
+  key: string
+  /** The task to trigger */
+  task: {
+    id: string
+    trigger: (
+      payload: TPayload,
+      options?: TriggerTaskOptions
+    ) => Promise<{ id: string }>
+  }
+  /** The payload to pass to the task */
+  payload: TPayload
+  /** Options to pass to task.trigger() */
+  options?: TriggerTaskOptions
+}
+
+/**
+ * Handle returned after a trigger task is dispatched.
+ */
+export interface TriggerTaskHandle {
+  /** The Trigger.dev run ID */
+  id: string
+}
+
+/**
+ * Type-safe callback for enqueueing trigger tasks.
+ * Accepts any Trigger.dev task and its corresponding payload.
+ * The key is used to retrieve the handle after the transaction commits.
+ */
+export type EnqueueTriggerTaskCallback = <TPayload>(
+  key: string,
+  task: {
+    id: string
+    trigger: (
+      payload: TPayload,
+      options?: TriggerTaskOptions
+    ) => Promise<{ id: string }>
+  },
+  payload: TPayload,
+  options?: TriggerTaskOptions
+) => void
+
+/**
+ * Return type for comprehensive transaction functions.
+ * Contains both the user's result and any trigger handles from dispatched tasks.
+ */
+export interface TransactionResult<T> {
+  /** The result returned by the user's transaction function */
+  result: T
+  /** Handles for trigger tasks dispatched after commit, keyed by user-provided key */
+  triggerHandles: Map<string, TriggerTaskHandle>
+}
+
+/**
  * Simplified cache recomputation context.
  * Previously contained type/role information for recomputing cached values,
  * but since recomputation was removed, only livemode is needed.
@@ -48,6 +113,8 @@ export interface TransactionEffects {
   eventsToInsert: Event.Insert[]
   /** Ledger commands to process. Processed BEFORE commit (inside transaction). */
   ledgerCommands: LedgerCommand[]
+  /** Trigger tasks to dispatch after commit. */
+  triggerTasks: QueuedTriggerTask[]
 }
 
 /**
@@ -81,6 +148,16 @@ interface TransactionCallbacks {
    * enqueueLedgerCommand(creditCommand)
    */
   enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
+  /**
+   * Queue a trigger task to be dispatched after the transaction commits.
+   * The task will only be triggered if the transaction commits successfully.
+   * Use the key to retrieve the Trigger.dev handle from the result's triggerHandles map.
+   *
+   * @example
+   * ctx.enqueueTriggerTask('billingRun', attemptBillingRunTask, { billingRun }, { idempotencyKey: `billing-${id}` })
+   * // After transaction: result.triggerHandles.get('billingRun')?.id
+   */
+  enqueueTriggerTask: EnqueueTriggerTaskCallback
 }
 
 /**
@@ -97,21 +174,8 @@ export interface BaseTransactionParams {
 }
 
 /**
- * Effects fields with optional callbacks.
- * Used by standard transaction wrappers where callbacks may not be provided.
- * @internal
- */
-type OptionalEffectsFields = {
-  /**
-   * Accumulated side effects. Only available when using transaction wrappers.
-   * Prefer using the callback methods.
-   */
-  effects?: TransactionEffects
-} & Partial<TransactionCallbacks>
-
-/**
  * Effects fields with required callbacks.
- * Used by comprehensive transaction wrappers that always provide callbacks.
+ * Transaction wrappers always provide these callbacks at runtime.
  * @internal
  */
 type RequiredEffectsFields = {
@@ -145,38 +209,26 @@ export interface TransactionEffectsContext
     >,
     TransactionCallbacks {}
 
+/**
+ * Parameters for authenticated database transactions.
+ * All callback methods are required since they're always provided at runtime by the transaction wrapper.
+ */
 export interface AuthenticatedTransactionParams
   extends BaseTransactionParams,
-    OptionalEffectsFields {
+    RequiredEffectsFields {
   userId: string
   organizationId: string
 }
 
+/**
+ * Parameters for admin database transactions.
+ * All callback methods are required since they're always provided at runtime by the transaction wrapper.
+ */
 export interface AdminTransactionParams
   extends BaseTransactionParams,
-    OptionalEffectsFields {
+    RequiredEffectsFields {
   userId: 'ADMIN'
 }
-
-/**
- * Stricter version of AuthenticatedTransactionParams used by comprehensiveAuthenticatedTransaction.
- * All callback methods are required (not optional) since they're always provided at runtime.
- */
-export type ComprehensiveAuthenticatedTransactionParams = Omit<
-  AuthenticatedTransactionParams,
-  keyof OptionalEffectsFields
-> &
-  RequiredEffectsFields
-
-/**
- * Stricter version of AdminTransactionParams used by comprehensiveAdminTransaction.
- * All callback methods are required (not optional) since they're always provided at runtime.
- */
-export type ComprehensiveAdminTransactionParams = Omit<
-  AdminTransactionParams,
-  keyof OptionalEffectsFields
-> &
-  RequiredEffectsFields
 
 /**
  * No-op transaction callbacks for use in contexts where cache invalidation,
@@ -189,11 +241,12 @@ export type ComprehensiveAdminTransactionParams = Omit<
  * await someFunction(params, ctx)
  * ```
  */
-export const noopTransactionCallbacks = {
+export const noopTransactionCallbacks: TransactionCallbacks = {
   invalidateCache: () => {},
   emitEvent: () => {},
   enqueueLedgerCommand: () => {},
-} as const
+  enqueueTriggerTask: () => {},
+}
 
 /**
  * Creates a TransactionEffectsContext with noop callbacks.

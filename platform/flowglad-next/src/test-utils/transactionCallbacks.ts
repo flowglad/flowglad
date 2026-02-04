@@ -1,11 +1,14 @@
 import type { Event } from '@db-core/schema/events'
 import type { LedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type {
+  AdminTransactionParams,
+  AuthenticatedTransactionParams,
   CacheRecomputationContext,
-  ComprehensiveAdminTransactionParams,
-  ComprehensiveAuthenticatedTransactionParams,
   DbTransaction,
+  EnqueueTriggerTaskCallback,
+  TransactionEffects,
   TransactionEffectsContext,
+  TriggerTaskOptions,
 } from '@/db/types'
 import type { CacheDependencyKey } from '@/utils/cache'
 
@@ -24,6 +27,19 @@ export const noopEnqueueLedgerCommand = (
   ..._commands: LedgerCommand[]
 ): void => {}
 
+export const noopEnqueueTriggerTask = (): void => {}
+
+/**
+ * No-op effects object for use in tests that don't need to verify effects.
+ * This creates a fresh empty effects object each time it's called.
+ */
+export const createNoopEffects = (): TransactionEffects => ({
+  cacheInvalidations: [],
+  eventsToInsert: [],
+  ledgerCommands: [],
+  triggerTasks: [],
+})
+
 /**
  * Creates a TransactionEffectsContext that discards all effects.
  * Use this when the test doesn't need to verify or process callback behavior.
@@ -40,7 +56,18 @@ export function createDiscardingEffectsContext(
     invalidateCache: noopInvalidateCache,
     emitEvent: noopEmitEvent,
     enqueueLedgerCommand: noopEnqueueLedgerCommand,
+    enqueueTriggerTask: noopEnqueueTriggerTask,
   }
+}
+
+/**
+ * Captured trigger task invocation.
+ */
+export interface CapturedTriggerTask {
+  key: string
+  taskId: string
+  payload: unknown
+  options?: TriggerTaskOptions
 }
 
 /**
@@ -51,6 +78,7 @@ export interface CapturedEffects {
   cacheInvalidations: CacheDependencyKey[]
   events: Event.Insert[]
   ledgerCommands: LedgerCommand[]
+  triggerTasks: CapturedTriggerTask[]
 }
 
 /**
@@ -81,6 +109,7 @@ export function createCapturingCallbacks(): {
     invalidateCache: (...keys: CacheDependencyKey[]) => void
     emitEvent: (...events: Event.Insert[]) => void
     enqueueLedgerCommand: (...commands: LedgerCommand[]) => void
+    enqueueTriggerTask: EnqueueTriggerTaskCallback
   }
   effects: CapturedEffects
 } {
@@ -88,6 +117,7 @@ export function createCapturingCallbacks(): {
     cacheInvalidations: [],
     events: [],
     ledgerCommands: [],
+    triggerTasks: [],
   }
 
   return {
@@ -100,6 +130,14 @@ export function createCapturingCallbacks(): {
       },
       enqueueLedgerCommand: (...commands: LedgerCommand[]) => {
         effects.ledgerCommands.push(...commands)
+      },
+      enqueueTriggerTask: (key, task, payload, options) => {
+        effects.triggerTasks.push({
+          key,
+          taskId: task.id,
+          payload,
+          options,
+        })
       },
     },
     effects,
@@ -144,23 +182,21 @@ export function createCapturingEffectsContext(
  * Creates a TransactionEffectsContext that processes effects through the
  * comprehensive transaction infrastructure.
  * Use this when calling functions that expect TransactionEffectsContext from within
- * comprehensiveAdminTransaction callbacks, to ensure effects are properly processed.
+ * adminTransaction callbacks, to ensure effects are properly processed.
  *
  * @example
  * ```typescript
- * await comprehensiveAdminTransaction(async (params) => {
+ * (await adminTransaction(async (params) => {
  *   await attemptToTransitionSubscriptionBillingPeriod(
  *     billingPeriod,
  *     createProcessingEffectsContext(params)
  *   )
  *   return { result: null }
- * })
+ * }).unwrap()
  * ```
  */
 export function createProcessingEffectsContext(
-  params:
-    | ComprehensiveAdminTransactionParams
-    | ComprehensiveAuthenticatedTransactionParams
+  params: AdminTransactionParams | AuthenticatedTransactionParams
 ): TransactionEffectsContext {
   return {
     transaction: params.transaction,
@@ -168,6 +204,7 @@ export function createProcessingEffectsContext(
     invalidateCache: params.invalidateCache,
     emitEvent: params.emitEvent,
     enqueueLedgerCommand: params.enqueueLedgerCommand,
+    enqueueTriggerTask: params.enqueueTriggerTask,
   }
 }
 
@@ -223,7 +260,9 @@ export function withAdminCacheContext<
  */
 export function withDiscardingEffectsContext<
   T extends { transaction: DbTransaction; livemode: boolean },
->(params: T): T & TransactionEffectsContext {
+>(
+  params: T
+): T & TransactionEffectsContext & { effects: TransactionEffects } {
   return {
     ...params,
     cacheRecomputationContext: {
@@ -232,5 +271,7 @@ export function withDiscardingEffectsContext<
     invalidateCache: noopInvalidateCache,
     emitEvent: noopEmitEvent,
     enqueueLedgerCommand: noopEnqueueLedgerCommand,
+    enqueueTriggerTask: noopEnqueueTriggerTask,
+    effects: createNoopEffects(),
   }
 }

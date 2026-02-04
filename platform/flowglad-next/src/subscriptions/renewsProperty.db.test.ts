@@ -28,10 +28,7 @@ import {
   setupUsageCreditGrantFeature,
   setupUsageMeter,
 } from '@/../seedDatabase'
-import {
-  adminTransactionWithResult,
-  comprehensiveAdminTransaction,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 import { selectLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
@@ -81,8 +78,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
     describe('Renewing Subscriptions', () => {
       it('should create a subscription with renews: true for standard subscriptions', async () => {
         // Use default price (subscription type)
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
+        const result = (
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const stripeSetupIntentId = `si_standard_${core.nanoid()}`
             return createSubscriptionWorkflow(
@@ -102,8 +99,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               },
               createDiscardingEffectsContext(transaction)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify renewing subscription properties
         expect(result.subscription.renews).toBe(true)
@@ -124,8 +121,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should create billing period for renewing subscriptions', async () => {
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
+        const result = (
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const stripeSetupIntentId = `si_bp_${core.nanoid()}`
             return createSubscriptionWorkflow(
@@ -145,8 +142,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               },
               createDiscardingEffectsContext(transaction)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify billing period was created
         expect(result.billingPeriod).toMatchObject({})
@@ -162,8 +159,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       })
 
       it('should create billing run for renewing subscriptions with payment method', async () => {
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
+        const result = (
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const stripeSetupIntentId = `si_br_${core.nanoid()}`
             return createSubscriptionWorkflow(
@@ -183,8 +180,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               },
               createDiscardingEffectsContext(transaction)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify billing run was created
         expect(typeof result.billingRun).toBe('object')
@@ -199,8 +196,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           Date.now() + 7 * 24 * 60 * 60 * 1000
         )
 
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
+        const result = (
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const stripeSetupIntentId = `si_trial_${core.nanoid()}`
             return createSubscriptionWorkflow(
@@ -221,8 +218,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               },
               createDiscardingEffectsContext(transaction)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify trial subscription properties
         expect(result.subscription.renews).toBe(true)
@@ -261,7 +258,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Attempt to transition should return Result.err
         const result = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await attemptToTransitionSubscriptionBillingPeriod(
@@ -285,7 +282,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
         // Query initial state
         const { billingPeriods, nonRenewingSubscription } = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Create a subscription price but set renews to false to simulate non-renewing behavior
             const { subscription: nonRenewingSubscription } = (
@@ -330,7 +327,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       it('should not schedule billing runs for non-renewing subscriptions', async () => {
         // Check that no billing runs were created
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             // Create a subscription price but set renews to false to simulate non-renewing behavior
             const updatedPrice = await safelyUpdatePrice(
@@ -400,27 +397,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Transition billing period
-        const result = await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            const ctx = {
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }
+        const result = (
+          await adminTransaction(async (params) => {
             return attemptToTransitionSubscriptionBillingPeriod(
               currentBillingPeriod,
-              ctx
+              createProcessingEffectsContext(params)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify new billing period was created
         expect(
@@ -436,7 +420,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         )
         // Check that old billing period status was updated
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const allBillingPeriods = await selectBillingPeriods(
               { subscriptionId: renewingSubscription.id },
@@ -486,30 +470,17 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        const result = await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            const ctx = {
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }
+        const result = (
+          await adminTransaction(async (params) => {
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              ctx
+              createProcessingEffectsContext(params)
             )
-          }
-        )
+          })
+        ).unwrap()
         // Verify billing run was created
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const billingRuns = await selectBillingRuns(
               { subscriptionId: subscription.id },
@@ -553,27 +524,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        const result = await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            const ctx = {
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }
+        const result = (
+          await adminTransaction(async (params) => {
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              ctx
+              createProcessingEffectsContext(params)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify subscription transitioned to PastDue
         expect(result.subscription.status).toBe(
@@ -581,7 +539,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         )
         // Verify new billing period was created
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const billingPeriods = await selectBillingPeriods(
               { subscriptionId: subscription.id },
@@ -627,27 +585,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        const result = await comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            const ctx = {
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }
+        const result = (
+          await adminTransaction(async (params) => {
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              ctx
+              createProcessingEffectsContext(params)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify subscription was canceled
         expect(result.subscription.status).toBe(
@@ -656,7 +601,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(typeof result.subscription.canceledAt).toBe('number')
         // Verify no new billing period was created
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const billingPeriods = await selectBillingPeriods(
               { subscriptionId: subscription.id },
@@ -696,7 +641,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Update subscription to not renew
         const updatedSubscription = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await updateSubscription(
@@ -725,35 +670,24 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        // Attempting to transition should throw error for non-renewing subscription
-        await expect(
-          comprehensiveAdminTransaction(
-            async ({
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache,
-              emitEvent,
-              enqueueLedgerCommand,
-            }) => {
-              const ctx = {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache,
-                emitEvent,
-                enqueueLedgerCommand,
-              }
-              return attemptToTransitionSubscriptionBillingPeriod(
-                billingPeriod,
-                ctx
-              )
-            }
-          )
-        ).rejects.toThrow(
-          'Non-renewing subscriptions cannot have billing periods'
+        // Attempting to transition should return error for non-renewing subscription
+        const transitionResult = await adminTransaction(
+          async (params) => {
+            return attemptToTransitionSubscriptionBillingPeriod(
+              billingPeriod,
+              createProcessingEffectsContext(params)
+            )
+          }
         )
+        expect(Result.isError(transitionResult)).toBe(true)
+        if (Result.isError(transitionResult)) {
+          expect(transitionResult.error.message).toContain(
+            'Non-renewing subscriptions cannot have billing periods'
+          )
+        }
         // Should not create new billing period for non-renewing
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const billingPeriods = await selectBillingPeriods(
               { subscriptionId: subscription.id },
@@ -806,8 +740,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Create subscription with credit trial
-        const result = await comprehensiveAdminTransaction(
-          async (params) => {
+        const result = (
+          await adminTransaction(async (params) => {
             return createSubscriptionWorkflow(
               {
                 organization,
@@ -824,8 +758,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               },
               createProcessingEffectsContext(params)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify subscription state
         expect(result.subscription.status).toBe(
@@ -834,7 +768,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(result.subscription.renews).toBe(false)
         // Check for initial credits
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const credits = await selectUsageCredits(
               { subscriptionId: result.subscription.id },
@@ -895,7 +829,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Check initial credits
         const initialCredits = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await selectUsageCredits(
@@ -913,7 +847,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
 
         // Wait and check again - no new credits should appear
         const laterCredits = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await selectUsageCredits(
@@ -1054,8 +988,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         })
 
         // Create credit trial subscription WITH payment method
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
+        const result = (
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return createSubscriptionWorkflow(
               {
@@ -1074,8 +1008,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               },
               createDiscardingEffectsContext(transaction)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify no billing run was created
         expect(result.billingRun).toBeNull()
@@ -1085,7 +1019,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(result.subscription.renews).toBe(false)
         // Double-check database
         ;(
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             const billingRuns = await selectBillingRuns(
               { subscriptionId: result.subscription.id },
@@ -1102,7 +1036,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       it('should create billing runs at period start for subscription prices', async () => {
         // Ensure price is subscription type
         const subscriptionPrice = (
-          await adminTransactionWithResult(async (ctx) => {
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return Result.ok(
               await updatePrice(
@@ -1117,8 +1051,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         ).unwrap()
 
         // Create renewing subscription
-        const result = await comprehensiveAdminTransaction(
-          async (ctx) => {
+        const result = (
+          await adminTransaction(async (ctx) => {
             const { transaction } = ctx
             return createSubscriptionWorkflow(
               {
@@ -1137,8 +1071,8 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
               },
               createDiscardingEffectsContext(transaction)
             )
-          }
-        )
+          })
+        ).unwrap()
 
         // Verify subscription is renewing
         expect(result.subscription.renews).toBe(true)
@@ -1227,7 +1161,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
       )
       // Verify no billing periods exist
       ;(
-        await adminTransactionWithResult(async (ctx) => {
+        await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           const billingPeriods = await selectBillingPeriods(
             { subscriptionId: nonRenewingSubscription.id },

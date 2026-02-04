@@ -65,7 +65,7 @@ const CreatePricingModelModal: React.FC<
   const form = useForm<CreatePricingModelInput>({
     resolver: zodResolver(createPricingModelSchema),
     defaultValues: {
-      pricingModel: { name: '', isDefault: true },
+      pricingModel: { name: '', isDefault: false },
       defaultPlanIntervalUnit: IntervalUnit.Month,
     },
     mode: 'onSubmit',
@@ -115,7 +115,7 @@ const CreatePricingModelModal: React.FC<
     setSelectedTemplate(null)
     setParsedYamlData(null)
     form.reset({
-      pricingModel: { name: '', isDefault: true },
+      pricingModel: { name: '', isDefault: false },
       defaultPlanIntervalUnit: IntervalUnit.Month,
     })
   }
@@ -146,18 +146,14 @@ const CreatePricingModelModal: React.FC<
     setCurrentView('selector')
   }
 
-  const handleConfirmTemplate = async ({
-    isDefault,
-  }: {
-    isDefault: boolean
-  }) => {
+  const handleConfirmTemplate = async () => {
     if (!selectedTemplate) return
 
     // Modify template name to be unique for this user
     const customizedInput = {
       ...selectedTemplate.input,
       name: generateTemplateName(selectedTemplate.input.name),
-      isDefault,
+      isDefault: false,
     }
 
     await setupPricingModelMutation.mutateAsync(customizedInput)

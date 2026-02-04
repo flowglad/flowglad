@@ -1,9 +1,10 @@
 import { z } from 'zod'
+import { panic } from '@/errors'
 
 // Enforce single-value semantics for pagination params. Duplicate values are rejected.
 const singleOrError = (paramName: string) => (v: unknown) => {
   if (Array.isArray(v)) {
-    throw new Error(`Multiple '${paramName}' values are not allowed`)
+    panic(`Multiple '${paramName}' values are not allowed`)
   }
   return v
 }
@@ -44,7 +45,7 @@ export const parseAndValidateCursor = (
     const decoded = JSON.parse(raw)
     return cursorPayloadSchema.parse(decoded)
   } catch (err) {
-    throw new Error('Invalid cursor')
+    panic('Invalid cursor')
   }
 }
 
@@ -68,6 +69,6 @@ export const parseAndValidateLegacyCursor = (
     const decoded = JSON.parse(raw)
     return legacyCursorPayloadSchema.parse(decoded)
   } catch (err) {
-    throw new Error('Invalid legacy cursor')
+    panic('Invalid legacy cursor')
   }
 }

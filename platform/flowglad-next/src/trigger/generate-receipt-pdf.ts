@@ -1,4 +1,5 @@
 import { task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectInvoiceById,
@@ -19,8 +20,8 @@ export const generatePaymentReceiptPdfTask = task({
     return tracedTaskRun(
       'generateReceiptPdf',
       async () => {
-        const { payment, invoice } = await adminTransaction(
-          async ({ transaction }) => {
+        const { payment, invoice } = (
+          await adminTransaction(async ({ transaction }) => {
             const payment = (
               await selectPaymentById(paymentId, transaction)
             ).unwrap()
@@ -32,9 +33,9 @@ export const generatePaymentReceiptPdfTask = task({
                   )
                 ).unwrap()
               : null
-            return { payment, invoice }
-          }
-        )
+            return Result.ok({ payment, invoice })
+          })
+        ).unwrap()
         if (!invoice) {
           return {
             message: `Invoice not found for payment: ${payment.id}`,
@@ -59,24 +60,28 @@ export const generatePaymentReceiptPdfTask = task({
           key,
           cloudflareMethods.BUCKET_PUBLIC_URL
         )
-        await adminTransaction(async ({ transaction }) => {
-          if (invoice) {
-            await updateInvoice(
-              {
-                ...invoice,
-                receiptPdfURL: receiptURL,
-              },
-              transaction
+        ;(
+          await adminTransaction(async ({ transaction }) => {
+            if (invoice) {
+              await updateInvoice(
+                {
+                  ...invoice,
+                  receiptPdfURL: receiptURL,
+                },
+                transaction
+              )
+            }
+            return Result.ok(
+              await updatePayment(
+                {
+                  id: payment.id,
+                  receiptURL,
+                },
+                transaction
+              )
             )
-          }
-          return updatePayment(
-            {
-              id: payment.id,
-              receiptURL,
-            },
-            transaction
-          )
-        })
+          })
+        ).unwrap()
 
         return {
           message: `Receipt PDF generated successfully: ${payment.id}`,

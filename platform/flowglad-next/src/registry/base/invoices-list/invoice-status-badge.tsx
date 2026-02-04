@@ -45,6 +45,7 @@ export function InvoiceStatusBadge({
     // Exhaustiveness check to catch future changes to InvoiceStatus
     // @ts-expect-error - This is a catch-all for future changes to InvoiceStatus
     const _exhaustiveStatus: never = status
+    // biome-ignore lint/plugin: Exhaustive switch check - unreachable by design
     throw new Error(`Unhandled invoice status: ${_exhaustiveStatus}`)
   }
 

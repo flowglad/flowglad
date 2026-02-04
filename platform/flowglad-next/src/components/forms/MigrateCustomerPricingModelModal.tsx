@@ -50,9 +50,6 @@ const MigrateCustomerPricingModelModal = ({
 
   const { data: pricingModels, isLoading: isLoadingPricingModels } =
     useListPricingModelsQuery()
-  const { data: defaultPricingModel } =
-    trpc.pricingModels.getDefault.useQuery({})
-  const defaultPricingModelId = defaultPricingModel?.pricingModel.id
 
   const migratePricingModel =
     trpc.customers.migratePricingModel.useMutation({
@@ -143,10 +140,6 @@ const MigrateCustomerPricingModelModal = ({
                     >
                       <span className="flex items-center gap-2">
                         {pricingModel.name}
-                        {pricingModel.id ===
-                          defaultPricingModelId && (
-                          <Badge variant="outline">Default</Badge>
-                        )}
                         {pricingModel.id ===
                           customer.pricingModelId && (
                           <Badge variant="secondary">Current</Badge>

@@ -222,38 +222,40 @@ export const calculateInvoiceTotalsRaw = (
 export const fetchDiscountInfoForInvoice = async (
   invoice: any
 ): Promise<DiscountInfo | null> => {
-  return await adminTransaction(async ({ transaction }) => {
-    if (!invoice.billingPeriodId) {
-      return null
-    }
+  return (
+    await adminTransaction(async ({ transaction }) => {
+      if (!invoice.billingPeriodId) {
+        return Result.ok(null)
+      }
 
-    const billingPeriodResult = await selectBillingPeriodById(
-      invoice.billingPeriodId,
-      transaction
-    )
+      const billingPeriodResult = await selectBillingPeriodById(
+        invoice.billingPeriodId,
+        transaction
+      )
 
-    if (Result.isError(billingPeriodResult)) {
-      return null
-    }
-    const billingPeriod = billingPeriodResult.value
+      if (Result.isError(billingPeriodResult)) {
+        return Result.ok(null)
+      }
+      const billingPeriod = billingPeriodResult.value
 
-    const discountRedemptions = await selectDiscountRedemptions(
-      { subscriptionId: billingPeriod.subscriptionId },
-      transaction
-    )
+      const discountRedemptions = await selectDiscountRedemptions(
+        { subscriptionId: billingPeriod.subscriptionId },
+        transaction
+      )
 
-    if (discountRedemptions.length === 0) {
-      return null
-    }
+      if (discountRedemptions.length === 0) {
+        return Result.ok(null)
+      }
 
-    const discount = discountRedemptions[0]
-    return {
-      discountName: discount.discountName,
-      discountCode: discount.discountCode,
-      discountAmount: discount.discountAmount,
-      discountAmountType: discount.discountAmountType,
-    }
-  })
+      const discount = discountRedemptions[0]
+      return Result.ok({
+        discountName: discount.discountName,
+        discountCode: discount.discountCode,
+        discountAmount: discount.discountAmount,
+        discountAmountType: discount.discountAmountType,
+      })
+    })
+  ).unwrap()
 }
 
 export interface InvoiceTotals {

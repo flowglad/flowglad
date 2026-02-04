@@ -1,6 +1,6 @@
 import { Result } from 'better-result'
 import { redirect } from 'next/navigation'
-import { authenticatedTransactionWithResult } from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import { getStripeOAuthUrl } from '@/utils/stripe'
 import {
@@ -10,7 +10,7 @@ import {
 
 export default async function StripeOAuthPage() {
   const result = (
-    await authenticatedTransactionWithResult(
+    await authenticatedTransaction(
       async ({ transaction, userId }) => {
         const focusedMembership =
           await selectFocusedMembershipAndOrganization(

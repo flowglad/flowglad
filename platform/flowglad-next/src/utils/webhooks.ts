@@ -3,6 +3,7 @@ import type { Webhook } from '@db-core/schema/webhooks'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { insertWebhook } from '@/db/tableMethods/webhookMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import {
   createSvixEndpoint,
   findOrCreateSvixApplication,
@@ -48,9 +49,7 @@ export const createWebhookTransaction = async ({
     pricingModel.organizationId !== organization.id ||
     pricingModel.livemode !== livemode
   ) {
-    throw new Error(
-      'Invalid pricing model for this organization and mode'
-    )
+    panic('Invalid pricing model for this organization and mode')
   }
 
   // Create PM-scoped Svix app (lazy creation)

@@ -82,6 +82,25 @@ export const runBiomeLint = async (
   const absolutePackagePath = resolve(repoRoot, packagePath)
   const absolutePluginPath = resolve(repoRoot, pluginPath)
 
+  // File patterns in .lint-ratchet.json are relative to the package (e.g., "src/**/*.ts")
+  // But biome's overrides.includes are relative to the config file location (repo root)
+  // So we need to prefix patterns with the package path
+  const prefixedFilePatterns = filePatterns.map((pattern) =>
+    pattern.startsWith('!')
+      ? `!${packagePath}/${pattern.slice(1)}`
+      : `${packagePath}/${pattern}`
+  )
+
+  // Also prefix exclude patterns and add them as negation patterns to includes
+  // This prevents biome from processing excluded files (more efficient than post-filtering)
+  const prefixedExcludes = exclude.map((pattern) => {
+    // Handle patterns that already have negation or wildcards
+    const cleanPattern = pattern.startsWith('!')
+      ? pattern.slice(1)
+      : pattern
+    return `!${packagePath}/${cleanPattern}`
+  })
+
   // Create a temporary biome config that only uses the specified plugin
   // Note: We pass the package directory to biome (not glob patterns) and let
   // overrides.includes filter which files the plugin applies to
@@ -96,7 +115,7 @@ export const runBiomeLint = async (
     },
     overrides: [
       {
-        includes: filePatterns,
+        includes: [...prefixedFilePatterns, ...prefixedExcludes],
         plugins: [absolutePluginPath],
       },
     ],

@@ -17,14 +17,15 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { useSession } from '@/utils/authClient'
+import { useCustomerSession } from '@/utils/authClient'
 
 export default function CustomerBillingPortalOTPSignIn() {
   const params = useParams()
   const router = useRouter()
   const organizationId = params.organizationId as string
   const customerId = params.customerId as string
-  const { data: session, isPending: sessionPending } = useSession()
+  const { data: session, isPending: sessionPending } =
+    useCustomerSession()
 
   const [otp, setOtp] = useState('')
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null)
@@ -220,7 +221,7 @@ export default function CustomerBillingPortalOTPSignIn() {
         <Card className="max-w-lg lg:w-96 w-full">
           <CardHeader>
             <CardTitle className="text-lg md:text-xl">
-              Sign In to Billing Portal
+              Log In to Billing Portal
             </CardTitle>
             <CardDescription>
               Enter your email to receive a magic link
@@ -278,7 +279,7 @@ export default function CustomerBillingPortalOTPSignIn() {
       <Card className="max-w-lg lg:w-96 w-full">
         <CardHeader>
           <CardTitle className="text-lg md:text-xl">
-            Sign In to Billing Portal
+            Log In to Billing Portal
           </CardTitle>
           <CardDescription>{getCardDescription()}</CardDescription>
         </CardHeader>

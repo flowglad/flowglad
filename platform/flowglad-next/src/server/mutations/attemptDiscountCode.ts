@@ -2,7 +2,7 @@ import { CheckoutSessionType } from '@db-core/enums'
 import { attemptDiscountCodeInputSchema } from '@db-core/schema/discounts'
 import { Result } from 'better-result'
 import * as R from 'ramda'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import {
@@ -30,7 +30,7 @@ export const attemptDiscountCode = publicProcedure
             type: CheckoutSessionType.Purchase,
           }
 
-    const result = await adminTransactionWithResult(async (ctx) => {
+    const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       if ('invoiceId' in input) {
         return Result.err(

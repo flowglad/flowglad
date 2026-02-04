@@ -12,6 +12,7 @@
  * 4. Resource Amount Zero Edge Case - Verify claim operations fail
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
   BillingPeriodStatus,
   IntervalUnit,
@@ -20,7 +21,6 @@ import {
 } from '@db-core/enums'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -36,10 +36,7 @@ import {
   setupSubscriptionItem,
   teardownOrg,
 } from '@/../seedDatabase'
-import {
-  adminTransaction,
-  adminTransactionWithResult,
-} from '@/db/adminTransaction'
+import { adminTransaction } from '@/db/adminTransaction'
 import { countActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { claimResourceTransaction } from '@/resources/resourceClaimHelpers'
@@ -165,7 +162,7 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Get subscription item to create feature
     const subscriptionItems = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await selectSubscriptionItems(
@@ -209,21 +206,19 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Create first claim
     const firstResult = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  externalId,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                externalId,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -236,21 +231,19 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Try to create same claim again
     const secondResult = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  externalId,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                externalId,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -275,7 +268,6 @@ describe('Resource Capacity Integration Tests', () => {
     for (let i = 0; i < 5; i++) {
       await setupResourceClaim({
         organizationId,
-        subscriptionItemFeatureId,
         resourceId,
         subscriptionId,
         pricingModelId,
@@ -285,7 +277,7 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Verify we're at capacity
     const claimCount = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await countActiveResourceClaims(
@@ -317,7 +309,6 @@ describe('Resource Capacity Integration Tests', () => {
     for (let i = 0; i < 5; i++) {
       await setupResourceClaim({
         organizationId,
-        subscriptionItemFeatureId,
         resourceId,
         subscriptionId,
         pricingModelId,
@@ -326,25 +317,28 @@ describe('Resource Capacity Integration Tests', () => {
     }
 
     // Try to create one more claim
-    await expect(
-      adminTransaction(
-        async ({ transaction }) => {
-          await claimResourceTransaction(
-            {
-              organizationId,
-              customerId,
-              input: {
-                resourceSlug,
-                subscriptionId,
-                quantity: 1,
-              },
+    const result = await adminTransaction(
+      async ({ transaction }) => {
+        return claimResourceTransaction(
+          {
+            organizationId,
+            customerId,
+            input: {
+              resourceSlug,
+              subscriptionId,
+              quantity: 1,
             },
-            transaction
-          )
-        },
-        { livemode }
-      )
-    ).rejects.toThrow(/No available capacity/)
+          },
+          transaction
+        )
+      },
+      { livemode }
+    )
+
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toMatch(/No available capacity/)
+    }
   })
 
   // ===========================================================================
@@ -355,21 +349,19 @@ describe('Resource Capacity Integration Tests', () => {
     const externalIds = ['batch-1', 'batch-2', 'batch-3']
 
     const result = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  externalIds,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                externalIds,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -397,21 +389,19 @@ describe('Resource Capacity Integration Tests', () => {
   it('handles both anonymous and named claims correctly', async () => {
     // Create named claims
     const namedClaim = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  externalId: 'named-claim',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                externalId: 'named-claim',
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -422,21 +412,19 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Create anonymous claims
     const anonymousClaims = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId,
-                customerId,
-                input: {
-                  resourceSlug,
-                  subscriptionId,
-                  quantity: 2,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId,
+              customerId,
+              input: {
+                resourceSlug,
+                subscriptionId,
+                quantity: 2,
               },
-              transaction
-            )
+            },
+            transaction
           )
         },
         { livemode }
@@ -459,7 +447,6 @@ describe('Resource Capacity Integration Tests', () => {
     // Create and then manually release a claim by setting up a released claim
     await setupResourceClaim({
       organizationId,
-      subscriptionItemFeatureId,
       resourceId,
       subscriptionId,
       pricingModelId,
@@ -468,7 +455,7 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Count active claims
     const activeCount = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await countActiveResourceClaims(
@@ -487,7 +474,6 @@ describe('Resource Capacity Integration Tests', () => {
     for (let i = 0; i < 4; i++) {
       await setupResourceClaim({
         organizationId,
-        subscriptionItemFeatureId,
         resourceId,
         subscriptionId,
         pricingModelId,
@@ -497,7 +483,7 @@ describe('Resource Capacity Integration Tests', () => {
 
     // Now at capacity (5)
     const fullCount = (
-      await adminTransactionWithResult(
+      await adminTransaction(
         async ({ transaction }) => {
           return Result.ok(
             await countActiveResourceClaims(

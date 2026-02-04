@@ -6,6 +6,14 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@db-core/enums'
+import type { BillingPeriod } from '@db-core/schema/billingPeriods'
+import type { Customer } from '@db-core/schema/customers'
+import type { Organization } from '@db-core/schema/organizations'
+import type { PaymentMethod } from '@db-core/schema/paymentMethods'
+import type { Price } from '@db-core/schema/prices'
+import type { PricingModel } from '@db-core/schema/pricingModels'
+import type { Product } from '@db-core/schema/products'
+import type { Subscription } from '@db-core/schema/subscriptions'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
 import {
@@ -17,15 +25,7 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransactionWithResult } from '@/db/adminTransaction'
-import type { BillingPeriod } from '@/db/schema/billingPeriods'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
-import type { PricingModel } from '@/db/schema/pricingModels'
-import type { Product } from '@/db/schema/products'
-import type { Subscription } from '@/db/schema/subscriptions'
+import { adminTransaction } from '@/db/adminTransaction'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { calculateAdjustmentPreview } from '@/subscriptions/adjustSubscription'
 import { SubscriptionAdjustmentTiming } from '@/types'
@@ -61,8 +61,6 @@ describe('previewAdjustSubscription', () => {
       organizationId: organization.id,
       customerId: customer.id,
       priceId: price.id,
-      productId: product.id,
-      pricingModelId: pricingModel.id,
       status: SubscriptionStatus.Active,
       defaultPaymentMethodId: paymentMethod.id,
     })
@@ -74,7 +72,6 @@ describe('previewAdjustSubscription', () => {
 
     billingPeriod = await setupBillingPeriod({
       subscriptionId: subscription.id,
-      organizationId: organization.id,
       status: BillingPeriodStatus.Active,
       startDate: periodStart,
       endDate: periodEnd,
@@ -83,16 +80,16 @@ describe('previewAdjustSubscription', () => {
     await setupSubscriptionItem({
       subscriptionId: subscription.id,
       priceId: price.id,
+      name: price.name ?? 'Test Price',
       quantity: 1,
       unitPrice: price.unitPrice,
-      pricingModelId: pricingModel.id,
     })
   })
 
   describe('when subscription is in invalid state', () => {
     it('returns canAdjust: false for terminal state subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           // Cancel the subscription to put it in terminal state
           await updateSubscription(
             {
@@ -108,6 +105,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -130,7 +128,7 @@ describe('previewAdjustSubscription', () => {
 
     it('returns canAdjust: false for non-renewing subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -144,6 +142,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -166,7 +165,7 @@ describe('previewAdjustSubscription', () => {
 
     it('returns canAdjust: false for doNotCharge subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -181,6 +180,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -203,7 +203,7 @@ describe('previewAdjustSubscription', () => {
 
     it('returns canAdjust: false for free plan subscription', async () => {
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -218,6 +218,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: price.id,
@@ -255,12 +256,13 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: higherPrice.id,
@@ -305,7 +307,7 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
@@ -352,12 +354,13 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: higherPrice.id,
@@ -395,12 +398,13 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: lowerPrice.id,
@@ -439,12 +443,13 @@ describe('previewAdjustSubscription', () => {
       })
 
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           const result = await calculateAdjustmentPreview(
             {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceSlug: 'slugged-plan-test',
@@ -486,7 +491,7 @@ describe('previewAdjustSubscription', () => {
 
       // Remove payment method from subscription and test
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -502,6 +507,7 @@ describe('previewAdjustSubscription', () => {
               id: subscription.id,
               adjustment: {
                 timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
                 newSubscriptionItems: [
                   {
                     priceId: higherPrice.id,
@@ -538,7 +544,7 @@ describe('previewAdjustSubscription', () => {
 
       // Remove payment method from subscription and test
       ;(
-        await adminTransactionWithResult(async ({ transaction }) => {
+        await adminTransaction(async ({ transaction }) => {
           await updateSubscription(
             {
               id: subscription.id,
@@ -576,4 +582,89 @@ describe('previewAdjustSubscription', () => {
 
   // Note: Resource capacity validation tests are covered in adjustSubscription.db.test.ts
   // since calculateAdjustmentPreview shares the same validation logic
+
+  describe('when pending changes exist', () => {
+    it('returns canAdjust: false when a scheduled adjustment already exists', async () => {
+      const futureTimestamp = Date.now() + 86400000 // 1 day from now
+
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              scheduledAdjustmentAt: futureTimestamp,
+              renews: true,
+            },
+            transaction
+          )
+
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+                newSubscriptionItems: [
+                  {
+                    priceId: price.id,
+                    quantity: 2,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain('scheduled adjustment')
+            expect(result.reason).toContain('already pending')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+
+    it('returns canAdjust: false when a cancellation is scheduled', async () => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: subscription.id,
+              status: SubscriptionStatus.CancellationScheduled,
+              cancelScheduledAt: billingPeriod.endDate,
+              renews: true,
+            },
+            transaction
+          )
+
+          const result = await calculateAdjustmentPreview(
+            {
+              id: subscription.id,
+              adjustment: {
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+                newSubscriptionItems: [
+                  {
+                    priceId: price.id,
+                    quantity: 2,
+                  },
+                ],
+              },
+            },
+            transaction
+          )
+
+          expect(result.canAdjust).toBe(false)
+          if (!result.canAdjust) {
+            expect(result.reason).toContain(
+              'cancellation is scheduled'
+            )
+            expect(result.reason).toContain('Uncancel')
+          }
+          return Result.ok(undefined)
+        })
+      ).unwrap()
+    })
+  })
 })
