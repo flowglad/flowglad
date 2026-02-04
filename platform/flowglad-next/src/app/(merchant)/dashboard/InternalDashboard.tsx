@@ -174,7 +174,11 @@ function InternalDashboardPage({
               onOpenChange={setIsPopoverOpen}
             >
               <PopoverTrigger asChild>
-                <Button size="icon" className="aspect-square">
+                <Button
+                  size="icon"
+                  className="aspect-square"
+                  aria-label="Open quick create menu"
+                >
                   <Plus />
                 </Button>
               </PopoverTrigger>
@@ -234,7 +238,7 @@ function InternalDashboardPage({
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
         defaultPricingModelId={focusedPricingModelId}
-        hidePricingModelSelect
+        hidePricingModelSelect={Boolean(focusedPricingModelId)}
       />
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}

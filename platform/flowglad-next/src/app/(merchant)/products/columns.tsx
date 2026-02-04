@@ -62,6 +62,19 @@ function ProductActionsMenu({
   const hasUsagePrice = prices.some((price) => price.type === 'usage')
   const isArchived = !product.active
 
+  const getCopyLinkHelperText = () => {
+    if (isArchived) {
+      return 'Cannot copy purchase link for archived products'
+    }
+    if (product.default) {
+      return 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
+    }
+    if (hasUsagePrice) {
+      return 'Cannot copy checkout link for products with usage-based pricing.'
+    }
+    return undefined
+  }
+
   const actionItems: ActionMenuItem[] = [
     {
       label: 'Edit',
@@ -77,13 +90,7 @@ function ProductActionsMenu({
       icon: <Copy className="h-4 w-4" />,
       handler: copyPurchaseLinkHandler,
       disabled: product.default || hasUsagePrice || isArchived,
-      helperText: isArchived
-        ? 'Cannot copy purchase link for archived products'
-        : product.default
-          ? 'Cannot copy checkout link for default products. Default products are automatically assigned to customers.'
-          : hasUsagePrice
-            ? 'Cannot copy checkout link for products with usage-based pricing.'
-            : undefined,
+      helperText: getCopyLinkHelperText(),
     },
   ]
 

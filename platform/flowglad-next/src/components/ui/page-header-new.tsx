@@ -202,7 +202,7 @@ export function PageHeaderNew({
           {description && (
             <div
               className={cn(
-                'font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-nowrap',
+                'font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-normal break-words',
                 // Only take full width when no badges - allows justify-between to work in description content
                 // When badges exist, stay inline with them
                 badges.length === 0 && 'w-full'
