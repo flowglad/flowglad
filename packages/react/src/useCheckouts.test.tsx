@@ -13,9 +13,7 @@ import {
 import { act, renderHook } from '@testing-library/react'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
-
-// TODO: Uncomment when hook is implemented
-// import { useCheckouts } from './useCheckouts'
+import { useCheckouts } from './useCheckouts'
 
 // Mock checkout session response
 const mockCheckoutSessionResponse = {
@@ -108,39 +106,273 @@ describe('useCheckouts', () => {
     mockFetch.mockReset()
   })
 
-  it.skip('createCheckoutSession calls API with params', () => {
-    // TODO: Implement in Patch 2
+  it('createCheckoutSession calls API with params', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve(mockCheckoutSessionResponse),
+    })
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(),
+    })
+
+    await act(async () => {
+      await result.current.createCheckoutSession({
+        priceSlug: 'pro-monthly',
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+      })
+    })
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    const [url, options] = mockFetch.mock.calls[0]
+    expect(url).toBe(
+      'https://test.example.com/api/flowglad/checkout-sessions/create'
+    )
+    expect(options.method).toBe('POST')
+    expect(options.headers['Content-Type']).toBe('application/json')
+
+    const body = JSON.parse(options.body)
+    expect(body.priceSlug).toBe('pro-monthly')
+    expect(body.successUrl).toBe('https://example.com/success')
+    expect(body.cancelUrl).toBe('https://example.com/cancel')
+    expect(body.type).toBe('product')
   })
 
-  it.skip('createCheckoutSession returns checkout session', () => {
-    // TODO: Implement in Patch 2
+  it('createCheckoutSession returns checkout session', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve(mockCheckoutSessionResponse),
+    })
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(),
+    })
+
+    let response: Awaited<
+      ReturnType<typeof result.current.createCheckoutSession>
+    >
+    await act(async () => {
+      response = await result.current.createCheckoutSession({
+        priceSlug: 'pro-monthly',
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+      })
+    })
+
+    expect(response!).toEqual({
+      id: 'cs_test_123',
+      url: 'https://checkout.stripe.com/test-session',
+    })
   })
 
-  it.skip('createCheckoutSession returns mock in dev mode', () => {
-    // TODO: Implement in Patch 2
+  it('createCheckoutSession returns mock in dev mode', async () => {
+    const billingMocks = createMockBillingData()
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(true, billingMocks),
+    })
+
+    let response: Awaited<
+      ReturnType<typeof result.current.createCheckoutSession>
+    >
+    await act(async () => {
+      response = await result.current.createCheckoutSession({
+        priceSlug: 'pro-monthly',
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+      })
+    })
+
+    expect(mockFetch).not.toHaveBeenCalled()
+    expect(response!).toEqual({
+      id: 'mock_checkout_session',
+      url: 'https://checkout.stripe.com/mock',
+    })
   })
 
-  it.skip('createAddPaymentMethodCheckoutSession calls API', () => {
-    // TODO: Implement in Patch 2
+  it('createAddPaymentMethodCheckoutSession calls API', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve(mockCheckoutSessionResponse),
+    })
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(),
+    })
+
+    await act(async () => {
+      await result.current.createAddPaymentMethodCheckoutSession({
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+      })
+    })
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    const [url, options] = mockFetch.mock.calls[0]
+    expect(url).toBe(
+      'https://test.example.com/api/flowglad/checkout-sessions/create-add-payment-method'
+    )
+    expect(options.method).toBe('POST')
   })
 
-  it.skip('createAddPaymentMethodCheckoutSession works with no params', () => {
-    // TODO: Implement in Patch 2
+  it('createAddPaymentMethodCheckoutSession works with no params', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve(mockCheckoutSessionResponse),
+    })
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(),
+    })
+
+    let response: Awaited<
+      ReturnType<
+        typeof result.current.createAddPaymentMethodCheckoutSession
+      >
+    >
+    await act(async () => {
+      response =
+        await result.current.createAddPaymentMethodCheckoutSession()
+    })
+
+    const [, options] = mockFetch.mock.calls[0]
+    const body = JSON.parse(options.body)
+    expect(body).toEqual({})
+
+    expect(response!).toEqual({
+      id: 'cs_test_123',
+      url: 'https://checkout.stripe.com/test-session',
+    })
   })
 
-  it.skip('createAddPaymentMethodCheckoutSession returns mock in dev mode', () => {
-    // TODO: Implement in Patch 2
+  it('createAddPaymentMethodCheckoutSession returns mock in dev mode', async () => {
+    const billingMocks = createMockBillingData()
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(true, billingMocks),
+    })
+
+    let response: Awaited<
+      ReturnType<
+        typeof result.current.createAddPaymentMethodCheckoutSession
+      >
+    >
+    await act(async () => {
+      response =
+        await result.current.createAddPaymentMethodCheckoutSession({
+          successUrl: 'https://example.com/success',
+          cancelUrl: 'https://example.com/cancel',
+        })
+    })
+
+    expect(mockFetch).not.toHaveBeenCalled()
+    expect(response!).toEqual({
+      id: 'mock_add_pm_session',
+      url: 'https://checkout.stripe.com/mock-add-pm',
+    })
   })
 
-  it.skip('createActivateSubscriptionCheckoutSession calls API', () => {
-    // TODO: Implement in Patch 2
+  it('createActivateSubscriptionCheckoutSession calls API', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve(mockCheckoutSessionResponse),
+    })
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(),
+    })
+
+    let response: Awaited<
+      ReturnType<
+        typeof result.current.createActivateSubscriptionCheckoutSession
+      >
+    >
+    await act(async () => {
+      response =
+        await result.current.createActivateSubscriptionCheckoutSession(
+          {
+            targetSubscriptionId: 'sub_123',
+            successUrl: 'https://example.com/success',
+            cancelUrl: 'https://example.com/cancel',
+          }
+        )
+    })
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    const [url, options] = mockFetch.mock.calls[0]
+    expect(url).toBe(
+      'https://test.example.com/api/flowglad/checkout-sessions/create-activate-subscription'
+    )
+    expect(options.method).toBe('POST')
+
+    const body = JSON.parse(options.body)
+    expect(body.targetSubscriptionId).toBe('sub_123')
+    expect(body.successUrl).toBe('https://example.com/success')
+    expect(body.cancelUrl).toBe('https://example.com/cancel')
+
+    expect(response!).toEqual({
+      id: 'cs_test_123',
+      url: 'https://checkout.stripe.com/test-session',
+    })
   })
 
-  it.skip('createActivateSubscriptionCheckoutSession returns mock in dev mode', () => {
-    // TODO: Implement in Patch 2
+  it('createActivateSubscriptionCheckoutSession returns mock in dev mode', async () => {
+    const billingMocks = createMockBillingData()
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(true, billingMocks),
+    })
+
+    let response: Awaited<
+      ReturnType<
+        typeof result.current.createActivateSubscriptionCheckoutSession
+      >
+    >
+    await act(async () => {
+      response =
+        await result.current.createActivateSubscriptionCheckoutSession(
+          {
+            targetSubscriptionId: 'sub_123',
+            successUrl: 'https://example.com/success',
+            cancelUrl: 'https://example.com/cancel',
+          }
+        )
+    })
+
+    expect(mockFetch).not.toHaveBeenCalled()
+    expect(response!).toEqual({
+      id: 'mock_activate_sub_session',
+      url: 'https://checkout.stripe.com/mock-activate',
+    })
   })
 
-  it.skip('handles API errors', () => {
-    // TODO: Implement in Patch 2
+  it('handles API errors', async () => {
+    const errorResponse = {
+      error: {
+        code: 'INVALID_PRICE',
+        json: { message: 'Price not found' },
+      },
+    }
+    mockFetch.mockResolvedValueOnce({
+      json: () => Promise.resolve(errorResponse),
+    })
+
+    const { result } = renderHook(() => useCheckouts(), {
+      wrapper: createWrapper(),
+    })
+
+    let response: Awaited<
+      ReturnType<typeof result.current.createCheckoutSession>
+    >
+    await act(async () => {
+      response = await result.current.createCheckoutSession({
+        priceSlug: 'nonexistent-price',
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel',
+      })
+    })
+
+    expect(response!).toEqual({
+      error: {
+        code: 'INVALID_PRICE',
+        json: { message: 'Price not found' },
+      },
+    })
   })
 })

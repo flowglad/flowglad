@@ -14,6 +14,11 @@ export { FlowgladProvider } from './FlowgladProvider'
 export { invalidateCustomerData } from './lib/invalidation'
 export { humanReadableCurrencyAmount } from './lib/utils'
 export {
+  type CreateCheckoutSessionResponse,
+  type UseCheckoutsResult,
+  useCheckouts,
+} from './useCheckouts'
+export {
   CUSTOMER_DETAILS_QUERY_KEY,
   type UseCustomerDetailsResult,
   useCustomerDetails,
