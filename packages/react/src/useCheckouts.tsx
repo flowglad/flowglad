@@ -114,25 +114,58 @@ export const useCheckouts = (): UseCheckoutsResult => {
       baseURL,
       betterAuthBasePath
     )
-    const response = await fetch(
-      `${flowgladRoute}/${FlowgladActionKey.CreateCheckoutSession}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...requestConfig?.headers,
-        },
-        body: JSON.stringify({
-          ...params,
-          type: 'product',
-        }),
-      }
-    )
 
-    const json: {
+    let response: Response
+    try {
+      response = await fetch(
+        `${flowgladRoute}/${FlowgladActionKey.CreateCheckoutSession}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...requestConfig?.headers,
+          },
+          body: JSON.stringify({
+            ...params,
+            type: 'product',
+          }),
+        }
+      )
+    } catch (error) {
+      return {
+        error: {
+          code: 'NETWORK_ERROR',
+          json: {
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Network request failed',
+            original: String(error),
+          },
+        },
+      }
+    }
+
+    let json: {
       data?: Flowglad.CheckoutSessions.CheckoutSessionCreateResponse
       error?: { code: string; json: Record<string, unknown> }
-    } = await response.json()
+    }
+    try {
+      json = await response.json()
+    } catch (error) {
+      return {
+        error: {
+          code: 'INVALID_JSON',
+          json: {
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Failed to parse response as JSON',
+            original: String(error),
+          },
+        },
+      }
+    }
 
     if (json.error) {
       return { error: json.error }
