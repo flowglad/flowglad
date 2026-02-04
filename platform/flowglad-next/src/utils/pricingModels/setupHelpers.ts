@@ -213,12 +213,28 @@ export async function getPricingModelSetupData(
       ])
     }
 
+    // Validate usage prices have slugs (required after migration 0297)
+    for (const meter of usageMeters) {
+      const meterPrices = usagePricesByMeterId.get(meter.id) || []
+      for (const price of meterPrices) {
+        if (!price.slug) {
+          return yield* Result.err(
+            new ValidationError(
+              'price.slug',
+              `Usage price ${price.id} on meter "${meter.slug}" has no slug. ` +
+                `All prices must have slugs after migration 0297.`
+            )
+          )
+        }
+      }
+    }
+
     // Transform usage meters with their nested prices
     const transformedUsageMeters = usageMeters.map((meter) => {
       const meterPrices = usagePricesByMeterId.get(meter.id) || []
 
       // Transform each price for this meter
-      // Note: slug is required after the backfill migration
+      // Slugs are validated above, safe to assert non-null
       const transformedPrices: SetupUsageMeterPriceInput[] =
         meterPrices.map((price) => ({
           type: PriceType.Usage as const,
@@ -336,11 +352,21 @@ export async function getPricingModelSetupData(
         )
       }
 
+      // Validate slug is present (required after migration 0297)
+      if (!activeDefaultPrice.slug) {
+        return yield* Result.err(
+          new ValidationError(
+            'price.slug',
+            `Default price for product "${product.name}" (ID: ${activeDefaultPrice.id}) has no slug. ` +
+              `All prices must have slugs after migration 0297.`
+          )
+        )
+      }
+
       // Base price fields common to all price types
-      // Note: slug is required after the backfill migration
       const basePrice = {
         name: activeDefaultPrice.name ?? undefined,
-        slug: activeDefaultPrice.slug!,
+        slug: activeDefaultPrice.slug,
         unitPrice: activeDefaultPrice.unitPrice,
         isDefault: activeDefaultPrice.isDefault,
         active: activeDefaultPrice.active,

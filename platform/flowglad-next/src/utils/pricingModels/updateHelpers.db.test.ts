@@ -18,7 +18,6 @@ import { bulkInsertResources } from '@/db/tableMethods/resourceMethods'
 import type { SetupPricingModelInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import {
-  generateSyntheticUsagePriceSlug,
   resolveExistingIds,
   syncProductFeaturesForMultipleProducts,
 } from './updateHelpers'
