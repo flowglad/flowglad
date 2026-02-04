@@ -480,11 +480,36 @@ export type DeactivateSubscriptionItemFeatureInput = z.infer<
   typeof expireSubscriptionItemFeatureInputSchema
 >
 
-export const addFeatureToSubscriptionInputSchema = z.object({
-  subscriptionItemId: z.string(),
-  featureId: z.string(),
-  grantCreditsImmediately: z.boolean().optional().default(false),
-})
+export const addFeatureToSubscriptionInputSchema = z
+  .object({
+    id: z.string().describe('The subscription ID'),
+    featureId: z
+      .string()
+      .optional()
+      .describe('The feature ID to add'),
+    featureSlug: z
+      .string()
+      .optional()
+      .describe(
+        'The feature slug to add. The feature will be resolved from the subscription pricing model.'
+      ),
+    grantCreditsImmediately: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe(
+        'If true and the feature is a usage credit grant, credits will be granted immediately for the current billing period'
+      ),
+  })
+  .refine(
+    (data) =>
+      (data.featureId && !data.featureSlug) ||
+      (!data.featureId && data.featureSlug),
+    {
+      message:
+        'Either featureId or featureSlug must be provided, but not both',
+    }
+  )
 
 export type AddFeatureToSubscriptionInput = z.infer<
   typeof addFeatureToSubscriptionInputSchema
