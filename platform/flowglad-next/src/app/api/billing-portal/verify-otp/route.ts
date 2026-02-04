@@ -124,6 +124,13 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
           Cookie: cookieString,
           Origin: baseUrl,
+          // Forward protocol headers so BetterAuth knows the original request was HTTPS
+          // Without this, secure cookies won't be set in production (Vercel internal routing is HTTP)
+          'X-Forwarded-Proto':
+            request.headers.get('X-Forwarded-Proto') || 'https',
+          'X-Forwarded-Host':
+            request.headers.get('X-Forwarded-Host') ||
+            new URL(request.url).host,
         },
         body: JSON.stringify({ email, otp }),
       }
