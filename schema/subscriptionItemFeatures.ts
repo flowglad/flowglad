@@ -486,12 +486,14 @@ export const addFeatureToSubscriptionInputSchema = z
     featureId: z
       .string()
       .optional()
-      .describe('The feature ID to add'),
+      .describe(
+        'The feature ID to add. Exactly one of featureId or featureSlug must be provided.'
+      ),
     featureSlug: z
       .string()
       .optional()
       .describe(
-        'The feature slug to add. The feature will be resolved from the subscription pricing model.'
+        'The feature slug to add. The feature will be resolved from the subscription pricing model. Exactly one of featureId or featureSlug must be provided.'
       ),
     grantCreditsImmediately: z
       .boolean()
