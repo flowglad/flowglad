@@ -38,12 +38,22 @@ export const getInvoices: SubRouteHandler<
     }
   }
 
-  try {
-    // Validate and parse input params
-    const parsedParams = getInvoicesSchema.parse(params.data)
+  // Validate input params
+  const parsed = getInvoicesSchema.safeParse(params.data)
+  if (!parsed.success) {
+    return {
+      data,
+      status: 400,
+      error: {
+        code: 'Validation error',
+        json: { issues: parsed.error.issues },
+      },
+    }
+  }
 
+  try {
     // Delegate to FlowgladServer method
-    const result = await flowgladServer.getInvoices(parsedParams)
+    const result = await flowgladServer.getInvoices(parsed.data)
     data = result
     status = 200
   } catch (e) {

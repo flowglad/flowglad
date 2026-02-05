@@ -677,6 +677,7 @@ export type GetInvoicesResponse = {
 export const getPurchasesSchema = z
   .object({
     limit: z.number().optional(),
+    startingAfter: z.string().optional(), // For pagination
   })
   .strict()
 

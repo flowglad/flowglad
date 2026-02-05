@@ -38,12 +38,22 @@ export const getPurchases: SubRouteHandler<
     }
   }
 
-  try {
-    // Validate and parse input params
-    const parsedParams = getPurchasesSchema.parse(params.data)
+  // Validate input params
+  const parsed = getPurchasesSchema.safeParse(params.data)
+  if (!parsed.success) {
+    return {
+      data,
+      status: 400,
+      error: {
+        code: 'Validation error',
+        json: { issues: parsed.error.issues },
+      },
+    }
+  }
 
+  try {
     // Delegate to FlowgladServer method
-    const result = await flowgladServer.getPurchases(parsedParams)
+    const result = await flowgladServer.getPurchases(parsed.data)
     data = result
     status = 200
   } catch (e) {

@@ -211,7 +211,7 @@ export class FlowgladServer {
 
     let invoices = billing.invoices ?? []
 
-    if (params?.limit) {
+    if (params?.limit !== undefined) {
       invoices = invoices.slice(0, params.limit)
     }
 
@@ -244,7 +244,7 @@ export class FlowgladServer {
 
     let purchases = billing.purchases ?? []
 
-    if (params?.limit) {
+    if (params?.limit !== undefined) {
       purchases = purchases.slice(0, params.limit)
     }
 
