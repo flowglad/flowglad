@@ -99,6 +99,7 @@ export const CreateProductModal = ({
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       mode="drawer"
+      submitButtonText="Create Product"
     >
       <ProductFormFields
         hidePricingModelSelect={hidePricingModelSelect}
