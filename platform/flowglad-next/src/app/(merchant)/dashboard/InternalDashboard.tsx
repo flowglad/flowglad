@@ -70,6 +70,10 @@ function InternalDashboardPage({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
     useState(false)
+  const [hidePricingModelSelect, setHidePricingModelSelect] =
+    useState(false)
+  const [snapshotPricingModelId, setSnapshotPricingModelId] =
+    useState('')
   const [isCreateFeatureModalOpen, setIsCreateFeatureModalOpen] =
     useState(false)
   const [
@@ -100,6 +104,9 @@ function InternalDashboardPage({
       label: 'Create Product',
       handler: () => {
         setIsPopoverOpen(false)
+        // Snapshot both values at open time to ensure consistency
+        setSnapshotPricingModelId(focusedPricingModelId)
+        setHidePricingModelSelect(Boolean(focusedPricingModelId))
         setIsCreateProductModalOpen(true)
       },
       icon: <Shapes className="h-4 w-4" />,
@@ -237,8 +244,8 @@ function InternalDashboardPage({
       <CreateProductModal
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
-        defaultPricingModelId={focusedPricingModelId}
-        hidePricingModelSelect={Boolean(focusedPricingModelId)}
+        defaultPricingModelId={snapshotPricingModelId}
+        hidePricingModelSelect={hidePricingModelSelect}
       />
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}
