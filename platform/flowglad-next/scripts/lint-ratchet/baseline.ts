@@ -141,8 +141,40 @@ export const writePackageBaselineAt = (
 // ============================================================================
 
 /**
+ * Normalize a directory key to a canonical form for consistent Map lookups.
+ * - Converts backslashes to forward slashes (Windows compatibility)
+ * - Removes leading "./"
+ * - Collapses redundant segments
+ * - Returns "." for empty or root directory
+ *
+ * @param dir - Directory path to normalize
+ * @returns Normalized directory path
+ */
+export const normalizeDirectoryKey = (dir: string): string => {
+  // Convert backslashes to forward slashes
+  let normalized = dir.replace(/\\/g, '/')
+
+  // Remove leading "./"
+  while (normalized.startsWith('./')) {
+    normalized = normalized.slice(2)
+  }
+
+  // Remove trailing slashes
+  while (normalized.endsWith('/') && normalized.length > 1) {
+    normalized = normalized.slice(0, -1)
+  }
+
+  // Handle empty string or just "."
+  if (normalized === '' || normalized === '.') {
+    return '.'
+  }
+
+  return normalized
+}
+
+/**
  * Get the directory that should contain the baseline for a given file.
- * Returns the directory containing the file.
+ * Returns the directory containing the file, normalized for consistent Map lookups.
  *
  * @param filePath - File path relative to package root (e.g., "src/db/foo.test.ts")
  * @returns Directory path relative to package root (e.g., "src/db")
@@ -150,7 +182,8 @@ export const writePackageBaselineAt = (
 export const getBaselineDirectoryForFile = (
   filePath: string
 ): string => {
-  return dirname(filePath)
+  const dir = dirname(filePath)
+  return normalizeDirectoryKey(dir)
 }
 
 /**
@@ -336,7 +369,8 @@ export const getExistingBaselineDirectories = (
       baselineDir === absolutePackagePath
         ? '.'
         : baselineDir.slice(absolutePackagePath.length + 1)
-    directories.add(relativeDir)
+    // Normalize for consistent Map lookups
+    directories.add(normalizeDirectoryKey(relativeDir))
   }
 
   return directories
