@@ -86,6 +86,12 @@ function InternalDashboardPage({
     useState(false)
 
   // Get focused pricing model for create modals
+  // NOTE: This value comes from an async query and may resolve AFTER a modal opens.
+  // When passing this to modals, snapshot the value at open time (in the handler)
+  // rather than passing it directly as a prop. See CreateProductModal pattern below.
+  // TODO: Apply the same snapshotting pattern to CreateFeatureModal, CreateUsageMeterModal,
+  // and CreateResourceModal for consistency. Each modal handler should snapshot
+  // focusedPricingModelId at open time to prevent stale/changing values mid-form.
   const focusedMembership =
     trpc.organizations.getFocusedMembership.useQuery()
   const focusedPricingModelId =
@@ -104,7 +110,8 @@ function InternalDashboardPage({
       label: 'Create Product',
       handler: () => {
         setIsPopoverOpen(false)
-        // Snapshot both values at open time to ensure consistency
+        // IMPORTANT: Snapshot async query values at open time to prevent race conditions.
+        // See comment above CreateProductModal for full explanation of this pattern.
         setSnapshotPricingModelId(focusedPricingModelId)
         setHidePricingModelSelect(Boolean(focusedPricingModelId))
         setIsCreateProductModalOpen(true)
@@ -241,12 +248,37 @@ function InternalDashboardPage({
         </ChartGrid>
       </div>
 
+      {/*
+        PATTERN: Snapshot async query values at modal open time.
+        
+        Problem: When hidePricingModelSelect was computed as Boolean(focusedPricingModelId)
+        at render time, it could change from false to true AFTER the modal opened if the
+        async query resolved late. This caused the pricing model selector to disappear
+        mid-form, blocking submission if required fields became hidden but remained empty.
+        
+        Solution: Snapshot both values in the handler when the modal opens:
+        - snapshotPricingModelId: captured value of focusedPricingModelId
+        - hidePricingModelSelect: computed once at open time, not reactively
+        
+        This ensures the modal's props remain stable throughout the user's interaction.
+      */}
       <CreateProductModal
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
         defaultPricingModelId={snapshotPricingModelId}
         hidePricingModelSelect={hidePricingModelSelect}
       />
+      {/*
+        TODO: These modals pass focusedPricingModelId directly, which can change after
+        the modal opens if the async query refetches. For consistency with CreateProductModal,
+        consider snapshotting the value at open time:
+        1. Add state: const [snapshotFeaturePricingModelId, setSnapshotFeaturePricingModelId] = useState('')
+        2. In handler: setSnapshotFeaturePricingModelId(focusedPricingModelId)
+        3. Pass snapshot: defaultPricingModelId={snapshotFeaturePricingModelId}
+        
+        Currently low risk because FormModal snapshots defaultValues() at open time,
+        but snapshotting in the handler provides an extra layer of consistency.
+      */}
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}
         setIsOpen={setIsCreateFeatureModalOpen}
