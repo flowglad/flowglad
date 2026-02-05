@@ -28,6 +28,7 @@ import { type SelectConditions } from '@db-core/tableUtils'
 import { eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import {
   type RichSubscription,
   richSubscriptionClientSelectSchema,
@@ -348,8 +349,7 @@ export const selectRichSubscriptionsAndActiveItems = async (
   const featuresBySubscriptionId = core.groupBy((feature) => {
     const subscriptionItem =
       subscriptionItemsById[feature.subscriptionItemId]?.[0]
-    if (!subscriptionItem)
-      throw new Error('Subscription item not found')
+    if (!subscriptionItem) panic('Subscription item not found')
     return subscriptionItem.subscriptionId
   }, subscriptionItemFeatures)
   const meterBalancesBySubscriptionId = core.groupBy(

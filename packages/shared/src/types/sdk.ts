@@ -24,6 +24,8 @@ export enum FlowgladActionKey {
   GetFeatureAccess = 'features/access',
   GetPaymentMethods = 'payment-methods/list',
   GetCustomerDetails = 'customerDetails',
+  GetInvoices = 'invoices/list',
+  GetPurchases = 'purchases/list',
 }
 
 export interface CustomerDetails {
@@ -95,6 +97,12 @@ export type CustomerRetrieveBillingResponse =
 
 export type PaymentMethodDetails =
   CustomerRetrieveBillingResponse['paymentMethods'][number]
+
+export type InvoiceDetails =
+  CustomerRetrieveBillingResponse['invoices'][number]
+
+export type PurchaseDetails =
+  CustomerRetrieveBillingResponse['purchases'][number]
 
 export type BillingWithChecks = CustomerRetrieveBillingResponse & {
   /**

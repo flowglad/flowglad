@@ -20,6 +20,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import { inArray } from 'drizzle-orm'
+import { panic } from '@/errors'
 import type { DbTransaction } from '../types'
 
 const config: ORMMethodCreatorConfig<
@@ -159,7 +160,7 @@ export const derivePricingModelIdFromEventPayload = async (
   )
   const pricingModelId = pricingModelIdMap.get(payload.id)
   if (!pricingModelId) {
-    throw new Error(
+    panic(
       `Pricing model id not found for event payload ${payload.id} (object type: ${payload.object})`
     )
   }
@@ -196,7 +197,7 @@ export async function bulkInsertOrDoNothingEventsByHash(
         eventInsert.pricingModelId ??
         pricingModelIdMap.get(eventInsert.payload.id)
       if (!pricingModelId) {
-        throw new Error(
+        panic(
           `Pricing model id not found for event payload ${eventInsert.payload.id}`
         )
       }

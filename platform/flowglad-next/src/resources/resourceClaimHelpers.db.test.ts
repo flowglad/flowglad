@@ -185,7 +185,7 @@ describe('resourceClaimHelpers', () => {
       }
     })
 
-    it('when capacity is exhausted, throws an error indicating no available capacity', async () => {
+    it('when capacity is exhausted, returns an error indicating no available capacity', async () => {
       // Create 5 claims to exhaust the capacity
       for (let i = 0; i < 5; i++) {
         await setupResourceClaim({
@@ -199,7 +199,7 @@ describe('resourceClaimHelpers', () => {
 
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        await claimResourceTransaction(
+        return claimResourceTransaction(
           {
             organizationId: organization.id,
             customerId: customer.id,
@@ -211,8 +211,9 @@ describe('resourceClaimHelpers', () => {
           },
           transaction
         )
-        return Result.ok(undefined)
       })
+      // claimResourceTransaction returns Result.err, which adminTransaction
+      // propagates as Result.err on the outer result
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
         expect(result.error.message).toContain(
@@ -225,19 +226,17 @@ describe('resourceClaimHelpers', () => {
       const result = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 3,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 3,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -262,19 +261,17 @@ describe('resourceClaimHelpers', () => {
       const result = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'user_123',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'user_123',
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -295,19 +292,17 @@ describe('resourceClaimHelpers', () => {
       const firstResult = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'user_123',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'user_123',
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -316,19 +311,17 @@ describe('resourceClaimHelpers', () => {
       const secondResult = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'user_123',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'user_123',
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -349,19 +342,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'existing_user',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'existing_user',
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -370,23 +361,21 @@ describe('resourceClaimHelpers', () => {
       const result = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalIds: [
-                    'existing_user',
-                    'new_user_1',
-                    'new_user_2',
-                  ],
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: [
+                  'existing_user',
+                  'new_user_1',
+                  'new_user_2',
+                ],
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -421,7 +410,7 @@ describe('resourceClaimHelpers', () => {
         // Should fail completely - no partial insert
         const result = await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          await claimResourceTransaction(
+          return claimResourceTransaction(
             {
               organizationId: organization.id,
               customerId: customer.id,
@@ -433,7 +422,6 @@ describe('resourceClaimHelpers', () => {
             },
             transaction
           )
-          return Result.ok(undefined)
         })
         expect(Result.isError(result)).toBe(true)
         if (Result.isError(result)) {
@@ -471,19 +459,17 @@ describe('resourceClaimHelpers', () => {
         const result = (
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: 'seats',
-                    subscriptionId: subscription.id,
-                    externalIds: ['user-a', 'user-b', 'user-c'],
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-a', 'user-b', 'user-c'],
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -517,19 +503,17 @@ describe('resourceClaimHelpers', () => {
         const result = (
           await adminTransaction(async (ctx) => {
             const { transaction } = ctx
-            return Result.ok(
-              await claimResourceTransaction(
-                {
-                  organizationId: organization.id,
-                  customerId: customer.id,
-                  input: {
-                    resourceSlug: 'seats',
-                    subscriptionId: subscription.id,
-                    quantity: 5,
-                  },
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 5,
                 },
-                transaction
-              )
+              },
+              transaction
             )
           })
         ).unwrap()
@@ -544,7 +528,7 @@ describe('resourceClaimHelpers', () => {
         // Trying to claim one more should fail
         const failResult = await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          await claimResourceTransaction(
+          return claimResourceTransaction(
             {
               organizationId: organization.id,
               customerId: customer.id,
@@ -556,7 +540,6 @@ describe('resourceClaimHelpers', () => {
             },
             transaction
           )
-          return Result.ok(undefined)
         })
         expect(Result.isError(failResult)).toBe(true)
         if (Result.isError(failResult)) {
@@ -574,19 +557,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 3,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 3,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -594,19 +575,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalIds: ['named_user_1', 'named_user_2'],
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['named_user_1', 'named_user_2'],
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -675,19 +654,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 2,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -722,19 +699,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'user_to_release',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'user_to_release',
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -803,19 +778,17 @@ describe('resourceClaimHelpers', () => {
       const anonymousResult = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 2,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -823,19 +796,17 @@ describe('resourceClaimHelpers', () => {
       const namedResult = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'named_user',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'named_user',
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -883,19 +854,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 3,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 3,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -903,19 +872,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalIds: ['named_1', 'named_2'],
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['named_1', 'named_2'],
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -975,19 +942,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 3,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 3,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1040,19 +1005,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 2,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1060,19 +1023,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'named_user_1',
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'named_user_1',
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1136,20 +1097,18 @@ describe('resourceClaimHelpers', () => {
       const result = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalId: 'user_with_metadata',
-                  metadata: { team: 'engineering', role: 'admin' },
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalId: 'user_with_metadata',
+                metadata: { team: 'engineering', role: 'admin' },
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1165,19 +1124,17 @@ describe('resourceClaimHelpers', () => {
       const result = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  // subscriptionId intentionally omitted
-                  quantity: 1,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                // subscriptionId intentionally omitted
+                quantity: 1,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1235,19 +1192,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalIds: ['user_1', 'user_2', 'user_3'],
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['user_1', 'user_2', 'user_3'],
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1309,19 +1264,17 @@ describe('resourceClaimHelpers', () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  externalIds: ['user_1', 'user_2'],
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                externalIds: ['user_1', 'user_2'],
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1729,19 +1682,17 @@ describe('expired_at functionality', () => {
       const result = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 2,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1767,19 +1718,17 @@ describe('expired_at functionality', () => {
       const result = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 2,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()
@@ -1812,19 +1761,17 @@ describe('expired_at functionality', () => {
       const result = (
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          return Result.ok(
-            await claimResourceTransaction(
-              {
-                organizationId: organization.id,
-                customerId: customer.id,
-                input: {
-                  resourceSlug: 'seats',
-                  subscriptionId: subscription.id,
-                  quantity: 1,
-                },
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 1,
               },
-              transaction
-            )
+            },
+            transaction
           )
         })
       ).unwrap()

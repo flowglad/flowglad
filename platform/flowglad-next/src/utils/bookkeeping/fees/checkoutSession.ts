@@ -20,6 +20,7 @@ import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import {
   calculateDiscountAmount,
   calculateFlowgladFeePercentage,
@@ -184,7 +185,7 @@ export const createFeeCalculationForCheckoutSession = async (
     )
   const organizationCountryId = organization.countryId
   if (!organizationCountryId) {
-    throw new Error('Organization country id is required')
+    panic('Organization country id is required')
   }
   const organizationCountry = (
     await selectCountryById(organizationCountryId, transaction)

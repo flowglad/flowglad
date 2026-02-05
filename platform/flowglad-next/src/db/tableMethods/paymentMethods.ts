@@ -28,7 +28,6 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
   type SelectConditions,
-  NotFoundError as TableUtilsNotFoundError,
   whereClauseFromObject,
 } from '@db-core/tableUtils'
 import { Result } from 'better-result'
@@ -102,6 +101,7 @@ export const derivePricingModelIdForPayment = async (
           new NotFoundError('Subscription', data.subscriptionId)
         )
       }
+      // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
       throw error
     }
   }
@@ -125,6 +125,7 @@ export const derivePricingModelIdForPayment = async (
           new NotFoundError('Purchase', data.purchaseId)
         )
       }
+      // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
       throw error
     }
   }

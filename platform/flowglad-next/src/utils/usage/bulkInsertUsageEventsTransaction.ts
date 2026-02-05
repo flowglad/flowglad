@@ -235,7 +235,7 @@ export const batchFetchPricingModelsForCustomers = async (
         // Fall back to default pricing model (matches selectPricingModelForCustomer behavior)
         const defaultModel = defaultPricingModelsByKey.get(defaultKey)
         if (!defaultModel) {
-          throw new Error(
+          panic(
             `No default pricing model found for organization ${customerInfo.organizationId}`
           )
         }
@@ -249,7 +249,7 @@ export const batchFetchPricingModelsForCustomers = async (
     const defaultModel = defaultPricingModelsByKey.get(key)
     if (!defaultModel) {
       const [organizationId] = key.split(':')
-      throw new Error(
+      panic(
         `No default pricing model found for organization ${organizationId}`
       )
     }
@@ -409,6 +409,7 @@ async function collectSlugResolutionEvents(
   const getPricingModelForCustomer = (customerId: string) => {
     const pricingModel = pricingModelCache.get(customerId)
     if (!pricingModel) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new NotFoundError(
         'PricingModel',
         `for customer ${customerId}`

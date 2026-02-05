@@ -162,6 +162,7 @@ export const setDefaultPaymentMethodForCustomer = async (
     }
   } catch (error) {
     console.error('Error setting default payment method:', error)
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'INTERNAL_SERVER_ERROR',
       message: 'Failed to set default payment method',
@@ -187,6 +188,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       checkoutSessionInputResult.error.issues[0].code ===
       'invalid_union'
     ) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message:
@@ -194,6 +196,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
           rawCheckoutSessionInput.type,
       })
     }
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message:
@@ -205,6 +208,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   if (
     customer.externalId !== checkoutSessionInput.customerExternalId
   ) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'FORBIDDEN',
       message:
@@ -233,6 +237,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
         })
       ).unwrap()
       if (!priceFromSlug) {
+        // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: `Price with slug "${checkoutSessionInput.priceSlug}" not found for customer's pricing model`,
@@ -240,6 +245,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       }
       resolvedPriceId = priceFromSlug.id
     } else {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'Either priceId or priceSlug must be provided',
@@ -252,6 +258,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       })
     ).unwrap()
     if (!price) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'NOT_FOUND',
         message:
@@ -289,6 +296,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
   customer: Customer.Record
 ) => {
   if (!customer) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'FORBIDDEN',
       message:
@@ -297,6 +305,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
   }
 
   if (!customer.stripeCustomerId) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'FORBIDDEN',
       message:
@@ -325,6 +334,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
         transaction
       )
       if (result.status === 'error') {
+        // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
         throw result.error
       }
       return Result.ok(result.value)

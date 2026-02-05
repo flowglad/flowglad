@@ -230,7 +230,7 @@ export const updatePrice = protectedProcedure
           validatePriceImmutableFields({
             update: price,
             existing: existingPrice,
-          })
+          }).unwrap()
 
           const updatedPrice = await safelyUpdatePrice(
             {

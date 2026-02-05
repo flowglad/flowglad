@@ -15,6 +15,7 @@ import {
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
 import type { TransactionEffectsContext } from '@/db/types'
+import { panic } from '@/errors'
 import { createInitialInvoiceForPurchase } from '@/utils/bookkeeping'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import { isNil } from '../core'
@@ -37,7 +38,7 @@ export const processNonPaymentCheckoutSession = async (
   )
 
   if (checkoutSession.type === CheckoutSessionType.AddPaymentMethod) {
-    throw new Error(
+    panic(
       `Add payment method checkout flow does not support non-payment checkout sessions, which are reserved for purchases rather than payment method additions. ${checkoutSession.id}`
     )
   }
@@ -56,7 +57,7 @@ export const processNonPaymentCheckoutSession = async (
     : null
   const priceType = purchase?.priceType ?? price.type
   if (priceType === PriceType.Subscription) {
-    throw new Error(
+    panic(
       `Attempted to process a non-payment purchase session ${checkoutSession.id} for a subscription, which is currently not supported`
     )
   }
@@ -67,7 +68,7 @@ export const processNonPaymentCheckoutSession = async (
     transaction
   )
   if (!feeCalculation) {
-    throw new Error(
+    panic(
       `No fee calculation found for purchase session ${checkoutSession.id}`
     )
   }
@@ -75,13 +76,13 @@ export const processNonPaymentCheckoutSession = async (
   const totalDue = await calculateTotalDueAmount(feeCalculation)
 
   if (isNil(totalDue)) {
-    throw new Error(
+    panic(
       `Total due for purchase session ${checkoutSession.id} was not calculated`
     )
   }
 
   if (totalDue !== 0) {
-    throw new Error(
+    panic(
       `Total due for purchase session ${checkoutSession.id} is not 0, it's: ${totalDue}`
     )
   }

@@ -6,6 +6,7 @@ import {
   selectOrganizations,
   updateOrganization,
 } from '@/db/tableMethods/organizationMethods'
+import { panic } from '@/errors'
 import { idempotentSendOrganizationOnboardingCompletedNotification } from '@/trigger/notifications/send-organization-onboarding-completed-notification'
 import { stripeAccountUpdatedTask } from '@/trigger/stripe/account-updated'
 import { stripeChargeFailedTask } from '@/trigger/stripe/charge-failed'
@@ -105,7 +106,7 @@ export const updateOrganizationOnboardingStatus = async (
       )
 
       if (!organization) {
-        throw new Error(
+        panic(
           `Organization not found for stripeAccountId: ${stripeAccountId}`
         )
       }

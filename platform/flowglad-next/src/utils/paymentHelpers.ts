@@ -13,7 +13,7 @@ import {
   selectPayments,
 } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
-import { NotFoundError, ValidationError } from '@/errors'
+import { NotFoundError, panic, ValidationError } from '@/errors'
 import { logger } from '@/utils/logger'
 import {
   getPaymentIntent,
@@ -254,16 +254,16 @@ export const retryPaymentTransaction = async (
 ) => {
   const payment = (await selectPaymentById(id, transaction)).unwrap()
   if (payment.status !== PaymentStatus.Failed) {
-    throw new Error('Payment is not failed')
+    panic('Payment is not failed')
   }
   if (payment.refunded) {
-    throw new Error('Payment is refunded')
+    panic('Payment is refunded')
   }
   const paymentIntent = await getPaymentIntent(
     payment.stripePaymentIntentId
   )
   if (!paymentIntent.latest_charge) {
-    throw new Error('Payment has no associated Stripe charge')
+    panic('Payment has no associated Stripe charge')
   }
   try {
     const paymentIntent = await confirmPaymentIntent(
@@ -298,6 +298,7 @@ export const retryPaymentTransaction = async (
     return await insertPayment(paymentInsert, transaction)
   } catch (error) {
     console.error('Error retrying charge:', error)
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }

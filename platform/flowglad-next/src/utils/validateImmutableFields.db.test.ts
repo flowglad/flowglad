@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { IntervalUnit, PriceType } from '@db-core/enums'
 import type { Price } from '@db-core/schema/prices'
-import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import {
   singlePaymentDummyPrice,
   subscriptionDummyPrice,
@@ -22,12 +22,12 @@ describe('validatePriceImmutableFields', () => {
         isDefault: true,
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
     it('should allow updating mutable fields on single payment price', () => {
@@ -38,12 +38,12 @@ describe('validatePriceImmutableFields', () => {
         active: true,
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: singlePaymentDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: singlePaymentDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
     it('should allow updating mutable fields on usage price', () => {
@@ -54,12 +54,12 @@ describe('validatePriceImmutableFields', () => {
         isDefault: false,
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: usageDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: usageDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
     it('should allow update when immutable fields are included with same values', () => {
@@ -73,12 +73,12 @@ describe('validatePriceImmutableFields', () => {
         intervalCount: subscriptionDummyPrice.intervalCount, // Same value
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
     it('should allow update with only id and type', () => {
@@ -88,12 +88,12 @@ describe('validatePriceImmutableFields', () => {
         type: subscriptionDummyPrice.type,
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
     it('should allow update without type field included', () => {
@@ -105,12 +105,12 @@ describe('validatePriceImmutableFields', () => {
         // No type field
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
     it('should allow update with only id and no type', () => {
@@ -120,15 +120,15 @@ describe('validatePriceImmutableFields', () => {
         // No type field, no other fields
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
-    it('should throw error when changing immutable field even without type in update', () => {
+    it('should return error when changing immutable field even without type in update', () => {
       // Validation should catch immutable field changes even when type is omitted
       const update = {
         id: subscriptionDummyPrice.id,
@@ -137,22 +137,15 @@ describe('validatePriceImmutableFields', () => {
         // No type field
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change unitPrice after price creation'
         )
       }
@@ -160,86 +153,72 @@ describe('validatePriceImmutableFields', () => {
   })
 
   describe('type field validation', () => {
-    it('should throw error when changing type from Subscription to SinglePayment', () => {
+    it('should return error when changing type from Subscription to SinglePayment', () => {
       const update = {
         id: subscriptionDummyPrice.id,
         type: PriceType.SinglePayment,
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change type after price creation'
         )
       }
     })
 
-    it('should throw error when changing type from SinglePayment to Usage', () => {
+    it('should return error when changing type from SinglePayment to Usage', () => {
       const update = {
         id: singlePaymentDummyPrice.id,
         type: PriceType.Usage,
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: singlePaymentDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: singlePaymentDummyPrice,
+      })
+
+      expect(Result.isError(result)).toBe(true)
     })
 
-    it('should throw error when changing type from Usage to Subscription', () => {
+    it('should return error when changing type from Usage to Subscription', () => {
       const update = {
         id: usageDummyPrice.id,
         type: PriceType.Subscription,
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: usageDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: usageDummyPrice,
+      })
+
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
   describe('unitPrice field validation', () => {
-    it('should throw error when changing unitPrice', () => {
+    it('should return error when changing unitPrice', () => {
       const update = {
         id: subscriptionDummyPrice.id,
         type: subscriptionDummyPrice.type,
         unitPrice: subscriptionDummyPrice.unitPrice + 100, // Different value
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change unitPrice after price creation'
         )
       }
@@ -247,29 +226,22 @@ describe('validatePriceImmutableFields', () => {
   })
 
   describe('productId field validation', () => {
-    it('should throw error when changing productId', () => {
+    it('should return error when changing productId', () => {
       const update = {
         id: subscriptionDummyPrice.id,
         type: subscriptionDummyPrice.type,
         productId: 'different-product-id',
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change productId after price creation'
         )
       }
@@ -277,57 +249,43 @@ describe('validatePriceImmutableFields', () => {
   })
 
   describe('interval fields validation', () => {
-    it('should throw error when changing intervalUnit', () => {
+    it('should return error when changing intervalUnit', () => {
       const update = {
         id: subscriptionDummyPrice.id,
         type: subscriptionDummyPrice.type,
         intervalUnit: IntervalUnit.Year, // Different from Month
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change intervalUnit after price creation'
         )
       }
     })
 
-    it('should throw error when changing intervalCount', () => {
+    it('should return error when changing intervalCount', () => {
       const update = {
         id: subscriptionDummyPrice.id,
         type: subscriptionDummyPrice.type,
         intervalCount: 3, // Different from 1
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change intervalCount after price creation'
         )
       }
@@ -335,29 +293,22 @@ describe('validatePriceImmutableFields', () => {
   })
 
   describe('trial fields validation', () => {
-    it('should throw error when changing trialPeriodDays', () => {
+    it('should return error when changing trialPeriodDays', () => {
       const update = {
         id: subscriptionDummyPrice.id,
         type: subscriptionDummyPrice.type,
         trialPeriodDays: 30, // Different from 0
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change trialPeriodDays after price creation'
         )
       }
@@ -365,57 +316,43 @@ describe('validatePriceImmutableFields', () => {
   })
 
   describe('usage meter fields validation', () => {
-    it('should throw error when changing usageMeterId', () => {
+    it('should return error when changing usageMeterId', () => {
       const update = {
         id: usageDummyPrice.id,
         type: usageDummyPrice.type,
         usageMeterId: 'different-meter-id',
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: usageDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: usageDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: usageDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change usageMeterId after price creation'
         )
       }
     })
 
-    it('should throw error when changing usageEventsPerUnit', () => {
+    it('should return error when changing usageEventsPerUnit', () => {
       const update = {
         id: usageDummyPrice.id,
         type: usageDummyPrice.type,
         usageEventsPerUnit: 10, // Different from 1
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: usageDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: usageDummyPrice,
+      })
 
-      try {
-        validatePriceImmutableFields({
-          update,
-          existing: usageDummyPrice,
-        })
-      } catch (error) {
-        expect(error).toBeInstanceOf(TRPCError)
-        expect((error as TRPCError).code).toBe('FORBIDDEN')
-        expect((error as TRPCError).message).toContain(
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error._tag).toBe('ValidationError')
+        expect(result.error.message).toContain(
           'Cannot change usageEventsPerUnit after price creation'
         )
       }
@@ -432,12 +369,12 @@ describe('validatePriceImmutableFields', () => {
         // No immutable fields included
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: subscriptionDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: subscriptionDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
     it('should handle null values correctly for nullable fields', () => {
@@ -448,15 +385,15 @@ describe('validatePriceImmutableFields', () => {
         trialPeriodDays: null, // Same as existing
       }
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: singlePaymentDummyPrice,
-        })
-      ).not.toThrow()
+      const result = validatePriceImmutableFields({
+        update,
+        existing: singlePaymentDummyPrice,
+      })
+
+      expect(Result.isOk(result)).toBe(true)
     })
 
-    it('should throw when changing null to non-null value for immutable field', () => {
+    it('should return error when changing null to non-null value for immutable field', () => {
       // usageDummyPrice has null trialPeriodDays
       const update = {
         id: usageDummyPrice.id,
@@ -464,15 +401,15 @@ describe('validatePriceImmutableFields', () => {
         trialPeriodDays: 7 as any, // Changing from null to 7
       } as Partial<Price.Update>
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: usageDummyPrice,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: usageDummyPrice,
+      })
+
+      expect(Result.isError(result)).toBe(true)
     })
 
-    it('should throw when changing non-null to null value for immutable field', () => {
+    it('should return error when changing non-null to null value for immutable field', () => {
       // Create a price with non-null trialPeriodDays
       const priceWithTrial = {
         ...subscriptionDummyPrice,
@@ -485,12 +422,12 @@ describe('validatePriceImmutableFields', () => {
         trialPeriodDays: null as any, // Changing from 7 to null
       } as Partial<Price.Update>
 
-      expect(() =>
-        validatePriceImmutableFields({
-          update,
-          existing: priceWithTrial,
-        })
-      ).toThrow(TRPCError)
+      const result = validatePriceImmutableFields({
+        update,
+        existing: priceWithTrial,
+      })
+
+      expect(Result.isError(result)).toBe(true)
     })
   })
 })

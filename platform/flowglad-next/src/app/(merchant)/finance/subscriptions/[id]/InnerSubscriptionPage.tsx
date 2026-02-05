@@ -355,7 +355,7 @@ const InnerSubscriptionPage = ({
       <AddSubscriptionFeatureModal
         isOpen={isAddFeatureModalOpen}
         setIsOpen={setIsAddFeatureModalOpen}
-        subscriptionItems={subscription.subscriptionItems}
+        subscriptionId={subscription.id}
         featureItems={subscription.experimental?.featureItems}
       />
       <CancelSubscriptionModal

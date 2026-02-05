@@ -1,3 +1,4 @@
+import { panic } from '@/errors'
 import type { SyncEvent, SyncEventInsert } from '@/types/sync'
 import { syncEventSchema } from '@/types/sync'
 import { nanoid } from '@/utils/core'
@@ -284,7 +285,7 @@ export const appendSyncEvent = async (
     })
 
     if (!sequence) {
-      throw new Error('XADD returned null sequence')
+      panic('XADD returned null sequence')
     }
 
     return { sequence, id }
@@ -294,6 +295,7 @@ export const appendSyncEvent = async (
       key,
       eventId: id,
     })
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -361,6 +363,7 @@ export const readSyncEvents = async (params: {
       key,
       lastSequence,
     })
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -423,6 +426,7 @@ export const trimSyncStream = async (params: {
       error: errorMessage,
       key,
     })
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -490,6 +494,7 @@ export const getSyncStreamInfo = async (
       error: errorMessage,
       key,
     })
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }

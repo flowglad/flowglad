@@ -3,6 +3,7 @@ import { resourceClaimsClientSelectSchema } from '@db-core/schema/resourceClaims
 import type { SubscriptionItemFeature } from '@db-core/schema/subscriptionItemFeatures'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   type AuthenticatedProcedureTransactionParams,
@@ -213,7 +214,15 @@ const claimProcedure = protectedProcedure
           transaction
         )
 
-        return result
+        if (Result.isError(result)) {
+          const error = result.error
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: error.message,
+          })
+        }
+
+        return result.value
       }
     )
   )

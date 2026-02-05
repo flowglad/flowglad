@@ -1,3 +1,5 @@
+import { panic } from '@/errors'
+
 /**
  * Database URL safety validation.
  *
@@ -116,6 +118,6 @@ ${LOCAL_HOST_PATTERNS.map((p) => `  - ${p}`).join('\n')}
 To bypass this check:
   ${getBypassCommand()}
 `
-    throw new Error(message)
+    panic(message)
   }
 }

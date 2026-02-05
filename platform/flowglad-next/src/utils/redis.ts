@@ -395,6 +395,7 @@ export const dismissBanner = async (
       userId,
       bannerId,
     })
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -425,6 +426,7 @@ export const dismissBanners = async (
       userId,
       bannerIds,
     })
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -446,6 +448,7 @@ export const getDismissedBannerIds = async (
       error: error instanceof Error ? error.message : String(error),
       userId,
     })
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -466,6 +469,7 @@ export const resetDismissedBanners = async (
       error: error instanceof Error ? error.message : String(error),
       userId,
     })
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw error
   }
 }
@@ -576,6 +580,7 @@ async function evalWithShaFallback<T>(
     if (errorMessage.includes('NOSCRIPT')) {
       return (await redisClient.eval(script, keys, args)) as T
     }
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw evalError
   }
 }
