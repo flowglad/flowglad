@@ -113,7 +113,9 @@ export const CustomerSubscriptionCreatedEmail = ({
           value={planName}
           dataTestId="plan-name"
         />
-        {trial ? (
+        {isDoNotCharge ? (
+          <DetailRow label="Price" value="Free" dataTestId="price" />
+        ) : trial ? (
           <>
             <DetailRow
               label="Trial"
@@ -126,8 +128,6 @@ export const CustomerSubscriptionCreatedEmail = ({
               dataTestId="renewal-price"
             />
           </>
-        ) : isDoNotCharge ? (
-          <DetailRow label="Price" value="Free" dataTestId="price" />
         ) : (
           <>
             <DetailRow
@@ -158,12 +158,11 @@ export const CustomerSubscriptionCreatedEmail = ({
         )}
       </DetailTable>
 
-      {trial ? (
-        <div data-testid="trial-auto-renew-notice">
+      {isDoNotCharge ? (
+        <div data-testid="complimentary-notice">
           <Paragraph>
-            Your subscription automatically renews until canceled. To
-            avoid being charged, you must cancel at least a day before{' '}
-            {formatDate(trial.trialEndDate)}. To learn more or cancel,{' '}
+            You have full access to this plan with no payment
+            required. To learn more,{' '}
             <Link
               href={billingPortalUrl}
               style={{
@@ -176,11 +175,12 @@ export const CustomerSubscriptionCreatedEmail = ({
             .
           </Paragraph>
         </div>
-      ) : isDoNotCharge ? (
-        <div data-testid="complimentary-notice">
+      ) : trial ? (
+        <div data-testid="trial-auto-renew-notice">
           <Paragraph>
-            You have full access to this plan with no payment
-            required. To learn more,{' '}
+            Your subscription automatically renews until canceled. To
+            avoid being charged, you must cancel at least a day before{' '}
+            {formatDate(trial.trialEndDate)}. To learn more or cancel,{' '}
             <Link
               href={billingPortalUrl}
               style={{

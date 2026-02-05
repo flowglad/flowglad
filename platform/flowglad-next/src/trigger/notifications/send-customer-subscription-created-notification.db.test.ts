@@ -13,6 +13,8 @@ import {
 import * as actualEmail from '@/utils/email'
 import { runSendCustomerSubscriptionCreatedNotification } from './send-customer-subscription-created-notification'
 
+type SafeSendOptions = Parameters<typeof actualEmail.safeSend>[0]
+
 // Mock email sending since it makes network calls
 const mockSafeSend = mock<typeof actualEmail.safeSend>()
 
@@ -79,15 +81,11 @@ describe('runSendCustomerSubscriptionCreatedNotification', () => {
 
     // Verify safeSend was called with correct recipient
     expect(mockSafeSend).toHaveBeenCalledTimes(1)
-    const callArgs = mockSafeSend.mock.calls[0][0]
-    expect(callArgs).toHaveProperty('react')
-    expect(callArgs).toHaveProperty('to')
+    const callArgs = mockSafeSend.mock.calls[0][0] as SafeSendOptions
     expect(callArgs.to).toContain(customer.email)
 
     // Render the react element to HTML and verify isDoNotCharge content
-    const reactElement = (callArgs as { react: React.ReactElement })
-      .react
-    const html = await render(reactElement)
+    const html = await render(callArgs.react as React.ReactElement)
     expect(html).toContain(
       'You&#x27;ve been granted access to the following plan at no charge:'
     )
@@ -116,15 +114,11 @@ describe('runSendCustomerSubscriptionCreatedNotification', () => {
 
     // Verify safeSend was called with correct recipient
     expect(mockSafeSend).toHaveBeenCalledTimes(1)
-    const callArgs = mockSafeSend.mock.calls[0][0]
-    expect(callArgs).toHaveProperty('react')
-    expect(callArgs).toHaveProperty('to')
+    const callArgs = mockSafeSend.mock.calls[0][0] as SafeSendOptions
     expect(callArgs.to).toContain(customer.email)
 
     // Render the react element to HTML and verify normal (non-doNotCharge) content
-    const reactElement = (callArgs as { react: React.ReactElement })
-      .react
-    const html = await render(reactElement)
+    const html = await render(callArgs.react as React.ReactElement)
     expect(html).toContain(
       'You&#x27;ve successfully subscribed to the following plan:'
     )
