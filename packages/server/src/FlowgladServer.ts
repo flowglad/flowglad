@@ -25,7 +25,11 @@ import {
   type GetCustomerDetailsResponse,
   type GetFeatureAccessParams,
   type GetFeatureAccessResponse,
+  type GetInvoicesParams,
+  type GetInvoicesResponse,
   type GetPaymentMethodsResponse,
+  type GetPurchasesParams,
+  type GetPurchasesResponse,
   type GetSubscriptionsParams,
   type GetSubscriptionsResponse,
   type GetUsageMeterBalancesParams,
@@ -180,6 +184,72 @@ export class FlowgladServer {
         billingPortalUrl: billing.billingPortalUrl ?? null,
       }
     }
+
+  /**
+   * Get invoices for the authenticated customer.
+   *
+   * Returns invoices with optional pagination via limit parameter.
+   * This is a read-only endpoint for displaying billing history.
+   *
+   * @param params - Optional parameters including limit for pagination
+   * @returns A promise that resolves to an object containing invoices
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all invoices for the customer
+   * const { invoices } = await flowglad.getInvoices()
+   *
+   * @example
+   * // Get first 10 invoices
+   * const { invoices } = await flowglad.getInvoices({ limit: 10 })
+   */
+  public getInvoices = async (
+    params?: GetInvoicesParams
+  ): Promise<GetInvoicesResponse> => {
+    const billing = await this.getBilling()
+
+    let invoices = billing.invoices ?? []
+
+    if (params?.limit !== undefined) {
+      invoices = invoices.slice(0, params.limit)
+    }
+
+    return { invoices }
+  }
+
+  /**
+   * Get purchases for the authenticated customer.
+   *
+   * Returns one-time purchases with optional pagination via limit parameter.
+   * This is a read-only endpoint for displaying purchase history.
+   *
+   * @param params - Optional parameters including limit for pagination
+   * @returns A promise that resolves to an object containing purchases
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all purchases for the customer
+   * const { purchases } = await flowglad.getPurchases()
+   *
+   * @example
+   * // Get first 10 purchases
+   * const { purchases } = await flowglad.getPurchases({ limit: 10 })
+   */
+  public getPurchases = async (
+    params?: GetPurchasesParams
+  ): Promise<GetPurchasesResponse> => {
+    const billing = await this.getBilling()
+
+    let purchases = billing.purchases ?? []
+
+    if (params?.limit !== undefined) {
+      purchases = purchases.slice(0, params.limit)
+    }
+
+    return { purchases }
+  }
 
   /**
    * Get customer details for the authenticated customer.
