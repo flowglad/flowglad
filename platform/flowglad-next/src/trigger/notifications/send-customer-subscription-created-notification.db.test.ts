@@ -5,7 +5,6 @@ import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import { render } from '@react-email/render'
-import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -69,9 +68,9 @@ describe('runSendCustomerSubscriptionCreatedNotification', () => {
         organizationId: organization.id,
       })
 
-    // Use proper type guard instead of type assertion
-    expect(Result.isOk(result)).toBe(true)
-    if (!Result.isOk(result)) {
+    // Verify result is ok
+    expect(result.status).toBe('ok')
+    if (result.status !== 'ok') {
       throw new Error('Expected result to be ok')
     }
     expect(result.value.message).toBe(
@@ -106,9 +105,9 @@ describe('runSendCustomerSubscriptionCreatedNotification', () => {
         organizationId: organization.id,
       })
 
-    // Use proper type guard instead of type assertion
-    expect(Result.isOk(result)).toBe(true)
-    if (!Result.isOk(result)) {
+    // Verify result is ok
+    expect(result.status).toBe('ok')
+    if (result.status !== 'ok') {
       throw new Error('Expected result to be ok')
     }
     expect(result.value.message).toBe(
