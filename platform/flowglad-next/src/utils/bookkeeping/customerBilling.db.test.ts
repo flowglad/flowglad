@@ -1674,3 +1674,161 @@ describe('customerBillingTransaction - currentSubscription field', () => {
     expect(billingState.currentSubscriptions).toHaveLength(5)
   })
 })
+
+describe('customerBillingTransaction - archived customer handling', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+
+  beforeEach(async () => {
+    // Set up organization with pricing model and product
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+    price = orgData.price
+  })
+
+  it('should return active customer when archived customer with same externalId exists', async () => {
+    const sharedExternalId = `reused-ext-id-${core.nanoid()}`
+
+    // Create the first customer
+    const originalCustomer = await setupCustomer({
+      organizationId: organization.id,
+      email: `original-${core.nanoid()}@example.com`,
+      externalId: sharedExternalId,
+      livemode: true,
+    })
+
+    // Create a subscription for the original customer
+    const originalSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: originalCustomer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    // Archive the original customer
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await updateCustomer(
+          { id: originalCustomer.id, archived: true },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+
+    // Create a new customer with the same externalId (allowed because original is archived)
+    const newCustomer = await setupCustomer({
+      organizationId: organization.id,
+      email: `new-${core.nanoid()}@example.com`,
+      externalId: sharedExternalId,
+      livemode: true,
+    })
+
+    // Create a subscription for the new customer
+    const newSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: newCustomer.id,
+      priceId: price.id,
+      status: SubscriptionStatus.Active,
+      livemode: true,
+    })
+
+    // Call customerBillingTransaction with the shared externalId
+    const billingState = (
+      await adminTransaction(async (ctx) => {
+        const { transaction, livemode } = ctx
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          livemode,
+        }
+        return Result.ok(
+          await customerBillingTransaction(
+            {
+              externalId: sharedExternalId,
+              organizationId: organization.id,
+            },
+            transaction,
+            cacheRecomputationContext
+          )
+        )
+      })
+    ).unwrap()
+
+    // Should return the NEW (active) customer, not the archived one
+    expect(billingState.customer.id).toBe(newCustomer.id)
+    expect(billingState.customer.id).not.toBe(originalCustomer.id)
+    expect(billingState.customer.archived).toBe(false)
+
+    // Should return subscriptions for the new customer only
+    expect(billingState.subscriptions).toHaveLength(1)
+    expect(billingState.subscriptions[0].id).toBe(newSubscription.id)
+    expect(billingState.subscriptions[0].id).not.toBe(
+      originalSubscription.id
+    )
+
+    // currentSubscription should be the new customer's subscription
+    expect(typeof billingState.currentSubscription).toBe('object')
+    expect(billingState.currentSubscription!.id).toBe(
+      newSubscription.id
+    )
+  })
+
+  it('should throw NOT_FOUND when only archived customer exists with externalId', async () => {
+    const archivedOnlyExternalId = `archived-only-${core.nanoid()}`
+
+    // Create and archive a customer
+    const archivedCustomer = await setupCustomer({
+      organizationId: organization.id,
+      email: `archived-${core.nanoid()}@example.com`,
+      externalId: archivedOnlyExternalId,
+      livemode: true,
+    })
+
+    // Archive the customer
+    ;(
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await updateCustomer(
+          { id: archivedCustomer.id, archived: true },
+          transaction
+        )
+        return Result.ok(undefined)
+      })
+    ).unwrap()
+
+    // Calling customerBillingTransaction should throw NOT_FOUND
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction, livemode } = ctx
+      const cacheRecomputationContext: CacheRecomputationContext = {
+        livemode,
+      }
+      try {
+        await customerBillingTransaction(
+          {
+            externalId: archivedOnlyExternalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+        return Result.ok('should not reach here')
+      } catch (error) {
+        return Result.err(
+          error instanceof Error ? error : new Error(String(error))
+        )
+      }
+    })
+
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        `Customer with externalId ${archivedOnlyExternalId} not found`
+      )
+    }
+  })
+})

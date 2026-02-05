@@ -6,7 +6,7 @@ import { Result } from 'better-result'
 import type { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
 import { selectCustomerFacingInvoicesWithLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   safelyUpdatePaymentMethod,
@@ -41,7 +41,20 @@ export const customerBillingTransaction = async (
   transaction: DbTransaction,
   cacheRecomputationContext: { livemode: boolean }
 ) => {
-  const [customer] = await selectCustomers(params, transaction)
+  // Use selectCustomerByExternalIdAndOrganizationId to filter out archived customers.
+  // This ensures that if a customer was archived and a new one created with the same
+  // externalId, we return billing data for the active customer, not the archived one.
+  const customer = await selectCustomerByExternalIdAndOrganizationId(
+    params,
+    transaction
+  )
+  if (!customer) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: `Customer with externalId ${params.externalId} not found`,
+    })
+  }
   // All queries below depend only on customer, so they can run in parallel
   const [
     subscriptions,
