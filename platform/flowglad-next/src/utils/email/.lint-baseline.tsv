@@ -1,1 +1,1 @@
-src/utils/email/sendEmail.db.test.ts	no-explicit-any-in-tests	1
+src/utils/email/notificationContext.ts	no-unwrap-outside-boundaries	4

@@ -1,2 +1,2 @@
-src/db/ledgerManager/billingPeriodTransitionLedgerCommand/grantEntitlementUsageCredits.db.test.ts	no-explicit-any-in-tests	2
-src/db/ledgerManager/billingPeriodTransitionLedgerCommand/index.db.test.ts	no-explicit-any-in-tests	9
+src/db/ledgerManager/billingPeriodTransitionLedgerCommand/grantEntitlementUsageCredits.ts	no-unwrap-outside-boundaries	1
+src/db/ledgerManager/billingPeriodTransitionLedgerCommand/index.ts	no-unwrap-outside-boundaries	1
