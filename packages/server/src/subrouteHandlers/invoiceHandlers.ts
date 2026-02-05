@@ -12,8 +12,8 @@ import type {
 
 /**
  * Handler for fetching invoices for the authenticated customer.
- * Returns invoices with optional pagination.
- * Delegates to FlowgladServer.getInvoices which processes billing data.
+ * Returns invoices with optional pagination (limit, startingAfter).
+ * Delegates to FlowgladServer.getInvoices which extracts data from getBilling().
  */
 export const getInvoices: SubRouteHandler<
   FlowgladActionKey.GetInvoices
@@ -38,22 +38,22 @@ export const getInvoices: SubRouteHandler<
     }
   }
 
-  // Validate input params
-  const parsed = getInvoicesSchema.safeParse(params.data)
-  if (!parsed.success) {
+  // Validate and parse input params
+  const parseResult = getInvoicesSchema.safeParse(params.data)
+  if (!parseResult.success) {
     return {
       data,
       status: 400,
       error: {
-        code: 'Validation error',
-        json: { issues: parsed.error.issues },
+        code: 'Invalid input',
+        json: { issues: parseResult.error.issues },
       },
     }
   }
 
   try {
     // Delegate to FlowgladServer method
-    const result = await flowgladServer.getInvoices(parsed.data)
+    const result = await flowgladServer.getInvoices(parseResult.data)
     data = result
     status = 200
   } catch (e) {
