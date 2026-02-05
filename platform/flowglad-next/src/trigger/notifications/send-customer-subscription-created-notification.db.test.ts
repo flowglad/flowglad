@@ -4,6 +4,8 @@ import type { Customer } from '@db-core/schema/customers'
 import type { Organization } from '@db-core/schema/organizations'
 import type { Price } from '@db-core/schema/prices'
 import type { Subscription } from '@db-core/schema/subscriptions'
+import { render } from '@react-email/render'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -50,7 +52,7 @@ describe('runSendCustomerSubscriptionCreatedNotification', () => {
     })
   })
 
-  it('sends email successfully and passes isDoNotCharge: true when subscription has doNotCharge set', async () => {
+  it('sends email with isDoNotCharge content when subscription has doNotCharge set', async () => {
     // Create a subscription with doNotCharge = true
     const doNotChargeSubscription = await setupSubscription({
       organizationId: organization.id,
@@ -67,23 +69,36 @@ describe('runSendCustomerSubscriptionCreatedNotification', () => {
         organizationId: organization.id,
       })
 
-    expect(result.status).toBe('ok')
-    const value = (
-      result as { status: 'ok'; value: { message: string } }
-    ).value
-    expect(value.message).toBe(
+    // Use proper type guard instead of type assertion
+    expect(Result.isOk(result)).toBe(true)
+    if (!Result.isOk(result)) {
+      throw new Error('Expected result to be ok')
+    }
+    expect(result.value.message).toBe(
       'Customer subscription created notification sent successfully'
     )
 
-    // Verify safeSend was called
+    // Verify safeSend was called with correct recipient
     expect(mockSafeSend).toHaveBeenCalledTimes(1)
     const callArgs = mockSafeSend.mock.calls[0][0]
     expect(callArgs).toHaveProperty('react')
     expect(callArgs).toHaveProperty('to')
     expect(callArgs.to).toContain(customer.email)
+
+    // Render the react element to HTML and verify isDoNotCharge content
+    const reactElement = (callArgs as { react: React.ReactElement })
+      .react
+    const html = await render(reactElement)
+    expect(html).toContain(
+      'You&#x27;ve been granted access to the following plan at no charge:'
+    )
+    expect(html).toContain('Free')
+    expect(html).toContain('no payment required')
+    // Should NOT contain auto-renewal language
+    expect(html).not.toContain('automatically renews')
   })
 
-  it('sends email successfully and passes isDoNotCharge: false when subscription does not have doNotCharge set', async () => {
+  it('sends email without isDoNotCharge content when subscription does not have doNotCharge set', async () => {
     const result =
       await runSendCustomerSubscriptionCreatedNotification({
         customerId: customer.id,
@@ -91,19 +106,32 @@ describe('runSendCustomerSubscriptionCreatedNotification', () => {
         organizationId: organization.id,
       })
 
-    expect(result.status).toBe('ok')
-    const value = (
-      result as { status: 'ok'; value: { message: string } }
-    ).value
-    expect(value.message).toBe(
+    // Use proper type guard instead of type assertion
+    expect(Result.isOk(result)).toBe(true)
+    if (!Result.isOk(result)) {
+      throw new Error('Expected result to be ok')
+    }
+    expect(result.value.message).toBe(
       'Customer subscription created notification sent successfully'
     )
 
-    // Verify safeSend was called
+    // Verify safeSend was called with correct recipient
     expect(mockSafeSend).toHaveBeenCalledTimes(1)
     const callArgs = mockSafeSend.mock.calls[0][0]
     expect(callArgs).toHaveProperty('react')
     expect(callArgs).toHaveProperty('to')
     expect(callArgs.to).toContain(customer.email)
+
+    // Render the react element to HTML and verify normal (non-doNotCharge) content
+    const reactElement = (callArgs as { react: React.ReactElement })
+      .react
+    const html = await render(reactElement)
+    expect(html).toContain(
+      'You&#x27;ve successfully subscribed to the following plan:'
+    )
+    expect(html).toContain('automatically renews')
+    // Should NOT contain doNotCharge-specific content
+    expect(html).not.toContain('no payment required')
+    expect(html).not.toContain('at no charge')
   })
 })
