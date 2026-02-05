@@ -183,6 +183,8 @@ export enum RedisKeyNamespace {
   ProductFeaturesByPricingModel = 'productFeaturesByPricingModel',
   // Sync stream for SSE event streaming
   SyncStream = 'syncStream',
+  // Cached Svix subscription checks (whether org has sync endpoints)
+  SyncSubscription = 'syncSubscription',
 }
 
 const evictionPolicy: Record<
@@ -257,6 +259,11 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.SyncStream]: {
     maxlen: 100000, // Max 100k events per stream
     ttl: 60 * 60 * 24 * 7, // 7 days retention
+  },
+  // Cached Svix subscription checks (whether org has sync endpoints)
+  [RedisKeyNamespace.SyncSubscription]: {
+    max: 10000, // One per org
+    ttl: 60 * 5, // 5 minutes - balance between API cost and freshness
   },
 }
 
