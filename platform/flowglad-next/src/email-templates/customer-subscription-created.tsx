@@ -39,7 +39,7 @@ export const CustomerSubscriptionCreatedEmail = ({
   paymentMethodLast4,
   trial,
   dateConfirmed,
-  isComplimentary,
+  isDoNotCharge,
 }: {
   customerName: string
   organizationName: string
@@ -54,8 +54,8 @@ export const CustomerSubscriptionCreatedEmail = ({
   paymentMethodLast4?: string
   trial?: TrialInfo
   dateConfirmed?: Date
-  /** When true, subscription is complimentary (no charge) - shows "Free" instead of price */
-  isComplimentary?: boolean
+  /** When true, subscription was created with doNotCharge - shows "Free" instead of price */
+  isDoNotCharge?: boolean
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
@@ -102,7 +102,7 @@ export const CustomerSubscriptionCreatedEmail = ({
       <Paragraph>Hi {customerName},</Paragraph>
 
       <Paragraph>
-        {isComplimentary
+        {isDoNotCharge
           ? "You've been granted access to the following plan at no charge:"
           : "You've successfully subscribed to the following plan:"}
       </Paragraph>
@@ -126,7 +126,7 @@ export const CustomerSubscriptionCreatedEmail = ({
               dataTestId="renewal-price"
             />
           </>
-        ) : isComplimentary ? (
+        ) : isDoNotCharge ? (
           <DetailRow label="Price" value="Free" dataTestId="price" />
         ) : (
           <>
@@ -176,7 +176,7 @@ export const CustomerSubscriptionCreatedEmail = ({
             .
           </Paragraph>
         </div>
-      ) : isComplimentary ? (
+      ) : isDoNotCharge ? (
         <div data-testid="complimentary-notice">
           <Paragraph>
             You have full access to this plan with no payment

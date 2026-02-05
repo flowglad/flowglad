@@ -69,8 +69,8 @@ export interface CustomerSubscriptionCreatedProps {
     trialDurationDays: number
   }
   dateConfirmed?: Date
-  /** When true, subscription is complimentary (no charge) - shows "Free" instead of price */
-  isComplimentary?: boolean
+  /** When true, subscription was created with doNotCharge - shows "Free" instead of price */
+  isDoNotCharge?: boolean
 }
 
 export interface CustomerSubscriptionCanceledProps {

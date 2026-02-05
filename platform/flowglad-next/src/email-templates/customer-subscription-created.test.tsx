@@ -362,7 +362,7 @@ describe('CustomerSubscriptionCreatedEmail', () => {
   describe('complimentary subscription (doNotCharge)', () => {
     const complimentaryProps = {
       ...baseProps,
-      isComplimentary: true,
+      isDoNotCharge: true,
     }
 
     it('shows "granted access at no charge" intro text', () => {
