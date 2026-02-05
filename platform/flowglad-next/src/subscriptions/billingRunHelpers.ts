@@ -578,7 +578,11 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       usageOverages,
       billingRunId: billingRun.id,
     })
-  await insertInvoiceLineItems(invoiceLineItemInserts, transaction)
+  // Only insert if there are line items - handles cases like 100% discounts
+  // where billing period items may be empty
+  if (invoiceLineItemInserts.length > 0) {
+    await insertInvoiceLineItems(invoiceLineItemInserts, transaction)
+  }
 
   // Update invoice with accurate subtotal and tax amounts from fee calculation
   // This ensures email templates display correct totals including discounts
