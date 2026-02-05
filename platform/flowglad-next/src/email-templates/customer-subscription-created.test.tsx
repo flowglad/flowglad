@@ -357,4 +357,96 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       expect(dateRow).toHaveTextContent('Date Confirmed')
     })
   })
+
+  // Complimentary subscription tests
+  describe('complimentary subscription (doNotCharge)', () => {
+    const complimentaryProps = {
+      ...baseProps,
+      isComplimentary: true,
+    }
+
+    it('shows "granted access at no charge" intro text', () => {
+      const { getByText } = render(
+        <CustomerSubscriptionCreatedEmail {...complimentaryProps} />
+      )
+
+      expect(
+        getByText(
+          "You've been granted access to the following plan at no charge:"
+        )
+      ).toBeInTheDocument()
+    })
+
+    it('displays "Free" as the price', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...complimentaryProps} />
+      )
+
+      const priceRow = getByTestId('price')
+      expect(priceRow).toHaveTextContent('Price')
+      expect(priceRow).toHaveTextContent('Free')
+    })
+
+    it('does NOT show next billing date', () => {
+      const { queryByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...complimentaryProps} />
+      )
+
+      expect(
+        queryByTestId('next-billing-date')
+      ).not.toBeInTheDocument()
+    })
+
+    it('shows complimentary notice without auto-renewal language', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...complimentaryProps} />
+      )
+
+      const notice = getByTestId('complimentary-notice')
+      expect(notice).toHaveTextContent(
+        'You have full access to this plan with no payment required.'
+      )
+      expect(notice).not.toHaveTextContent('automatically renews')
+    })
+
+    it('does NOT show regular auto-renewal notice', () => {
+      const { queryByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...complimentaryProps} />
+      )
+
+      expect(
+        queryByTestId('auto-renew-notice')
+      ).not.toBeInTheDocument()
+    })
+
+    it('still shows plan name correctly', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...complimentaryProps} />
+      )
+
+      const planRow = getByTestId('plan-name')
+      expect(planRow).toHaveTextContent('Plan')
+      expect(planRow).toHaveTextContent('Pro Plan')
+    })
+
+    it('still shows date confirmed', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...complimentaryProps} />
+      )
+
+      const dateRow = getByTestId('date-confirmed')
+      expect(dateRow).toHaveTextContent('Date Confirmed')
+    })
+
+    it('does NOT show payment method for complimentary subscriptions', () => {
+      const { queryByTestId } = render(
+        <CustomerSubscriptionCreatedEmail
+          {...complimentaryProps}
+          paymentMethodLast4={undefined}
+        />
+      )
+
+      expect(queryByTestId('payment-method')).not.toBeInTheDocument()
+    })
+  })
 })

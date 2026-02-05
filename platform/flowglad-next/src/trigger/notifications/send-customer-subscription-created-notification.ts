@@ -222,6 +222,7 @@ export const runSendCustomerSubscriptionCreatedNotification =
         dateConfirmed: subscription.createdAt
           ? new Date(subscription.createdAt)
           : new Date(),
+        isComplimentary: subscription.doNotCharge ?? false,
       }),
     })
 
