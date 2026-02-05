@@ -2,6 +2,7 @@ src/db/tableMethods/billingPeriodMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/billingRunMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/checkoutSessionMethods.ts	no-unwrap-outside-boundaries	2
 src/db/tableMethods/customerMethods.ts	no-unwrap-outside-boundaries	1
+src/db/tableMethods/featureMethods.db.test.ts	no-explicit-any-in-tests	7
 src/db/tableMethods/featureMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/feeCalculationMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/invoiceLineItemMethods.ts	no-unwrap-outside-boundaries	2
@@ -9,10 +10,12 @@ src/db/tableMethods/invoiceMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/ledgerAccountMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/paymentMethodMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/priceMethods.ts	no-unwrap-outside-boundaries	6
+src/db/tableMethods/pricingModelMethods.db.test.ts	no-explicit-any-in-tests	4
 src/db/tableMethods/pricingModelMethods.ts	no-unwrap-outside-boundaries	3
 src/db/tableMethods/productMethods.ts	no-unwrap-outside-boundaries	2
 src/db/tableMethods/purchaseMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/refundMethods.ts	no-unwrap-outside-boundaries	1
+src/db/tableMethods/subscriptionItemFeatureMethods.db.test.ts	no-explicit-any-in-tests	10
 src/db/tableMethods/subscriptionItemMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/subscriptionMethods.ts	no-unwrap-outside-boundaries	1
 src/db/tableMethods/usageCreditMethods.ts	no-unwrap-outside-boundaries	1

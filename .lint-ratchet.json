@@ -24,11 +24,7 @@
     "src/server/trpc*.ts",
     "src/trigger/**",
     "src/scripts/**",
-    "src/test/**",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx"
+    "src/test/**"
   ],
   "packages": [
     { "path": "platform/flowglad-next" },

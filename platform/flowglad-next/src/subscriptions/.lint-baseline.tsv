@@ -1,8 +1,11 @@
 src/subscriptions/adjustSubscription.ts	no-unwrap-outside-boundaries	5
 src/subscriptions/billingPeriodHelpers.ts	no-unwrap-outside-boundaries	2
+src/subscriptions/billingRunHelpers.db.test.ts	no-explicit-any-in-tests	2
 src/subscriptions/billingRunHelpers.ts	no-unwrap-outside-boundaries	5
 src/subscriptions/cancelSubscription.ts	no-unwrap-outside-boundaries	6
 src/subscriptions/migratePricingModel.ts	no-unwrap-outside-boundaries	3
+src/subscriptions/processBillingRunPaymentIntents.stripe.test.ts	no-explicit-any-in-tests	1
 src/subscriptions/processBillingRunPaymentIntents.ts	no-unwrap-outside-boundaries	4
+src/subscriptions/renewsProperty.db.test.ts	no-explicit-any-in-tests	4
 src/subscriptions/subscriptionItemFeatureHelpers.ts	no-unwrap-outside-boundaries	3
 src/subscriptions/subscriptionItemHelpers.ts	no-unwrap-outside-boundaries	2
