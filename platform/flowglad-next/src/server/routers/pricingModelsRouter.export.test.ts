@@ -45,6 +45,8 @@ describe('pricingModels.export', () => {
                       isDefault: true,
                       active: true,
                       slug: 'test-price',
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
                     },
                     features: [],
                   },

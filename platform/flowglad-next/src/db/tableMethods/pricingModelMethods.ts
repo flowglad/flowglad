@@ -52,7 +52,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { ConflictError } from '@/errors'
+import { ConflictError, panic } from '@/errors'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { selectFeaturesByPricingModelId } from './featureMethods'
@@ -285,6 +285,7 @@ export const safelyInsertPricingModel = async (
       ctx.transaction
     )
     if (exists) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new ConflictError(
         'pricingModel',
         'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
@@ -781,6 +782,7 @@ export const selectPricingModelForCustomer = async (
         (error instanceof Error &&
           error.message.includes('NotFoundError'))
       if (!isNotFoundError) {
+        // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
         throw error
       }
     }
@@ -795,7 +797,7 @@ export const selectPricingModelForCustomer = async (
   )
 
   if (!defaultPricingModel) {
-    throw new Error(
+    panic(
       `No default pricing model found for organization ${customer.organizationId}`
     )
   }

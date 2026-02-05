@@ -60,6 +60,7 @@ import {
   createDiscardingEffectsContext,
   noopEmitEvent,
   noopEnqueueLedgerCommand,
+  noopEnqueueTriggerTask,
   noopInvalidateCache,
   withAdminCacheContext,
 } from '@/test-utils/transactionCallbacks'
@@ -602,7 +603,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                   organizationId: organization.id,
                 },
                 transaction,
-                { type: 'admin', livemode }
+                { livemode }
               )
             )
           },
@@ -711,7 +712,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                   organizationId: organization.id,
                 },
                 transaction,
-                { type: 'admin', livemode }
+                { livemode }
               )
             )
           },
@@ -848,7 +849,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                   organizationId: organization.id,
                 },
                 transaction,
-                { type: 'admin', livemode }
+                { livemode }
               )
             )
           },
@@ -983,7 +984,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                   organizationId: organization.id,
                 },
                 transaction,
-                { type: 'admin', livemode }
+                { livemode }
               )
             )
           },
@@ -1390,6 +1391,7 @@ describe('Pricing Model Migration Test Suite', async () => {
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
+                enqueueTriggerTask: noopEnqueueTriggerTask,
               }),
             })
           )
@@ -1439,6 +1441,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              enqueueTriggerTask: noopEnqueueTriggerTask,
             }),
           })
           return Result.ok(undefined)
@@ -1470,6 +1473,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              enqueueTriggerTask: noopEnqueueTriggerTask,
             }),
           })
           return Result.ok(undefined)
@@ -1501,6 +1505,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              enqueueTriggerTask: noopEnqueueTriggerTask,
             }),
           })
           return Result.ok(undefined)
@@ -1539,6 +1544,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              enqueueTriggerTask: noopEnqueueTriggerTask,
             }),
           })
           return Result.ok(undefined)
@@ -1571,6 +1577,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: noopEnqueueLedgerCommand,
+              enqueueTriggerTask: noopEnqueueTriggerTask,
             }),
           })
           return Result.ok(undefined)
@@ -1818,6 +1825,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+              enqueueTriggerTask: callbacks.enqueueTriggerTask,
             }),
           })
           return Result.ok(effects)

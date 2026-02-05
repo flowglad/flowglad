@@ -40,29 +40,29 @@ describe('updateInvoiceTransaction', () => {
       // but paid invoice ID in the invoice object for the actual update
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await updateInvoiceTransaction(
-              {
-                id: draftInvoice.id, // Use draft invoice ID for terminal check
-                invoice: {
-                  id: paidInvoice.id, // But try to update paid invoice
-                  type: InvoiceType.Purchase,
-                  status: InvoiceStatus.Open,
-                  currency: paidInvoice.currency,
-                  dueDate: paidInvoice.dueDate,
-                  invoiceDate: paidInvoice.invoiceDate,
-                },
-                invoiceLineItems: [],
+          return updateInvoiceTransaction(
+            {
+              id: draftInvoice.id, // Use draft invoice ID for terminal check
+              invoice: {
+                id: paidInvoice.id, // But try to update paid invoice
+                type: InvoiceType.Purchase,
+                status: InvoiceStatus.Open,
+                currency: paidInvoice.currency,
+                dueDate: paidInvoice.dueDate,
+                invoiceDate: paidInvoice.invoiceDate,
               },
-              true,
-              transaction
-            )
+              invoiceLineItems: [],
+            },
+            true,
+            transaction
           )
         }
       )
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
-        expect(result.error.message).toMatch(/ID mismatch/)
+        expect(result.error.message).toMatch(
+          /does not match invoice\.id/
+        )
       }
     })
 
@@ -79,31 +79,33 @@ describe('updateInvoiceTransaction', () => {
       })
       ;(
         await adminTransaction(async ({ transaction }) => {
-          const result = await updateInvoiceTransaction(
-            {
-              id: invoice.id,
-              invoice: {
-                id: invoice.id, // IDs match
-                type: InvoiceType.Purchase,
-                status: InvoiceStatus.Open,
-                currency: invoice.currency,
-                dueDate: invoice.dueDate,
-                invoiceDate: invoice.invoiceDate,
-              },
-              invoiceLineItems: [
-                {
-                  invoiceId: invoice.id,
-                  description: 'Test line item',
-                  quantity: 1,
-                  price: 1000,
-                  type: SubscriptionItemType.Static,
-                  priceId: null,
+          const result = (
+            await updateInvoiceTransaction(
+              {
+                id: invoice.id,
+                invoice: {
+                  id: invoice.id, // IDs match
+                  type: InvoiceType.Purchase,
+                  status: InvoiceStatus.Open,
+                  currency: invoice.currency,
+                  dueDate: invoice.dueDate,
+                  invoiceDate: invoice.invoiceDate,
                 },
-              ],
-            },
-            true,
-            transaction
-          )
+                invoiceLineItems: [
+                  {
+                    invoiceId: invoice.id,
+                    description: 'Test line item',
+                    quantity: 1,
+                    price: 1000,
+                    type: SubscriptionItemType.Static,
+                    priceId: null,
+                  },
+                ],
+              },
+              true,
+              transaction
+            )
+          ).unwrap()
 
           expect(result.invoice.id).toBe(invoice.id)
           expect(result.invoice.status).toBe(InvoiceStatus.Open)
@@ -405,7 +407,7 @@ describe('updateInvoiceTransaction', () => {
       ;(
         await adminTransaction(async ({ transaction }) => {
           // First update to set up multiple line items
-          const { invoiceLineItems: updatedInvoiceLineItems } =
+          const { invoiceLineItems: updatedInvoiceLineItems } = (
             await updateInvoiceTransaction(
               {
                 id: invoice.id,
@@ -439,41 +441,44 @@ describe('updateInvoiceTransaction', () => {
               true,
               transaction
             )
+          ).unwrap()
           // Second update with mixed changes
-          const result = await updateInvoiceTransaction(
-            {
-              id: invoice.id,
-              invoice: {
+          const result = (
+            await updateInvoiceTransaction(
+              {
                 id: invoice.id,
-                type: InvoiceType.Purchase,
-                status: invoice.status,
-                currency: invoice.currency,
-                invoiceDate: invoice.invoiceDate,
-                dueDate: invoice.dueDate,
+                invoice: {
+                  id: invoice.id,
+                  type: InvoiceType.Purchase,
+                  status: invoice.status,
+                  currency: invoice.currency,
+                  invoiceDate: invoice.invoiceDate,
+                  dueDate: invoice.dueDate,
+                },
+                invoiceLineItems: [
+                  {
+                    id: updatedInvoiceLineItems[0].id, // Modify existing
+                    invoiceId: invoice.id,
+                    description: 'Modified Item 1',
+                    quantity: 2,
+                    price: 1500,
+                    type: SubscriptionItemType.Static,
+                    priceId: null,
+                  },
+                  {
+                    invoiceId: invoice.id, // Add new
+                    description: 'New Item 3',
+                    quantity: 1,
+                    price: 3000,
+                    type: SubscriptionItemType.Static,
+                    priceId: null,
+                  },
+                ],
               },
-              invoiceLineItems: [
-                {
-                  id: updatedInvoiceLineItems[0].id, // Modify existing
-                  invoiceId: invoice.id,
-                  description: 'Modified Item 1',
-                  quantity: 2,
-                  price: 1500,
-                  type: SubscriptionItemType.Static,
-                  priceId: null,
-                },
-                {
-                  invoiceId: invoice.id, // Add new
-                  description: 'New Item 3',
-                  quantity: 1,
-                  price: 3000,
-                  type: SubscriptionItemType.Static,
-                  priceId: null,
-                },
-              ],
-            },
-            true,
-            transaction
-          )
+              true,
+              transaction
+            )
+          ).unwrap()
 
           expect(result.invoiceLineItems).toHaveLength(2)
           const modifiedItem = result.invoiceLineItems.find(

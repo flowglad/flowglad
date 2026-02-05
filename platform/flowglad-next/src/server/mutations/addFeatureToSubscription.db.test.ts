@@ -36,7 +36,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { AdminTransactionParams } from '@/db/types'
 import { addFeatureToSubscriptionItem } from '@/subscriptions/subscriptionItemFeatureHelpers'
@@ -215,7 +214,7 @@ describe('addFeatureToSubscription mutation', () => {
           const result = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: toggleFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -255,7 +254,7 @@ describe('addFeatureToSubscription mutation', () => {
         await adminTransaction(async ({ transaction }) => {
           const result = await addFeatureToSubscriptionItem(
             {
-              subscriptionItemId: subscriptionItem.id,
+              id: subscription.id,
               featureId: toggleFeature.id,
               grantCreditsImmediately: true,
             },
@@ -298,7 +297,7 @@ describe('addFeatureToSubscription mutation', () => {
           const result = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageCreditFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -370,7 +369,7 @@ describe('addFeatureToSubscription mutation', () => {
           ;(
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: usageCreditFeature.id,
                 grantCreditsImmediately: true,
               },
@@ -408,7 +407,7 @@ describe('addFeatureToSubscription mutation', () => {
           )
           expect(usageCredits.length).toBe(1)
           expect(usageCredits[0].issuedAmount).toBe(
-            usageCreditFeature.amount
+            usageCreditFeature.amount!
           )
           return Result.ok(null)
         })
@@ -448,7 +447,7 @@ describe('addFeatureToSubscription mutation', () => {
 
           await addFeatureToSubscriptionItem(
             {
-              subscriptionItemId: subscriptionItem.id,
+              id: subscription.id,
               featureId: usageCreditFeature.id,
               grantCreditsImmediately: false,
             },
@@ -474,49 +473,6 @@ describe('addFeatureToSubscription mutation', () => {
   })
 
   describe('Validation errors', () => {
-    it('should throw error when subscription item is expired', async () => {
-      const [{ feature: toggleFeature }] =
-        await setupTestFeaturesAndProductFeatures(
-          orgData.organization.id,
-          product.id,
-          orgData.pricingModel.id,
-          true,
-          [
-            {
-              name: 'Feature for Expired Item',
-              type: FeatureType.Toggle,
-            },
-          ]
-        )
-
-      ;(
-        await adminTransaction(async ({ transaction }) => {
-          // Expire the subscription item
-          await expireSubscriptionItems(
-            [subscriptionItem.id],
-            Date.now() - 1000,
-            transaction
-          )
-
-          const result = await addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: toggleFeature.id,
-              grantCreditsImmediately: false,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-          expect(Result.isError(result)).toBe(true)
-          if (Result.isError(result)) {
-            expect((result.error as Error).message).toBe(
-              `Subscription item ${subscriptionItem.id} is expired and cannot accept new features.`
-            )
-          }
-          return Result.ok(null)
-        })
-      ).unwrap()
-    })
-
     it('should throw error when feature is inactive', async () => {
       ;(
         await adminTransaction(
@@ -541,7 +497,7 @@ describe('addFeatureToSubscription mutation', () => {
 
             const result = await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: inactiveFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -582,7 +538,7 @@ describe('addFeatureToSubscription mutation', () => {
         await adminTransaction(async ({ transaction }) => {
           const result = await addFeatureToSubscriptionItem(
             {
-              subscriptionItemId: subscriptionItem.id,
+              id: subscription.id,
               featureId: otherOrgFeature.id,
               grantCreditsImmediately: false,
             },
@@ -620,7 +576,7 @@ describe('addFeatureToSubscription mutation', () => {
         await adminTransaction(async ({ transaction }) => {
           const result = await addFeatureToSubscriptionItem(
             {
-              subscriptionItemId: subscriptionItem.id,
+              id: subscription.id,
               featureId: testmodeFeature.id,
               grantCreditsImmediately: false,
             },
@@ -629,7 +585,7 @@ describe('addFeatureToSubscription mutation', () => {
           expect(Result.isError(result)).toBe(true)
           if (Result.isError(result)) {
             expect((result.error as Error).message).toBe(
-              'Feature livemode does not match subscription item livemode.'
+              'Feature livemode does not match subscription livemode.'
             )
           }
           return Result.ok(null)
@@ -659,7 +615,7 @@ describe('addFeatureToSubscription mutation', () => {
           const firstResult = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: toggleFeature.id,
                 grantCreditsImmediately: false,
               },
@@ -670,7 +626,7 @@ describe('addFeatureToSubscription mutation', () => {
           const secondResult = (
             await addFeatureToSubscriptionItem(
               {
-                subscriptionItemId: subscriptionItem.id,
+                id: subscription.id,
                 featureId: toggleFeature.id,
                 grantCreditsImmediately: false,
               },

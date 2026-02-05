@@ -49,6 +49,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import { CacheDependency } from '@/utils/cache'
 import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
@@ -269,7 +270,7 @@ export const createCustomerBookkeeping = async (
     payload.customer.organizationId &&
     payload.customer.organizationId !== organizationId
   ) {
-    throw new Error(
+    panic(
       'Customer organizationId must match authenticated organizationId'
     )
   }
@@ -286,7 +287,7 @@ export const createCustomerBookkeeping = async (
       )
 
   if (!pricingModel) {
-    throw new Error(
+    panic(
       `No pricing model found for customer. Organization: ${payload.customer.organizationId}, livemode: ${livemode}`
     )
   }

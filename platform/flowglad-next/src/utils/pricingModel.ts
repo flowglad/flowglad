@@ -56,6 +56,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
 import {
   validatePriceTypeProductIdConsistency,
@@ -143,6 +144,7 @@ export const createPriceTransaction = async (
   const { transaction, livemode, organizationId } = ctx
   const { price } = payload
   if (!organizationId) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message: 'organizationId is required to create a price',
@@ -228,6 +230,7 @@ export const createProductTransaction = async (
   const { transaction, livemode, organizationId, invalidateCache } =
     ctx
   if (!organizationId) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message: 'Organization ID is required to create a product.',
@@ -239,7 +242,7 @@ export const createProductTransaction = async (
       (price) => price.type === PriceType.Usage
     )
     if (hasUsagePrice) {
-      throw new Error(
+      panic(
         'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
       )
     }
@@ -254,7 +257,7 @@ export const createProductTransaction = async (
         transaction
       )
       if (hasToggleFeatures) {
-        throw new Error(
+        panic(
           'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
         )
       }
@@ -335,6 +338,7 @@ export const editProductTransaction = async (
   const { product, featureIds, price } = payload
 
   if (!organizationId) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message: 'Organization ID is required to edit a product.',
@@ -365,13 +369,14 @@ export const editProductTransaction = async (
     existingProduct
   )
   if (validationResult.status === 'error') {
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw validationResult.error
   }
 
   const updatedProduct = await updateProduct(enforcedProduct, ctx)
 
   if (!updatedProduct) {
-    throw new Error('Product not found or update failed')
+    panic('Product not found or update failed')
   }
 
   if (featureIds !== undefined) {
@@ -388,7 +393,7 @@ export const editProductTransaction = async (
           transaction
         )
         if (hasToggleFeatures) {
-          throw new Error(
+          panic(
             'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
           )
         }
@@ -482,7 +487,7 @@ export const clonePricingModelTransaction = async (
       transaction
     )
     if (exists) {
-      throw new Error(
+      panic(
         'Cannot clone to livemode: Your organization already has a livemode pricing model. ' +
           'Each organization can have at most one livemode pricing model. ' +
           'To clone this pricing model, please select "Test mode" as the destination environment instead.'

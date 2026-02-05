@@ -614,6 +614,7 @@ export const assertCustomerNotArchived = (
   operation: string
 ): void => {
   if (customer.archived) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new ArchivedCustomerError(operation)
   }
 }

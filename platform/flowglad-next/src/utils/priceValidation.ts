@@ -56,6 +56,7 @@ export const validatePriceTypeProductIdConsistency = (
     productId !== null &&
     productId !== undefined
   ) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message:
@@ -68,6 +69,7 @@ export const validatePriceTypeProductIdConsistency = (
     price.type !== PriceType.Usage &&
     (!productId || productId.trim() === '')
   ) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message:
@@ -99,6 +101,7 @@ export const validateProductPriceConstraints = (params: {
 
   // Forbid creating additional prices for default products
   if (product.default && existingPrices.length > 0) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Cannot create additional prices for the default plan',
@@ -107,6 +110,7 @@ export const validateProductPriceConstraints = (params: {
 
   // Default prices on default products must have unitPrice = 0
   if (price.isDefault && product.default && price.unitPrice !== 0) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message:
@@ -121,6 +125,7 @@ export const validateProductPriceConstraints = (params: {
       (existingPrice) => existingPrice.type !== price.type
     )
   ) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'FORBIDDEN',
       message:

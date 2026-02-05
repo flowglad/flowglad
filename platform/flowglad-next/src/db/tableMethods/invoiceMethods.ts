@@ -37,6 +37,7 @@ import {
 } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { derivePricingModelIdFromPurchase } from './purchaseMethods'
 import { derivePricingModelIdFromSubscription } from './subscriptionMethods'
 
@@ -90,7 +91,7 @@ export const derivePricingModelIdForInvoice = async (
   )
   const customer = customerResult.unwrap()
   if (!customer.pricingModelId) {
-    throw new Error(
+    panic(
       `Customer ${data.customerId} does not have a pricingModelId`
     )
   }
@@ -166,7 +167,7 @@ export const safelyUpdateInvoiceStatus = (
     return invoice
   }
   if (invoiceIsInTerminalState(invoice)) {
-    throw new Error(
+    panic(
       `Cannot update invoice ${invoice.id} status to ${status} because it is in terminal state ${invoice.status}`
     )
   }

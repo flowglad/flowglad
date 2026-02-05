@@ -346,25 +346,18 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     // Attempting to claim more than available should fail
     const claimResult = await adminTransaction(
       async ({ transaction }) => {
-        try {
-          const result = await claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                quantity: 4, // More than available (3)
-              },
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              quantity: 4, // More than available (3)
             },
-            transaction
-          )
-          return Result.ok(result)
-        } catch (error) {
-          return Result.err(
-            error instanceof Error ? error : new Error(String(error))
-          )
-        }
+          },
+          transaction
+        )
       }
     )
     expect(Result.isError(claimResult)).toBe(true)
@@ -462,19 +455,17 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     // Create 2 more claims
     const newClaimResult = (
       await adminTransaction(async ({ transaction }) => {
-        return Result.ok(
-          await claimResourceTransaction(
-            {
-              organizationId: organization.id,
-              customerId: customer.id,
-              input: {
-                resourceSlug: 'seats',
-                subscriptionId: subscription.id,
-                externalIds: ['new-user-0', 'new-user-1'],
-              },
+        return claimResourceTransaction(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            input: {
+              resourceSlug: 'seats',
+              subscriptionId: subscription.id,
+              externalIds: ['new-user-0', 'new-user-1'],
             },
-            transaction
-          )
+          },
+          transaction
         )
       })
     ).unwrap()

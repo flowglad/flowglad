@@ -1,5 +1,6 @@
 import { camelCase, kebabCase } from 'change-case'
 import type { OpenApiMeta, OpenApiMethod } from 'trpc-to-openapi'
+import { panic } from '@/errors'
 import { titleCase } from './core'
 
 export type CreateOpenApiMetaParams = {
@@ -241,7 +242,7 @@ export const trpcToRest = (
   const [rawEntity, action] = procedureName.split('.')
   const entity = kebabCase(rawEntity)
   if (!entity || !action) {
-    throw new Error(
+    panic(
       `Invalid procedure name: ${procedureName}. Expected format: entity.action`
     )
   }

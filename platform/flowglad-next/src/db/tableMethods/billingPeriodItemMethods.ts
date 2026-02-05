@@ -47,7 +47,7 @@ import {
   SQL,
 } from 'drizzle-orm'
 import type { DbTransaction } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import { NotFoundError, panic } from '@/errors'
 import {
   derivePricingModelIdFromBillingPeriod,
   derivePricingModelIdsFromBillingPeriods,
@@ -188,9 +188,7 @@ export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByB
       .where(eq(billingPeriods.id, billingPeriodId))
 
     if (result.length === 0) {
-      throw new Error(
-        `Billing period with id ${billingPeriodId} not found`
-      )
+      panic(`Billing period with id ${billingPeriodId} not found`)
     }
 
     const { organization, subscription, billingPeriod, customer } =

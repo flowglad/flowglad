@@ -84,6 +84,7 @@ import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
   noopEmitEvent,
+  noopEnqueueTriggerTask,
   noopInvalidateCache,
   withAdminCacheContext,
 } from '@/test-utils/transactionCallbacks'
@@ -2007,6 +2008,7 @@ describe('Subscription Cancellation Test Suite', async () => {
                 invalidateCache: callbacks.invalidateCache,
                 emitEvent: callbacks.emitEvent,
                 enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+                enqueueTriggerTask: callbacks.enqueueTriggerTask,
               }),
             })
 
@@ -2059,6 +2061,7 @@ describe('Subscription Cancellation Test Suite', async () => {
                 invalidateCache: callbacks.invalidateCache,
                 emitEvent: callbacks.emitEvent,
                 enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+                enqueueTriggerTask: callbacks.enqueueTriggerTask,
               }),
             })
 
@@ -2709,6 +2712,7 @@ describe('Subscription Cancellation Test Suite', async () => {
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: () => {},
+                enqueueTriggerTask: noopEnqueueTriggerTask,
               }),
             }
           )
@@ -2781,6 +2785,7 @@ describe('Subscription Cancellation Test Suite', async () => {
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: () => {},
+                enqueueTriggerTask: noopEnqueueTriggerTask,
               }),
             })
           )
@@ -2854,6 +2859,7 @@ describe('Subscription Cancellation Test Suite', async () => {
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: () => {},
+                enqueueTriggerTask: noopEnqueueTriggerTask,
               }),
             }
           )
@@ -4105,6 +4111,7 @@ describe('Subscription Cancellation Test Suite', async () => {
                 invalidateCache: callbacks.invalidateCache,
                 emitEvent: callbacks.emitEvent,
                 enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+                enqueueTriggerTask: callbacks.enqueueTriggerTask,
               }),
             })
 
@@ -4164,6 +4171,7 @@ describe('Subscription Cancellation Test Suite', async () => {
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: () => {},
+                enqueueTriggerTask: noopEnqueueTriggerTask,
               }),
             })
           expect(result.status).toBe('error')
@@ -4654,6 +4662,7 @@ describe('Subscription cancellation cache invalidations', async () => {
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+              enqueueTriggerTask: callbacks.enqueueTriggerTask,
             }),
           })
           return Result.ok(await effects)

@@ -5,9 +5,31 @@
       "plugin": "./plugins/no-explicit-any-in-tests.grit",
       "filePatterns": ["**/*.test.ts", "**/*.test.tsx"],
       "severity": "warn"
+    },
+    {
+      "name": "no-unwrap-outside-boundaries",
+      "plugin": "./plugins/no-unwrap-outside-boundaries.grit",
+      "filePatterns": ["src/**/*.ts"],
+      "severity": "warn"
     }
   ],
-  "exclude": ["node_modules/**", "dist/**", ".next/**"],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    ".next/**",
+    "src/app/**",
+    "src/server/routers/**",
+    "src/server/mutations/**",
+    "src/server/queries/**",
+    "src/server/trpc*.ts",
+    "src/trigger/**",
+    "src/scripts/**",
+    "src/test/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
   "packages": [
     { "path": "platform/flowglad-next" },
     { "path": "packages/flowglad" },

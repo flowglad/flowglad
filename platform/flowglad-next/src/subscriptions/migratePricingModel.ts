@@ -414,6 +414,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
     }
 
     if (!organizationId) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'UNAUTHORIZED',
         message: 'Organization ID is required',
@@ -428,6 +429,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
       )
 
     if (!customer) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: `Customer with external ID ${externalId} not found`,
@@ -441,6 +443,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
     )
 
     if (Result.isError(newPricingModelResult)) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: `Pricing model ${newPricingModelId} not found`,
@@ -449,6 +452,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
     const newPricingModel = newPricingModelResult.unwrap()
 
     if (newPricingModel.organizationId !== organizationId) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: 'Pricing model does not belong to your organization',
@@ -457,6 +461,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
 
     // Validate livemode matches
     if (newPricingModel.livemode !== customer.livemode) {
+      // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message:

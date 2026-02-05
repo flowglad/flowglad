@@ -31,6 +31,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { panic } from '@/errors'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
@@ -309,7 +310,7 @@ export const bulkInsertProductFeatures = async (
         productFeatureInsert.pricingModelId ??
         pricingModelIdMap.get(productFeatureInsert.productId)
       if (!pricingModelId) {
-        throw new Error(
+        panic(
           `Pricing model id not found for product ${productFeatureInsert.productId}`
         )
       }
@@ -355,7 +356,7 @@ export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
           productFeatureInsert.pricingModelId ??
           pricingModelIdMap.get(productFeatureInsert.productId)
         if (!pricingModelId) {
-          throw new Error(
+          panic(
             `Pricing model id not found for product ${productFeatureInsert.productId}`
           )
         }

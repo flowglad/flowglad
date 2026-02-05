@@ -26,6 +26,7 @@ import {
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { CheckoutFlowType } from '@/types'
 import { findOrCreateCheckoutSession } from './checkoutSessionState'
 import core from './core'
@@ -205,7 +206,7 @@ export async function checkoutInfoForPriceWhere(
           )
         // Product checkout requires a product - usage prices (with null product) are not supported here
         if (!product) {
-          throw new Error(
+          panic(
             'Product checkout is only supported for product prices (subscription/single payment), not usage prices'
           )
         }
@@ -380,7 +381,11 @@ export async function checkoutInfoForPriceWhere(
       success: true,
     }
   }
-  throw new Error('Could not derive ')
+  // This should be unreachable - all price types are handled above
+  const _exhaustiveCheck: never = price
+  panic(
+    `Could not derive checkout info for unhandled price type: ${(_exhaustiveCheck as Price.Record).type}`
+  )
 }
 
 export async function checkoutInfoForCheckoutSession(
@@ -408,7 +413,7 @@ export async function checkoutInfoForCheckoutSession(
    * pages.
    */
   if (!checkoutSession.priceId) {
-    throw new Error(
+    panic(
       `No price id found for purchase session ${checkoutSession.id}. Currently, only price / product checkout flows are supported on this page.`
     )
   }
@@ -419,7 +424,7 @@ export async function checkoutInfoForCheckoutSession(
     )
   // Product checkout requires a product - usage prices (with null product) are not supported here
   if (!product) {
-    throw new Error(
+    panic(
       'Product checkout is only supported for product prices (subscription/single payment), not usage prices'
     )
   }
