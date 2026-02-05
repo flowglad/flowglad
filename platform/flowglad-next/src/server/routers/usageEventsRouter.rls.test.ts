@@ -47,7 +47,7 @@ const createCaller = (
     path: '',
     user: null,
     session: null,
-  } as TRPCApiContext)
+  } as unknown as TRPCApiContext)
 }
 
 describe('usageEventsRouter', () => {

@@ -52,7 +52,7 @@ import {
 } from 'drizzle-orm'
 import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
-import { SubscriptionTerminalStateError } from '@/errors'
+import { panic, SubscriptionTerminalStateError } from '@/errors'
 import { CancellationReason } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -193,6 +193,7 @@ export const assertSubscriptionNotTerminal = (
   subscription: Subscription.Record
 ): void => {
   if (isSubscriptionInTerminalState(subscription.status)) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new SubscriptionTerminalStateError(
       subscription.id,
       subscription.status
@@ -206,7 +207,7 @@ export const safelyUpdateSubscriptionStatus = async (
   transaction: DbTransaction
 ): Promise<Subscription.Record> => {
   if (status === SubscriptionStatus.CreditTrial) {
-    throw new Error(
+    panic(
       `Cannot update subscription ${subscription.id} to credit trial status`
     )
   }
@@ -214,14 +215,14 @@ export const safelyUpdateSubscriptionStatus = async (
     return subscription
   }
   if (isSubscriptionInTerminalState(subscription.status)) {
-    throw new Error(
+    panic(
       `Subscription ${subscription.id} is in terminal state ${subscription.status} and cannot be updated to ${status}`
     )
   }
   if (!subscription.renews) {
     const safeStatus = nonRenewingStatusSchema.safeParse(status)
     if (!safeStatus.success) {
-      throw new Error(
+      panic(
         `Subscription ${subscription.id} is a non-renewing subscription and cannot be updated to ${status}`
       )
     }
@@ -241,7 +242,7 @@ export const safelyUpdateSubscriptionStatus = async (
     transaction
   )
   if (updatedSubscription.status === SubscriptionStatus.CreditTrial) {
-    throw new Error(
+    panic(
       `Subscription ${subscription.id} was updated to credit trial status. Credit_trial status is a status that can only be created, not updated to.`
     )
   }
@@ -328,7 +329,7 @@ export const selectSubscriptionsTableRowData =
 
       return subscriptions.map((subscription) => {
         if (!subscription.priceId || !subscription.customerId) {
-          throw new Error(
+          panic(
             `Subscription ${subscription.id} is missing required price or customer ID`
           )
         }
@@ -337,7 +338,7 @@ export const selectSubscriptionsTableRowData =
         const customer = customersById.get(subscription.customerId)
 
         if (!rawPrice || !customer) {
-          throw new Error(
+          panic(
             `Could not find price or customer for subscription ${subscription.id}`
           )
         }
@@ -353,9 +354,7 @@ export const selectSubscriptionsTableRowData =
           : null
         // For non-usage prices, product is required
         if (Price.clientHasProductId(parsedPrice) && !product) {
-          throw new Error(
-            `Could not find product for price ${parsedPrice.id}`
-          )
+          panic(`Could not find product for price ${parsedPrice.id}`)
         }
 
         return {
@@ -519,7 +518,7 @@ export const bulkInsertOrDoNothingSubscriptionsByExternalId = async (
         subscriptionInsert.pricingModelId ??
         pricingModelIdMap.get(subscriptionInsert.priceId)
       if (!pricingModelId) {
-        throw new Error(
+        panic(
           `Pricing model id not found for price ${subscriptionInsert.priceId}`
         )
       }

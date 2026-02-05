@@ -5,6 +5,7 @@ import {
   createSyncEventsAvailableEvent,
   createSyncEventsAvailablePayload,
   parseScopeId,
+  type SyncEventsAvailablePayload,
 } from './syncWebhook'
 
 describe('syncWebhook', () => {
@@ -115,9 +116,10 @@ describe('syncWebhook', () => {
       expect(event.organizationId).toBe('org_123')
       expect(event.pricingModelId).toBe('pm_456')
       expect(event.livemode).toBe(true)
-      expect(event.payload.scopeId).toBe('org_123:live')
-      expect(event.payload.latestSequence).toBe('1700000000000-0')
-      expect(event.payload.object).toBe(EventNoun.SyncStream)
+      const payload = event.payload as SyncEventsAvailablePayload
+      expect(payload.scopeId).toBe('org_123:live')
+      expect(payload.latestSequence).toBe('1700000000000-0')
+      expect(payload.object).toBe(EventNoun.SyncStream)
     })
 
     it('generates unique hash for different sequences', () => {

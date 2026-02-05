@@ -106,6 +106,7 @@ export const derivePricingModelIdForLedgerEntry = async (
           )
         )
       }
+      // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
       throw error
     }
   }
@@ -130,6 +131,7 @@ export const derivePricingModelIdForLedgerEntry = async (
           )
         )
       }
+      // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
       throw error
     }
   }

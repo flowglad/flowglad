@@ -19,7 +19,7 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import type { DbTransaction } from '@/db/types'
-import { ValidationError } from '@/errors'
+import { panic, ValidationError } from '@/errors'
 import {
   createPaymentIntentForCheckoutSession,
   createSetupIntentForCheckoutSession,
@@ -81,7 +81,7 @@ const checkoutSessionName = (
     case CheckoutSessionType.Purchase:
       return base + params.purchaseId
     default:
-      throw new Error('Invalid purchase session type: ' + params.type)
+      panic('Invalid purchase session type: ' + params.type)
   }
 }
 
@@ -270,7 +270,7 @@ export const createNonInvoiceCheckoutSession = async (
     } else {
       // SinglePayment prices always have a product, so product should never be null here
       if (!product) {
-        throw new Error(
+        panic(
           `Product is required for single payment checkout session but was null for price ${price.id}`
         )
       }

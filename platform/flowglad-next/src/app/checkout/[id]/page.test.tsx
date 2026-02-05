@@ -138,7 +138,7 @@ describe('CheckoutSessionPage', () => {
         { status: SubscriptionStatus.Active, isFreePlan: false },
       ],
       discount: null,
-    } as ReturnType<
+    } as unknown as ReturnType<
       typeof mockCheckoutInfoForCheckoutSession
     > extends Promise<infer R>
       ? R

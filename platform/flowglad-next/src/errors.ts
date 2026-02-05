@@ -102,6 +102,19 @@ export class RateLimitError extends DomainError {
   }
 }
 
+export class CapacityExceededError extends DomainError {
+  constructor(
+    public readonly requested: number,
+    public readonly available: number,
+    public readonly totalCapacity: number
+  ) {
+    super(
+      'CapacityExceededError',
+      `No available capacity. Requested: ${requested}, Available: ${available}, Total capacity: ${totalCapacity}`
+    )
+  }
+}
+
 export class ExternalServiceError extends DomainError {
   constructor(
     public readonly service: string,

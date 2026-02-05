@@ -314,6 +314,7 @@ export async function calculateUsageVolumeByInterval(
     .limit(1)
 
   if (!meter) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'NOT_FOUND',
       message: 'Usage meter not found',
@@ -322,6 +323,7 @@ export async function calculateUsageVolumeByInterval(
 
   // Security: Validate meter belongs to the organization
   if (meter.organizationId !== organizationId) {
+    // biome-ignore lint/plugin: Domain error for boundary contexts to catch and handle
     throw new TRPCError({
       code: 'NOT_FOUND',
       message: 'Usage meter not found',

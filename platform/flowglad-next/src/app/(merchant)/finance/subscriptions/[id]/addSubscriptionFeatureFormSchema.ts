@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const addSubscriptionFeatureFormSchema = z.object({
-  subscriptionItemId: z.string().min(1, 'Select a subscription item'),
+  id: z.string().min(1, 'Subscription ID is required'),
   featureId: z.string().min(1, 'Select a feature to grant'),
   grantCreditsImmediately: z.boolean().default(false),
 })

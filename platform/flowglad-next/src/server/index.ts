@@ -35,6 +35,7 @@ import { resourceClaimsRouter } from './routers/resourceClaimsRouter'
 import { resourcesRouter } from './routers/resourcesRouter'
 import { subscriptionItemFeaturesRouter } from './routers/subscriptionItemFeaturesRouter'
 import { subscriptionsRouter } from './routers/subscriptionsRouter'
+import { supportChatRouter } from './routers/supportChatRouter'
 import { usageEventsRouter } from './routers/usageEventsRouter'
 import { usageMetersRouter } from './routers/usageMetersRouter'
 import { webhooksRouter } from './routers/webhooksRouter'
@@ -82,6 +83,7 @@ export const appRouter = router({
   docsSearch: docsSearchRouter,
   resources: resourcesRouter,
   resourceClaims: resourceClaimsRouter,
+  supportChat: supportChatRouter,
   cli: cliRouter,
 })
 

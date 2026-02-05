@@ -104,6 +104,7 @@ import {
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { ValidationError } from '@/errors'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
+import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
 import core from '@/utils/core'
 import { stripeIdFromObjectOrId } from '@/utils/stripe'
 import {
@@ -1097,30 +1098,16 @@ describe('billingRunHelpers', async () => {
 
     it('should throw an error if the payment method does not have a Stripe payment method ID', async () => {
       ;(
-        await adminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) => {
-            await safelyUpdatePaymentMethod(
-              {
-                id: paymentMethod.id,
-                stripePaymentMethodId: null,
-              },
-              {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache: invalidateCache!,
-                emitEvent: emitEvent!,
-                enqueueLedgerCommand: enqueueLedgerCommand!,
-              }
-            )
-            return Result.ok(undefined)
-          }
-        )
+        await adminTransaction(async (params) => {
+          await safelyUpdatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            createProcessingEffectsContext(params)
+          )
+          return Result.ok(undefined)
+        })
       ).unwrap()
       await executeBillingRun(billingRun.id)
       const updatedBillingRun = (

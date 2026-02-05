@@ -22,6 +22,7 @@ import { updateFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectLifetimeUsageForPayments } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { isNil, nanoid } from '@/utils/core'
 import {
   createStripeTaxCalculationByPrice,
@@ -50,9 +51,7 @@ const validatePercentageString = (
 ): void => {
   const bn = new BigNumber(percentageString)
   if (bn.isNaN()) {
-    throw Error(
-      `${fieldName} is not a valid number: ${percentageString}`
-    )
+    panic(`${fieldName} is not a valid number: ${percentageString}`)
   }
 }
 
@@ -87,7 +86,7 @@ export const validateNumericAmount = (
   fieldName: string
 ): void => {
   if (isNaN(amount)) {
-    throw Error(`${fieldName} is NaN`)
+    panic(`${fieldName} is NaN`)
   }
 }
 
@@ -222,7 +221,7 @@ export const calculateInternationalFeePercentage = ({
     .map((c) => c.toUpperCase())
     .includes(payCode)
   if (!valid) {
-    throw Error(
+    panic(
       `Billing address country ${payCode} is not in the list of country codes`
     )
   }

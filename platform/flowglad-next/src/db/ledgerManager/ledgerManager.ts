@@ -27,7 +27,7 @@ import {
   selectLedgerTransactions,
 } from '@/db/tableMethods/ledgerTransactionMethods'
 import type { DbTransaction } from '@/db/types'
-import type { NotFoundError } from '@/errors'
+import { type NotFoundError, panic } from '@/errors'
 import { LedgerTransactionInitiatingSourceType } from '@/types'
 import { selectLedgerAccounts } from '../tableMethods/ledgerAccountMethods'
 import { processBillingPeriodTransitionLedgerCommand } from './billingPeriodTransitionLedgerCommand'
@@ -56,7 +56,7 @@ const processAdminCreditAdjustedLedgerCommand = async (
   )
 
   if (!insertedLedgerTransaction || !insertedLedgerTransaction.id) {
-    throw new Error(
+    panic(
       'Failed to insert ledger transaction for AdminCreditAdjusted command or retrieve its ID'
     )
   }
@@ -76,7 +76,7 @@ const processAdminCreditAdjustedLedgerCommand = async (
   )
 
   if (!ledgerAccount) {
-    throw new Error(
+    panic(
       `Failed to select ledger account for AdminCreditAdjusted command, subscriptionId: ${command.subscriptionId}`
     )
   }
@@ -169,7 +169,7 @@ const processPaymentRefundedLedgerCommand = async (
     transaction
   )
   if (!insertedLedgerTransaction || !insertedLedgerTransaction.id) {
-    throw new Error(
+    panic(
       'Failed to insert ledger transaction for PaymentRefunded command or retrieve its ID'
     )
   }
@@ -300,7 +300,7 @@ export const processLedgerCommand = async (
     default: {
       const _exhaustiveCheck: never = command
       console.error('Unknown ledger command type:', _exhaustiveCheck)
-      throw new Error(
+      panic(
         `Unsupported ledger command type: ${(_exhaustiveCheck as LedgerCommand).type}`
       )
     }

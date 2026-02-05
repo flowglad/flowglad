@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { SideNavigation } from '@/components/navigation/SideNavigation'
 import { TestModeBanner } from '@/components/navigation/TestModeBanner'
+import { SupportChatWidget } from '@/components/support-chat'
 import {
   Sidebar,
   SidebarInset,
@@ -105,6 +106,7 @@ const SidebarLayout = ({
           {children}
         </SidebarInset>
       </SidebarProvider>
+      <SupportChatWidget />
     </div>
   )
 }

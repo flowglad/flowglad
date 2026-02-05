@@ -63,7 +63,7 @@ import { Result } from 'better-result'
 import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import { NotFoundError, panic } from '@/errors'
 import { CheckoutFlowType } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -523,7 +523,7 @@ export const selectPurchasesTableRowData =
         // Either case indicates a data integrity problem since purchases should
         // only reference active, product-backed prices.
         if (!rawPrice) {
-          throw new Error(
+          panic(
             `Purchase ${purchase.id} references price ${purchase.priceId} which was not found in the query results.`
           )
         }

@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { panic } from '@/errors'
 import core from '@/utils/core'
 
 // Constants for encryption configuration
@@ -23,7 +24,7 @@ interface EncryptedData {
  */
 export function encrypt(plaintext: string): string {
   if (!core.envVariable('ENCRYPTION_KEY')) {
-    throw new Error('ENCRYPTION_KEY environment variable not set')
+    panic('ENCRYPTION_KEY environment variable not set')
   }
 
   // Generate random salt and IV
@@ -68,7 +69,7 @@ export function encrypt(plaintext: string): string {
  */
 export function decrypt(encryptedString: string): string {
   if (!core.envVariable('ENCRYPTION_KEY')) {
-    throw new Error('ENCRYPTION_KEY environment variable not set')
+    panic('ENCRYPTION_KEY environment variable not set')
   }
 
   // Parse the encrypted data

@@ -44,6 +44,7 @@ import type {
 import {
   ConflictError,
   NotFoundError,
+  panic,
   TerminalStateError,
   ValidationError,
 } from '@/errors'
@@ -153,14 +154,10 @@ export const calculateSplitInBillingPeriodBasedOnAdjustmentDate = (
 ) => {
   const adjustmentTimestamp = new Date(adjustmentDate).getTime()
   if (adjustmentTimestamp < billingPeriod.startDate) {
-    throw new Error(
-      'Adjustment date is before billing period start date'
-    )
+    panic('Adjustment date is before billing period start date')
   }
   if (adjustmentTimestamp > billingPeriod.endDate) {
-    throw new Error(
-      'Adjustment date is after billing period end date'
-    )
+    panic('Adjustment date is after billing period end date')
   }
   const billingPeriodStartMs = billingPeriod.startDate
   const billingPeriodEndMs = billingPeriod.endDate
@@ -291,7 +288,7 @@ export const syncSubscriptionWithActiveItems = async (
     }
   })
   if (!primaryItem.priceId) {
-    throw new Error(
+    panic(
       `syncSubscriptionWithActiveItems: No price id found for primary item ${primaryItem.id}`
     )
   }

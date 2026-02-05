@@ -38,11 +38,11 @@ export interface UseCheckoutsResult {
   /**
    * Create a checkout session for adding a payment method.
    *
-   * @param params - Optional parameters including target subscription
+   * @param params - Parameters including successUrl, cancelUrl, and optional target subscription
    * @returns Checkout session with id and url, or error object
    */
   createAddPaymentMethodCheckoutSession: (
-    params?: Omit<CreateAddPaymentMethodCheckoutSessionParams, 'type'>
+    params: Omit<CreateAddPaymentMethodCheckoutSessionParams, 'type'>
   ) => Promise<CreateCheckoutSessionResponse>
 
   /**
@@ -187,7 +187,7 @@ export const useCheckouts = (): UseCheckoutsResult => {
   }
 
   const createAddPaymentMethodCheckoutSession = async (
-    params?: Omit<CreateAddPaymentMethodCheckoutSessionParams, 'type'>
+    params: Omit<CreateAddPaymentMethodCheckoutSessionParams, 'type'>
   ): Promise<CreateCheckoutSessionResponse> => {
     if (__devMode) {
       return {
@@ -196,12 +196,8 @@ export const useCheckouts = (): UseCheckoutsResult => {
       }
     }
 
-    if (params?.successUrl) {
-      validateUrl(params.successUrl, 'successUrl')
-    }
-    if (params?.cancelUrl) {
-      validateUrl(params.cancelUrl, 'cancelUrl')
-    }
+    validateUrl(params.successUrl, 'successUrl')
+    validateUrl(params.cancelUrl, 'cancelUrl')
     if (baseURL) {
       validateUrl(baseURL, 'baseURL', true)
     }
@@ -221,7 +217,7 @@ export const useCheckouts = (): UseCheckoutsResult => {
             'Content-Type': 'application/json',
             ...requestConfig?.headers,
           },
-          body: JSON.stringify(params ?? {}),
+          body: JSON.stringify(params),
         }
       )
     } catch (error) {

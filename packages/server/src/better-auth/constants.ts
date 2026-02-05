@@ -35,6 +35,8 @@ export const endpointKeyToActionKey: Record<
   getFeatureAccess: FlowgladActionKey.GetFeatureAccess,
   getPaymentMethods: FlowgladActionKey.GetPaymentMethods,
   getCustomerDetails: FlowgladActionKey.GetCustomerDetails,
+  getInvoices: FlowgladActionKey.GetInvoices,
+  getPurchases: FlowgladActionKey.GetPurchases,
 }
 
 /**
@@ -72,6 +74,8 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.GetFeatureAccess]: 'getFeatureAccess',
   [FlowgladActionKey.GetPaymentMethods]: 'getPaymentMethods',
   [FlowgladActionKey.GetCustomerDetails]: 'getCustomerDetails',
+  [FlowgladActionKey.GetInvoices]: 'getInvoices',
+  [FlowgladActionKey.GetPurchases]: 'getPurchases',
 } satisfies Record<
   AuthenticatedActionKey,
   keyof typeof endpointKeyToActionKey

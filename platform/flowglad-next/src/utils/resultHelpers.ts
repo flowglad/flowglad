@@ -19,6 +19,7 @@ export function unwrapOrThrow<T, E extends Error>(
   result: Result<T, E>
 ): T {
   if (result.status === 'error') {
+    // biome-ignore lint/plugin: Re-throw unexpected errors after handling known error types
     throw result.error
   }
   return result.value

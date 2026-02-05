@@ -1,4 +1,3 @@
-import { CountryCode, CurrencyCode } from '@db-core/enums'
 import * as Sentry from '@sentry/nextjs'
 import axios, { type AxiosRequestConfig } from 'axios'
 import { camelCase, sentenceCase } from 'change-case'
@@ -14,6 +13,7 @@ import { customAlphabet } from 'nanoid'
 import has from 'ramda/src/has'
 import omit from 'ramda/src/omit'
 import { z } from 'zod'
+import { panic } from '@/errors'
 import { cn } from '@/lib/utils'
 import { type Nullish, StripePriceMode } from '@/types'
 import latinMap from './latinMap'
@@ -301,7 +301,7 @@ export const magnitude = (vec: number[]) => {
 
 export const cosineSimilarity = (vecA: number[], vecB: number[]) => {
   if (vecA.length !== vecB.length) {
-    throw new Error(
+    panic(
       `Vectors must be of the same length. Recevied: vecA: ${vecA.length} and vecB: ${vecB.length}`
     )
   }
@@ -525,7 +525,7 @@ export const gitCommitId = () => {
     return '__TEST__'
   }
   if (!commitId) {
-    throw new Error('VERCEL_GIT_COMMIT_SHA is not set')
+    panic('VERCEL_GIT_COMMIT_SHA is not set')
   }
   return commitId
 }

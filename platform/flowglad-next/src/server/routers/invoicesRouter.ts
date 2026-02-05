@@ -108,12 +108,10 @@ const updateInvoiceProcedure = protectedProcedure
     const { invoice, invoiceLineItems } = (
       await authenticatedTransaction(
         async ({ transaction }) => {
-          return Result.ok(
-            await updateInvoiceTransaction(
-              input,
-              ctx.livemode,
-              transaction
-            )
+          return updateInvoiceTransaction(
+            input,
+            ctx.livemode,
+            transaction
           )
         },
         {

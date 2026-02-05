@@ -137,6 +137,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               { input, livemode: true },
@@ -146,6 +147,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -221,6 +223,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -233,6 +236,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -278,6 +282,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -290,6 +295,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -425,6 +431,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -437,6 +444,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -462,6 +470,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -474,6 +483,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -501,6 +511,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -513,6 +524,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -535,6 +547,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -547,6 +560,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -571,6 +585,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -583,6 +598,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -649,6 +665,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -661,6 +678,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -769,6 +787,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -781,6 +800,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -836,6 +856,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -848,6 +869,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -905,6 +927,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               {
@@ -917,6 +940,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }
@@ -1098,6 +1122,7 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
             cacheRecomputationContext,
+            enqueueTriggerTask,
           }) => {
             return ingestAndProcessUsageEvent(
               { input, livemode: true },
@@ -1107,6 +1132,7 @@ describe('usageEventHelpers', () => {
                 emitEvent,
                 invalidateCache,
                 enqueueLedgerCommand,
+                enqueueTriggerTask,
               }
             )
           }

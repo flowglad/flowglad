@@ -13,6 +13,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@db-core/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { panic } from '@/errors'
 import { derivePricingModelIdFromBillingPeriod } from './billingPeriodMethods'
 import { selectCheckoutSessionById } from './checkoutSessionMethods'
 
@@ -70,7 +71,7 @@ export const derivePricingModelIdForFeeCalculation = async (
     return checkoutSession.pricingModelId
   }
 
-  throw new Error(
+  panic(
     'Cannot derive pricingModelId for fee calculation: no valid parent found (need billingPeriodId or checkoutSessionId)'
   )
 }
