@@ -8,6 +8,7 @@ import { sanitizeChannelName } from '@/utils/discord'
 
 export function DiscordConciergeLink() {
   const [isLoading, setIsLoading] = useState(false)
+  const [hasError, setHasError] = useState(false)
   const { organization } = useAuthContext()
 
   const createChannel =
@@ -20,11 +21,13 @@ export function DiscordConciergeLink() {
       onError: (error) => {
         console.error('Failed to create Discord channel:', error)
         setIsLoading(false)
+        setHasError(true)
       },
     })
 
   const handleClick = () => {
     setIsLoading(true)
+    setHasError(false)
     createChannel.mutate({})
   }
 
@@ -51,9 +54,15 @@ export function DiscordConciergeLink() {
             ? 'Creating channel...'
             : 'Join Concierge Channel'}
         </Button>
-        <p className="text-xs text-muted-foreground text-center">
-          2min avg response time
-        </p>
+        {hasError ? (
+          <p className="text-xs text-destructive text-center">
+            Something went wrong. Please try again.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground text-center">
+            2min avg response time
+          </p>
+        )}
       </div>
     </div>
   )
