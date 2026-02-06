@@ -27,6 +27,7 @@ import {
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { auth, getSession } from '@/utils/auth'
 import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
+import { DiscordConciergeLink } from './DiscordConciergeLink'
 import OnboardingStatusTable from './OnboardingStatusTable'
 
 interface OnboardingPageData {
@@ -228,6 +229,7 @@ const OnboardingPage = async () => {
                 Complete these steps to start accepting payments.
               </p>
             </div>
+            <DiscordConciergeLink />
             <OnboardingStatusTable
               onboardingChecklistItems={onboardingChecklistItems}
               secretApiKey={secretApiKey.token}

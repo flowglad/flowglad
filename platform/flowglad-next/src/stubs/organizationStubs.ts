@@ -34,4 +34,5 @@ export const dummyOrganization: Organization.Record = {
   monthlyBillingVolumeFreeTier: 100000,
   upfrontProcessingCredits: 0,
   codebaseMarkdownHash: '1234567890',
+  discordConciergeChannelId: null,
 }
