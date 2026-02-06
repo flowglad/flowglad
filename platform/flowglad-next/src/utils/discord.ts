@@ -12,6 +12,7 @@ import {
   type RESTPostAPIGuildChannelJSONBody,
   Routes,
 } from 'discord-api-types/v10'
+import { panic } from '@/errors'
 
 export interface ConciergeChannelResult {
   channelId: string
@@ -46,14 +47,10 @@ export function getDiscordConfig(): DiscordConfig {
   const flowgladTeamRoleId = process.env.DISCORD_FLOWGLAD_TEAM_ROLE_ID
 
   if (!botToken) {
-    throw new Error(
-      'DISCORD_BOT_TOKEN environment variable is required'
-    )
+    panic('DISCORD_BOT_TOKEN environment variable is required')
   }
   if (!guildId) {
-    throw new Error(
-      'DISCORD_GUILD_ID environment variable is required'
-    )
+    panic('DISCORD_GUILD_ID environment variable is required')
   }
 
   return {
@@ -337,8 +334,7 @@ async function getOrCreateInvite(
   const existingInvite = invites.find(
     (inv) =>
       inv.max_uses === 0 &&
-      (inv.expires_at === null ||
-        new Date(inv.expires_at) > new Date())
+      (!inv.expires_at || new Date(inv.expires_at) > new Date())
   )
 
   if (existingInvite) {
