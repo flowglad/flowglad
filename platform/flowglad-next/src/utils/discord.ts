@@ -378,29 +378,14 @@ export async function getOrCreateConciergeChannel(
 
   let channel: APIChannel | null = null
 
-  console.log('[Discord] getOrCreateConciergeChannel called with:', {
-    orgName,
-    existingChannelId,
-    channelName,
-  })
-
   // Try to find by existing channel ID first (fast lookup)
   if (existingChannelId) {
-    console.log(
-      '[Discord] Attempting to fetch existing channel:',
-      existingChannelId
-    )
     channel = await fetchChannelById(rest, existingChannelId)
-    console.log(
-      '[Discord] Fetch result:',
-      channel ? 'found' : 'not found'
-    )
   }
 
   // Create if doesn't exist
   let isNewChannel = false
   if (!channel) {
-    console.log('[Discord] Creating new channel:', channelName)
     channel = await createPrivateChannel(
       rest,
       config.guildId,
@@ -408,15 +393,10 @@ export async function getOrCreateConciergeChannel(
       config
     )
     isNewChannel = true
-    console.log('[Discord] Created channel with ID:', channel.id)
   }
 
   // Post welcome message for newly created channels
   if (isNewChannel) {
-    console.log(
-      '[Discord] Posting welcome message to channel:',
-      channel.id
-    )
     await postWelcomeMessage(rest, channel.id, orgName, config)
   }
 

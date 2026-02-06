@@ -240,18 +240,4 @@ describe('discord', () => {
       expect(message).not.toContain('<@&')
     })
   })
-
-  describe('getOrCreateConciergeChannel', () => {
-    it.skip('creates a new channel when none exists', async () => {
-      // Requires mocking Discord REST API - better suited for manual integration testing
-      // setup: mock discord.js client, guild with no matching channel
-      // expectation: creates channel with correct name and permissions, returns invite URL
-    })
-
-    it.skip('finds existing channel by ID and returns invite', async () => {
-      // Requires mocking Discord REST API - better suited for manual integration testing
-      // setup: mock discord.js client, pass existing channel ID
-      // expectation: does not create new channel, returns existing invite URL
-    })
-  })
 })

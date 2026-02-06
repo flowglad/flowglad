@@ -32,13 +32,6 @@ export const createDiscordConciergeChannel = protectedProcedure
         })
       ).unwrap()
 
-      console.log('[Discord Mutation] Fetched organization:', {
-        id: organization.id,
-        name: organization.name,
-        discordConciergeChannelId:
-          organization.discordConciergeChannelId,
-      })
-
       // Create or get concierge channel (pass existing ID for fast lookup)
       const { channelId, inviteUrl } =
         await getOrCreateConciergeChannel(
@@ -46,19 +39,8 @@ export const createDiscordConciergeChannel = protectedProcedure
           organization.discordConciergeChannelId
         )
 
-      console.log('[Discord Mutation] Got channel result:', {
-        channelId,
-        existingId: organization.discordConciergeChannelId,
-        needsUpdate:
-          channelId !== organization.discordConciergeChannelId,
-      })
-
       // Persist channel ID if it's new
       if (channelId !== organization.discordConciergeChannelId) {
-        console.log(
-          '[Discord Mutation] Persisting new channel ID:',
-          channelId
-        )
         await adminTransaction(async ({ transaction }) => {
           await updateOrganization(
             {
@@ -69,14 +51,10 @@ export const createDiscordConciergeChannel = protectedProcedure
           )
           return Result.ok(undefined)
         })
-        console.log(
-          '[Discord Mutation] Channel ID persisted successfully'
-        )
       }
 
       return { inviteUrl }
     } catch (error) {
-      console.error('Discord concierge error:', error)
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to create Discord channel',
