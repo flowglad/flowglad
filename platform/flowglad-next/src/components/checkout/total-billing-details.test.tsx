@@ -179,7 +179,7 @@ const mockUsagePrice = {
   createdByCommit: 'test',
   updatedByCommit: 'test',
   position: 0,
-  slug: '',
+  slug: 'usage-price',
 }
 
 const mockDiscount = {

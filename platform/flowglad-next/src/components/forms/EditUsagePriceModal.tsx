@@ -394,6 +394,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
 
         if (unitPriceChanged || usageEventsPerUnitChanged) {
           // Immutable fields changed: atomically create new price and archive old one
+          // Use non-null assertion for slug since form is prefilled with existing price slug
           await replaceUsagePrice.mutateAsync({
             newPrice: {
               type: PriceType.Usage,
@@ -404,7 +405,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
               isDefault: input.price.isDefault,
               active: input.price.active,
               name: input.price.name,
-              slug: input.price.slug,
+              slug: input.price.slug!,
               intervalUnit: price.intervalUnit,
               intervalCount: price.intervalCount,
               trialPeriodDays: null,

@@ -36,7 +36,7 @@ export const createProductPriceInsert = (
   const { productId, currency, livemode } = options
   const base = {
     name: price.name ?? null,
-    slug: price.slug ?? null,
+    slug: price.slug,
     unitPrice: price.unitPrice,
     isDefault: price.isDefault,
     active: price.active,
@@ -213,16 +213,33 @@ export async function getPricingModelSetupData(
       ])
     }
 
+    // Validate usage prices have slugs (required after migration 0297)
+    for (const meter of usageMeters) {
+      const meterPrices = usagePricesByMeterId.get(meter.id) || []
+      for (const price of meterPrices) {
+        if (!price.slug) {
+          return yield* Result.err(
+            new ValidationError(
+              'price.slug',
+              `Usage price ${price.id} on meter "${meter.slug}" has no slug. ` +
+                `All prices must have slugs after migration 0297.`
+            )
+          )
+        }
+      }
+    }
+
     // Transform usage meters with their nested prices
     const transformedUsageMeters = usageMeters.map((meter) => {
       const meterPrices = usagePricesByMeterId.get(meter.id) || []
 
       // Transform each price for this meter
+      // Slugs are validated above, safe to assert non-null
       const transformedPrices: SetupUsageMeterPriceInput[] =
         meterPrices.map((price) => ({
           type: PriceType.Usage as const,
           name: price.name ?? undefined,
-          slug: price.slug ?? undefined,
+          slug: price.slug!,
           unitPrice: price.unitPrice,
           isDefault: price.isDefault,
           active: price.active,
@@ -335,10 +352,21 @@ export async function getPricingModelSetupData(
         )
       }
 
+      // Validate slug is present (required after migration 0297)
+      if (!activeDefaultPrice.slug) {
+        return yield* Result.err(
+          new ValidationError(
+            'price.slug',
+            `Default price for product "${product.name}" (ID: ${activeDefaultPrice.id}) has no slug. ` +
+              `All prices must have slugs after migration 0297.`
+          )
+        )
+      }
+
       // Base price fields common to all price types
       const basePrice = {
         name: activeDefaultPrice.name ?? undefined,
-        slug: activeDefaultPrice.slug ?? undefined,
+        slug: activeDefaultPrice.slug,
         unitPrice: activeDefaultPrice.unitPrice,
         isDefault: activeDefaultPrice.isDefault,
         active: activeDefaultPrice.active,

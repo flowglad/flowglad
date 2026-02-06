@@ -18,7 +18,6 @@ import { bulkInsertResources } from '@/db/tableMethods/resourceMethods'
 import type { SetupPricingModelInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import {
-  generateSyntheticUsagePriceSlug,
   resolveExistingIds,
   syncProductFeaturesForMultipleProducts,
 } from './updateHelpers'
@@ -437,10 +436,10 @@ describe('resolveExistingIds', () => {
     )
   })
 
-  it('generates synthetic slugs for usage prices without real slugs and maps them to price IDs', async () => {
-    // Setup: create pricing model with usage meter prices that have NO explicit slug
+  it('maps usage price slugs to price IDs correctly', async () => {
+    // Setup: create pricing model with usage meter prices with explicit slugs
     const input: SetupPricingModelInput = {
-      name: 'Synthetic Slug Test Model',
+      name: 'Usage Price Slug Test Model',
       isDefault: false,
       usageMeters: [
         {
@@ -451,7 +450,7 @@ describe('resolveExistingIds', () => {
           prices: [
             {
               type: PriceType.Usage,
-              // NO slug provided - should generate synthetic slug
+              slug: 'api-calls-price',
               unitPrice: 10,
               isDefault: true,
               active: true,
@@ -470,7 +469,7 @@ describe('resolveExistingIds', () => {
           prices: [
             {
               type: PriceType.Usage,
-              // NO slug provided - should generate synthetic slug
+              slug: 'storage-price',
               unitPrice: 5,
               isDefault: true,
               active: true,
@@ -536,42 +535,30 @@ describe('resolveExistingIds', () => {
       })
     ).unwrap()
 
-    // Find the created usage prices (they should have null slugs in DB)
+    // Find the created usage prices
     const usagePrices = setupResult.prices.filter(
       (p): p is Price.UsageRecord => p.type === PriceType.Usage
     )
-    const apiCallsPrice = usagePrices.find((p) => p.unitPrice === 10)
-    const storagePrice = usagePrices.find((p) => p.unitPrice === 5)
+    const apiCallsPrice = usagePrices.find(
+      (p) => p.slug === 'api-calls-price'
+    )
+    const storagePrice = usagePrices.find(
+      (p) => p.slug === 'storage-price'
+    )
 
-    // Verify prices were created without slugs
-    // Use specific assertions to verify the price objects have expected properties
+    // Verify prices were created with correct slugs
     expect(apiCallsPrice?.unitPrice).toBe(10)
     expect(storagePrice?.unitPrice).toBe(5)
-    expect(apiCallsPrice?.slug).toBeNull()
-    expect(storagePrice?.slug).toBeNull()
+    expect(apiCallsPrice?.slug).toBe('api-calls-price')
+    expect(storagePrice?.slug).toBe('storage-price')
 
-    // Generate synthetic slugs using the same logic as diffing.ts
-    // Pass the meter slug for global uniqueness
-    const apiCallsSyntheticSlug = generateSyntheticUsagePriceSlug(
-      apiCallsPrice!,
-      'api-calls'
-    )
-    const storageSyntheticSlug = generateSyntheticUsagePriceSlug(
-      storagePrice!,
-      'storage'
-    )
-
-    // Verify synthetic slugs are in the expected format
-    expect(apiCallsSyntheticSlug).toMatch(/^__generated__/)
-    expect(storageSyntheticSlug).toMatch(/^__generated__/)
-
-    // Verify resolveExistingIds maps synthetic slugs to price IDs
-    expect(resolvedIds.prices.has(apiCallsSyntheticSlug)).toBe(true)
-    expect(resolvedIds.prices.has(storageSyntheticSlug)).toBe(true)
-    expect(resolvedIds.prices.get(apiCallsSyntheticSlug)).toBe(
+    // Verify resolveExistingIds maps real slugs to price IDs
+    expect(resolvedIds.prices.has('api-calls-price')).toBe(true)
+    expect(resolvedIds.prices.has('storage-price')).toBe(true)
+    expect(resolvedIds.prices.get('api-calls-price')).toBe(
       apiCallsPrice!.id
     )
-    expect(resolvedIds.prices.get(storageSyntheticSlug)).toBe(
+    expect(resolvedIds.prices.get('storage-price')).toBe(
       storagePrice!.id
     )
   })

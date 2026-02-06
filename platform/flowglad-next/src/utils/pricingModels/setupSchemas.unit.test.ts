@@ -166,13 +166,14 @@ describe('validateSetupPricingModelInput', () => {
         usageMeterId: null,
         usageEventsPerUnit: null,
         active: true,
-        // slug is intentionally omitted to test runtime validation
+        // slug is intentionally omitted to test schema validation
       }
 
       const result = validateSetupPricingModelInput(input)
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
-        expect(result.error.message).toMatch(/Price slug is required/)
+        // Zod schema validation happens first, so we get a Zod-style error
+        expect(result.error.message).toMatch(/slug/)
       }
     })
 
@@ -918,7 +919,7 @@ describe('setupUsageMeterPriceInputSchema', () => {
       }
     })
 
-    it('accepts usage price with undefined slug (optional field)', () => {
+    it('rejects usage price with undefined slug (required field)', () => {
       const input = {
         ...createValidUsagePriceInput(),
         slug: undefined,
@@ -926,7 +927,14 @@ describe('setupUsageMeterPriceInputSchema', () => {
 
       const result = setupUsageMeterPriceInputSchema.safeParse(input)
 
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(
+          result.error.issues.some((issue) =>
+            issue.path.includes('slug')
+          )
+        ).toBe(true)
+      }
     })
   })
 

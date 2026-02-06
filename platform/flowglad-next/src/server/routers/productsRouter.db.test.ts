@@ -82,7 +82,7 @@ describe('productsRouter - Default Product Constraints', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
             externalId: null,
-            slug: null,
+            slug: 'regular-price',
           },
           ctx
         )
@@ -186,7 +186,7 @@ describe('productsRouter - Default Product Constraints', () => {
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
-              slug: null,
+              slug: 'regular-price-2',
             },
             ctx
           )

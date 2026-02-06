@@ -31,7 +31,7 @@ import {
   type SelectConditions,
   tableBase,
 } from '../tableUtils'
-import core from '../utils'
+import core, { safeZodSanitizedString } from '../utils'
 import { featuresClientSelectSchema } from './features'
 import {
   pricingModels,
@@ -156,7 +156,7 @@ export const prices = pgTable(
      * from external processors onto Flowglad
      */
     externalId: text('external_id'),
-    slug: text('slug'),
+    slug: text('slug').notNull(),
     usageMeterId: nullableStringForeignKey(
       'usage_meter_id',
       usageMeters
@@ -259,6 +259,9 @@ const basePriceColumns = {
   ),
   currency: currencyCodeSchema,
   usageEventsPerUnit: core.safeZodNullOrUndefined,
+  slug: safeZodSanitizedString.describe(
+    'Unique identifier for the price within its parent (product or usage meter)'
+  ),
 }
 
 const { supabaseInsertPayloadSchema, supabaseUpdatePayloadSchema } =
@@ -396,6 +399,9 @@ export const {
   insertRefine: {
     pricingModelId: z.string().optional(),
   },
+  updateRefine: {
+    slug: safeZodSanitizedString.optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,
@@ -418,6 +424,9 @@ export const {
   refine: singlePaymentRefine,
   insertRefine: {
     pricingModelId: z.string().optional(),
+  },
+  updateRefine: {
+    slug: safeZodSanitizedString.optional(),
   },
   client: {
     hiddenColumns,
@@ -443,6 +452,9 @@ export const {
     pricingModelId: z.string().optional(),
     // For insert, usage prices should have null productId
     ...usagePriceInsertColumns,
+  },
+  updateRefine: {
+    slug: safeZodSanitizedString.optional(),
   },
   client: {
     hiddenColumns,

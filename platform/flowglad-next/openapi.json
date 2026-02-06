@@ -3759,6 +3759,7 @@
                                   "type": "boolean"
                                 },
                                 "slug": {
+                                  "description": "Unique identifier for the price within its parent (product or usage meter)",
                                   "type": "string",
                                   "minLength": 1,
                                   "maxLength": 255
@@ -3776,7 +3777,8 @@
                                 "intervalCount",
                                 "type",
                                 "isDefault",
-                                "unitPrice"
+                                "unitPrice",
+                                "slug"
                               ]
                             },
                             {
@@ -3830,6 +3832,7 @@
                                   "type": "boolean"
                                 },
                                 "slug": {
+                                  "description": "Unique identifier for the price within its parent (product or usage meter)",
                                   "type": "string",
                                   "minLength": 1,
                                   "maxLength": 255
@@ -3845,7 +3848,8 @@
                               "required": [
                                 "type",
                                 "isDefault",
-                                "unitPrice"
+                                "unitPrice",
+                                "slug"
                               ]
                             }
                           ],
@@ -3951,6 +3955,7 @@
                                 "type": "boolean"
                               },
                               "slug": {
+                                "description": "Unique identifier for the price within its parent (product or usage meter)",
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 255
@@ -3965,7 +3970,8 @@
                               "type",
                               "isDefault",
                               "unitPrice",
-                              "usageEventsPerUnit"
+                              "usageEventsPerUnit",
+                              "slug"
                             ]
                           }
                         }
@@ -10882,14 +10888,10 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "Omitted.",
@@ -10901,7 +10903,8 @@
           "intervalCount",
           "type",
           "isDefault",
-          "unitPrice"
+          "unitPrice",
+          "slug"
         ]
       },
       "ProductSinglePaymentPriceInsert": {
@@ -10960,21 +10963,17 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "Omitted.",
             "type": "null"
           }
         },
-        "required": ["type", "isDefault", "unitPrice"]
+        "required": ["type", "isDefault", "unitPrice", "slug"]
       },
       "ProductUsagePriceInsert": {
         "type": "object",
@@ -11036,14 +11035,10 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "The usage meter that uses this price. All usage events on that meter must be associated with a price that is also associated with that usage meter.",
@@ -11057,6 +11052,7 @@
           "isDefault",
           "unitPrice",
           "usageEventsPerUnit",
+          "slug",
           "usageMeterId"
         ]
       },
@@ -11225,14 +11221,10 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "Omitted.",
@@ -11245,7 +11237,8 @@
           "type",
           "isDefault",
           "unitPrice",
-          "productId"
+          "productId",
+          "slug"
         ]
       },
       "SinglePaymentPriceClientInsertSchema": {
@@ -11308,21 +11301,23 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "Omitted.",
             "type": "null"
           }
         },
-        "required": ["type", "isDefault", "unitPrice", "productId"]
+        "required": [
+          "type",
+          "isDefault",
+          "unitPrice",
+          "productId",
+          "slug"
+        ]
       },
       "UsagePriceClientInsertSchema": {
         "type": "object",
@@ -11388,14 +11383,10 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "The usage meter that uses this price. All usage events on that meter must be associated with a price that is also associated with that usage meter.",
@@ -11409,6 +11400,7 @@
           "isDefault",
           "unitPrice",
           "usageEventsPerUnit",
+          "slug",
           "usageMeterId"
         ]
       },
@@ -11462,14 +11454,9 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           }
         },
         "required": ["id", "type", "isDefault"]
@@ -11502,14 +11489,9 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           }
         },
         "required": ["id", "type", "isDefault"]
@@ -11542,14 +11524,9 @@
             "type": "boolean"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           }
         },
         "required": ["id", "type", "isDefault"]
@@ -15729,14 +15706,10 @@
             "$ref": "#/components/schemas/CurrencyCode"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "Omitted.",
@@ -15848,14 +15821,10 @@
             "$ref": "#/components/schemas/CurrencyCode"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "Omitted.",
@@ -15966,14 +15935,10 @@
             "$ref": "#/components/schemas/CurrencyCode"
           },
           "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "description": "Unique identifier for the price within its parent (product or usage meter)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
           },
           "usageMeterId": {
             "description": "The usage meter that uses this price. All usage events on that meter must be associated with a price that is also associated with that usage meter.",

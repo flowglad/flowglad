@@ -217,7 +217,7 @@ const handleUsageMeterOperations = async (
           usageMeterPriceInserts.push({
             type: PriceType.Usage,
             name: price.name ?? null,
-            slug: price.slug ?? null,
+            slug: price.slug,
             unitPrice: price.unitPrice,
             isDefault: price.isDefault,
             active: price.active,
@@ -309,7 +309,7 @@ const handleUsageMeterOperations = async (
           priceDiff.toCreate.map((price) => ({
             type: PriceType.Usage,
             name: price.name ?? null,
-            slug: price.slug ?? null,
+            slug: price.slug,
             unitPrice: price.unitPrice,
             isDefault: price.isDefault,
             active: price.active,
@@ -375,7 +375,7 @@ const handleUsageMeterOperations = async (
             {
               type: PriceType.Usage,
               name: proposedPrice.name ?? null,
-              slug: proposedPrice.slug ?? null,
+              slug: proposedPrice.slug,
               unitPrice: proposedPrice.unitPrice,
               isDefault: proposedPrice.isDefault,
               active: proposedPrice.active,

@@ -101,7 +101,9 @@ const omitProductId = {
 const priceOptionalFieldSchema = {
   currency: currencyCodeSchema.optional(),
   name: safeZodSanitizedString.optional(),
-  slug: safeZodSanitizedString.optional(),
+  slug: safeZodSanitizedString.describe(
+    'Unique identifier for the price within its parent (product or usage meter)'
+  ),
 } as const
 
 /**
@@ -142,8 +144,8 @@ export const setupUsageMeterPriceInputSchema =
       ...priceOptionalFieldSchema,
     })
     .refine(
-      // Only validate if slug is provided - undefined/null slugs are allowed
-      (data) => !data.slug || !isReservedPriceSlug(data.slug),
+      // Slug is required; validate it's not using a reserved suffix
+      (data) => !isReservedPriceSlug(data.slug),
       {
         message: `Usage price slugs ending with "${RESERVED_USAGE_PRICE_SLUG_SUFFIX}" are reserved for auto-generated fallback prices`,
         path: ['slug'],
@@ -208,6 +210,31 @@ export type SetupPricingModelProductInput = z.infer<
 const slugsAreUnique = (sluggableResources: { slug: string }[]) => {
   const slugs = sluggableResources.map((r) => r.slug)
   return slugs.length === new Set(slugs).size
+}
+
+/**
+ * Validates a price slug is present and unique within the pricing model.
+ * Returns a ValidationError if validation fails, or adds the slug to the set and returns null.
+ */
+const validatePriceSlugUniqueness = (
+  slug: string | undefined | null,
+  allPriceSlugs: Set<string>,
+  context: string
+): ValidationError | null => {
+  if (!slug) {
+    return new ValidationError(
+      'price.slug',
+      `Price slug is required${context ? ` for ${context}` : ''}.`
+    )
+  }
+  if (allPriceSlugs.has(slug)) {
+    return new ValidationError(
+      'price.slug',
+      `Price with slug "${slug}" already exists in this pricing model.`
+    )
+  }
+  allPriceSlugs.add(slug)
+  return null
 }
 
 const resourcePricingModelSetupSchema = resourcesClientInsertSchema
@@ -377,43 +404,30 @@ export const validateSetupPricingModelInput = (
         }
       }
 
-      // Validate product price (subscription or single payment)
-      const price = product.price
-      if (!price.slug) {
-        return yield* Result.err(
-          new ValidationError(
-            'price.slug',
-            `Price slug is required. Received ${JSON.stringify(price)}`
-          )
-        )
+      // Validate product price slug uniqueness
+      const priceSlugError = validatePriceSlugUniqueness(
+        product.price.slug,
+        allPriceSlugs,
+        `product "${product.product.slug}"`
+      )
+      if (priceSlugError) {
+        return yield* Result.err(priceSlugError)
       }
-      if (allPriceSlugs.has(price.slug)) {
-        return yield* Result.err(
-          new ValidationError(
-            'price.slug',
-            `Price with slug ${price.slug} already exists`
-          )
-        )
-      }
-      allPriceSlugs.add(price.slug)
     }
 
     // Validate usage meter prices
     for (const meterWithPrices of parsed.usageMeters) {
       const prices = meterWithPrices.prices || []
 
-      // Validate each price in the meter
+      // Validate each price slug in the meter
       for (const price of prices) {
-        if (price.slug) {
-          if (allPriceSlugs.has(price.slug)) {
-            return yield* Result.err(
-              new ValidationError(
-                'price.slug',
-                `Price with slug ${price.slug} already exists`
-              )
-            )
-          }
-          allPriceSlugs.add(price.slug)
+        const priceSlugError = validatePriceSlugUniqueness(
+          price.slug,
+          allPriceSlugs,
+          `usage meter "${meterWithPrices.usageMeter.slug}"`
+        )
+        if (priceSlugError) {
+          return yield* Result.err(priceSlugError)
         }
       }
 

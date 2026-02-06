@@ -95,7 +95,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
             externalId: null,
-            slug: null,
+            slug: 'regular-price',
           },
           ctx
         )
@@ -413,7 +413,7 @@ describe('pricesRouter - Default Price Constraints', () => {
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
-              slug: null,
+              slug: 'other-price',
             },
             ctx
           )
@@ -526,7 +526,7 @@ describe('pricesRouter - Default Price Constraints', () => {
               usageEventsPerUnit: null,
               usageMeterId: null,
               externalId: null,
-              slug: null,
+              slug: 'another-price',
             },
             ctx
           )
@@ -694,7 +694,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
             externalId: null,
-            slug: null,
+            slug: 'another-default',
           },
           ctx
         )
@@ -1293,6 +1293,7 @@ describe('pricesRouter - API Contract Updates', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             name: 'Usage Price No Product',
+            slug: 'usage_price_no_product',
             usageEventsPerUnit: 1,
           },
         })
@@ -1335,6 +1336,7 @@ describe('pricesRouter - API Contract Updates', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             name: 'Usage Price Omitted Product',
+            slug: 'usage_price_omitted_product',
             usageEventsPerUnit: 10,
           },
         })
@@ -1374,6 +1376,7 @@ describe('pricesRouter - API Contract Updates', () => {
             intervalUnit: IntervalUnit.Month,
             intervalCount: 1,
             name: 'Subscription Price',
+            slug: 'subscription_price_with_product',
             trialPeriodDays: 0,
           },
         })

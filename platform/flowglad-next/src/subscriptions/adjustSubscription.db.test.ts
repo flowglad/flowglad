@@ -81,6 +81,7 @@ import {
 } from '@/subscriptions/adjustSubscription'
 import type { TerseSubscriptionItem } from '@/subscriptions/schemas'
 import { SubscriptionAdjustmentTiming } from '@/types'
+import core from '@/utils/core'
 
 // Helper to normalize Date | number into milliseconds since epoch
 const toMs = (d: Date | number | null | undefined): number | null => {
@@ -3378,6 +3379,7 @@ describe('adjustSubscription Integration Tests', async () => {
               ...nulledPriceColumns,
               productId: product.id,
               name: 'Standard Price',
+              slug: `standard-price-${core.nanoid()}`,
               type: PriceType.Subscription,
               unitPrice: 1500,
               currency: CurrencyCode.USD,
