@@ -1,6 +1,6 @@
 {
-  "id": "a470350b-d33a-4cb2-bc05-dd186f466e48",
-  "prevId": "6bfbc36d-53a4-4b84-9b79-3308e04853fc",
+  "id": "eb5fde5b-0402-4edc-b996-e23491fcbda4",
+  "prevId": "ce0912bd-b50f-466c-a37b-5944935dacae",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -7632,7 +7632,7 @@
           "name": "slug",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {
