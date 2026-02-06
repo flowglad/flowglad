@@ -363,10 +363,10 @@ async function getOrCreateInvite(
  * If existingChannelId is provided, tries to find that channel first.
  * Returns channelId so caller can persist it in the database.
  *
- * Race condition handling: If two requests run concurrently and both try to create,
- * the second one will just get a channel with the same name (Discord allows duplicates).
- * We handle this by always returning whatever channel we create/find - the caller
- * should re-check the DB after and use whichever channel ID was persisted first.
+ * Race condition handling: If two requests run concurrently and both create channels,
+ * Discord allows duplicate names so both succeed. The caller uses a conditional DB
+ * update (compare-and-swap) to persist only the first channel ID, and falls back to
+ * the winner's channel if it loses the race.
  */
 export async function getOrCreateConciergeChannel(
   orgName: string,
