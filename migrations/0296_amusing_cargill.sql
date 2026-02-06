@@ -1,0 +1,1 @@
+ALTER TABLE "organizations" ADD COLUMN "discord_concierge_channel_id" text;

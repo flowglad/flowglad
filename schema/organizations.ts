@@ -88,6 +88,7 @@ export const organizations = pgTable(
       .notNull()
       .default(0),
     codebaseMarkdownHash: text('codebase_markdown_hash'),
+    discordConciergeChannelId: text('discord_concierge_channel_id'),
   },
   (table) => {
     return [
@@ -173,6 +174,7 @@ export const {
       securitySalt: true,
       upfrontProcessingCredits: true,
       codebaseMarkdownHash: true,
+      discordConciergeChannelId: true,
     },
     readOnlyColumns: {
       stripeAccountId: true,
