@@ -23,9 +23,9 @@ export const createDiscordConciergeChannel = protectedProcedure
   .output(z.object({ oauthUrl: z.string() }))
   .mutation(async ({ ctx }) => {
     const { organizationId } = ctx
-    const userId = ctx.user!.id
+    const userId = ctx.user?.id
 
-    if (!organizationId) {
+    if (!organizationId || !userId) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
         message: 'Organization context required',

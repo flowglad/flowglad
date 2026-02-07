@@ -72,7 +72,7 @@ describe('discordOAuthState', () => {
       )
     })
 
-    it('produces URL-safe output', () => {
+    it('produces valid base64 output', () => {
       const token = 'token-with-special+chars/=test'
       const encoded = encodeDiscordOAuthState(token)
 
@@ -106,7 +106,7 @@ describe('discordOAuthState', () => {
       expect(decoded).toBe(originalToken)
     })
 
-    it('throws on invalid base64 input', () => {
+    it('throws on malformed state parameter', () => {
       const invalidState = '%%%invalid%%%'
 
       expect(() => decodeDiscordOAuthState(invalidState)).toThrow(
