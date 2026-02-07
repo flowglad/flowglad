@@ -21,7 +21,6 @@ const CSRF_TTL_SECONDS = 60 * 15
 const csrfTokenDataSchema = z.object({
   userId: z.string().min(1),
   organizationId: z.string().min(1),
-  channelId: z.string().min(1),
   createdAt: z.string().datetime(),
 })
 
@@ -53,16 +52,14 @@ function safeCompare(a: string, b: string): boolean {
 export async function createDiscordOAuthCsrfToken(params: {
   userId: string
   organizationId: string
-  channelId: string
 }): Promise<string> {
-  const { userId, organizationId, channelId } = params
+  const { userId, organizationId } = params
 
   const csrfToken = generateRandomBytes(CSRF_TOKEN_BYTES)
 
   const tokenData: CsrfTokenData = {
     userId,
     organizationId,
-    channelId,
     createdAt: new Date().toISOString(),
   }
 
@@ -77,7 +74,6 @@ export async function createDiscordOAuthCsrfToken(params: {
     logger.info('Discord OAuth CSRF token created', {
       userId,
       organizationId,
-      channelId,
       tokenPrefix: csrfToken.substring(0, 4),
     })
 
@@ -99,7 +95,7 @@ export async function createDiscordOAuthCsrfToken(params: {
 export async function validateAndConsumeDiscordOAuthCsrfToken(params: {
   csrfToken: string
   expectedUserId: string
-}): Promise<{ organizationId: string; channelId: string } | null> {
+}): Promise<{ organizationId: string } | null> {
   const { csrfToken, expectedUserId } = params
   const key = buildCsrfTokenKey(csrfToken)
 
@@ -144,13 +140,11 @@ export async function validateAndConsumeDiscordOAuthCsrfToken(params: {
     logger.info('Discord OAuth CSRF token validated', {
       userId: expectedUserId,
       organizationId: tokenData.organizationId,
-      channelId: tokenData.channelId,
       tokenPrefix: csrfToken.substring(0, 4),
     })
 
     return {
       organizationId: tokenData.organizationId,
-      channelId: tokenData.channelId,
     }
   } catch (error) {
     logger.error('Error validating Discord OAuth CSRF token', {

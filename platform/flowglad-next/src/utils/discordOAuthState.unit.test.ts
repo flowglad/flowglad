@@ -116,15 +116,13 @@ describe('discordOAuthState', () => {
   })
 
   describe('createDiscordOAuthCsrfToken', () => {
-    it('creates a token and stores it in Redis with userId, organizationId, and channelId', async () => {
+    it('creates a token and stores it in Redis with userId and organizationId', async () => {
       const userId = 'user-123'
       const organizationId = 'org-456'
-      const channelId = 'channel-789'
 
       const token = await createDiscordOAuthCsrfToken({
         userId,
         organizationId,
-        channelId,
       })
 
       expect(token).toBe('mock-csrf-token-32-bytes-long-xx')
@@ -136,7 +134,6 @@ describe('discordOAuthState', () => {
       const parsedData = JSON.parse(storedData!)
       expect(parsedData.userId).toBe(userId)
       expect(parsedData.organizationId).toBe(organizationId)
-      expect(parsedData.channelId).toBe(channelId)
       expect(typeof parsedData.createdAt).toBe('string')
     })
 
@@ -144,7 +141,6 @@ describe('discordOAuthState', () => {
       const token = await createDiscordOAuthCsrfToken({
         userId: 'user-123',
         organizationId: 'org-456',
-        channelId: 'channel-789',
       })
 
       const storedData = mockRedisStore.get(
@@ -160,14 +156,12 @@ describe('discordOAuthState', () => {
   describe('validateAndConsumeDiscordOAuthCsrfToken', () => {
     const userId = 'user-123'
     const organizationId = 'org-456'
-    const channelId = 'channel-789'
     const testToken = 'test-csrf-token'
 
     beforeEach(() => {
       const tokenData = {
         userId,
         organizationId,
-        channelId,
         createdAt: new Date().toISOString(),
       }
       mockRedisStore.set(
@@ -176,13 +170,13 @@ describe('discordOAuthState', () => {
       )
     })
 
-    it('validates and returns organizationId and channelId for valid token and user', async () => {
+    it('validates and returns organizationId for valid token and user', async () => {
       const result = await validateAndConsumeDiscordOAuthCsrfToken({
         csrfToken: testToken,
         expectedUserId: userId,
       })
 
-      expect(result).toEqual({ organizationId, channelId })
+      expect(result).toEqual({ organizationId })
     })
 
     it('deletes the token after validation (single-use)', async () => {
@@ -240,8 +234,7 @@ describe('discordOAuthState', () => {
         `discordOAuthCsrfToken:incomplete-token`,
         JSON.stringify({
           userId: 'user-123',
-          organizationId: 'org-456',
-          // missing channelId and createdAt
+          // missing organizationId and createdAt
         })
       )
 
@@ -259,7 +252,7 @@ describe('discordOAuthState', () => {
           csrfToken: testToken,
           expectedUserId: userId,
         })
-      expect(firstResult).toEqual({ organizationId, channelId })
+      expect(firstResult).toEqual({ organizationId })
 
       const secondResult =
         await validateAndConsumeDiscordOAuthCsrfToken({
@@ -273,7 +266,6 @@ describe('discordOAuthState', () => {
       const tokenData = {
         userId,
         organizationId,
-        channelId,
         createdAt: new Date().toISOString(),
       }
 
@@ -287,7 +279,7 @@ describe('discordOAuthState', () => {
         expectedUserId: userId,
       })
 
-      expect(result).toEqual({ organizationId, channelId })
+      expect(result).toEqual({ organizationId })
     })
   })
 
@@ -301,12 +293,10 @@ describe('discordOAuthState', () => {
     it('completes full create-encode-decode-validate flow', async () => {
       const userId = 'user-flow-test'
       const organizationId = 'org-flow-test'
-      const channelId = 'channel-flow-test'
 
       const csrfToken = await createDiscordOAuthCsrfToken({
         userId,
         organizationId,
-        channelId,
       })
 
       const state = encodeDiscordOAuthState(csrfToken)
@@ -319,19 +309,17 @@ describe('discordOAuthState', () => {
         expectedUserId: userId,
       })
 
-      expect(result).toEqual({ organizationId, channelId })
+      expect(result).toEqual({ organizationId })
     })
 
     it('prevents CSRF attack with wrong user', async () => {
       const legitimateUserId = 'legitimate-user'
       const attackerUserId = 'attacker-user'
       const organizationId = 'target-org'
-      const channelId = 'target-channel'
 
       const csrfToken = await createDiscordOAuthCsrfToken({
         userId: legitimateUserId,
         organizationId,
-        channelId,
       })
 
       const state = encodeDiscordOAuthState(csrfToken)

@@ -51,9 +51,7 @@ export function DiscordConciergeLink() {
           onClick={handleClick}
           disabled={isLoading}
         >
-          {isLoading
-            ? 'Creating channel...'
-            : 'Join Concierge Channel'}
+          {isLoading ? 'Connecting...' : 'Join Concierge Channel'}
         </Button>
         {hasError ? (
           <p className="text-xs text-destructive text-center">
