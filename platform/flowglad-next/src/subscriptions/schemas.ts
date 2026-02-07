@@ -189,9 +189,15 @@ export type AdjustSubscriptionParams = z.infer<
 >
 
 export const richSubscriptionItemClientSelectSchema =
-  staticSubscriptionItemClientSelectSchema.extend({
-    price: pricesClientSelectSchema,
-  })
+  staticSubscriptionItemClientSelectSchema
+    .extend({
+      price: pricesClientSelectSchema.describe(
+        'The price associated with this subscription item. Contains productId which identifies the product this price belongs to.'
+      ),
+    })
+    .describe(
+      'A subscription item with its associated price details. The price object includes productId for identifying the associated product.'
+    )
 
 const richSubscriptionExperimentalSchema = z
   .object({

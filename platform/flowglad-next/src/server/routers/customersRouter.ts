@@ -122,7 +122,14 @@ export const customerArchiveRouteConfig: Record<string, RouteConfig> =
   }
 
 const createCustomerProcedure = protectedProcedure
-  .meta(openApiMetas.POST)
+  .meta({
+    ...openApiMetas.POST,
+    openapi: {
+      ...openApiMetas.POST.openapi,
+      description:
+        "Create a new customer. The customer is automatically assigned to the organization's default pricing model. If the default pricing model has a default product with a free tier (unitPrice = 0), a subscription is automatically created for the customer. The `pricingModelId` field is not exposed in the API - customers are always assigned to the default pricing model when created via API.",
+    },
+  })
   .input(createCustomerInputSchema)
   .output(createCustomerOutputSchema)
   .mutation(
@@ -369,6 +376,8 @@ export const getCustomerBilling = protectedProcedure
       summary: 'Get Billing Details',
       tags: ['Customer', 'Customer Billing'],
       idParamOverride: 'externalId',
+      description:
+        'Retrieves a comprehensive billing snapshot for a customer. Unlike list endpoints that return `{ data: [...] }` wrappers for paginated collections, this endpoint returns an aggregated view with multiple resource types at the top level (customer, subscriptions, invoices, paymentMethods, etc.). This format provides a complete billing overview in a single request, suitable for building customer billing portals.',
     })
   )
   .input(externalIdInputSchema)
