@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
+  buildDiscordOAuthUrl,
   buildWelcomeMessage,
+  type DiscordConfig,
+  getDiscordChannelUrl,
   getDiscordConfig,
   parseCohortNumber,
   sanitizeChannelName,
@@ -210,11 +213,23 @@ describe('discord', () => {
   })
 
   describe('buildWelcomeMessage', () => {
-    it('includes @here mention and onboarding link', () => {
+    it('mentions the user by Discord ID and includes onboarding link', () => {
+      const message = buildWelcomeMessage(
+        'Acme Corp',
+        undefined,
+        '987654321'
+      )
+
+      expect(message).toContain('<@987654321>')
+      expect(message).not.toContain('@here')
+      expect(message).toContain('https://app.flowglad.com/onboarding')
+    })
+
+    it('falls back to @here when no Discord user ID is provided', () => {
       const message = buildWelcomeMessage('Acme Corp')
 
       expect(message).toContain('@here')
-      expect(message).toContain('https://app.flowglad.com/onboarding')
+      expect(message).not.toContain('<@')
     })
 
     it('includes all four onboarding steps', () => {
@@ -238,6 +253,70 @@ describe('discord', () => {
 
       expect(message).toContain('the Flowglad team')
       expect(message).not.toContain('<@&')
+    })
+  })
+
+  describe('buildDiscordOAuthUrl', () => {
+    const baseConfig: DiscordConfig = {
+      botToken: 'test-bot-token',
+      guildId: 'test-guild-id',
+      conciergeCategoryPrefix: 'Concierge Cohort',
+      oauthClientId: 'test-client-id',
+      oauthClientSecret: 'test-client-secret',
+      oauthRedirectUri:
+        'http://localhost:3000/oauth/callback/discord',
+    }
+
+    it('builds a valid Discord OAuth2 authorization URL with required params', () => {
+      const url = buildDiscordOAuthUrl({
+        state: 'test-state',
+        config: baseConfig,
+      })
+
+      const parsed = new URL(url)
+      expect(parsed.origin).toBe('https://discord.com')
+      expect(parsed.searchParams.get('response_type')).toBe('code')
+      expect(parsed.searchParams.get('client_id')).toBe(
+        'test-client-id'
+      )
+      expect(parsed.searchParams.get('scope')).toBe(
+        'identify guilds.join'
+      )
+      expect(parsed.searchParams.get('redirect_uri')).toBe(
+        'http://localhost:3000/oauth/callback/discord'
+      )
+      expect(parsed.searchParams.get('state')).toBe('test-state')
+      expect(parsed.searchParams.get('prompt')).toBe('consent')
+    })
+
+    it('throws when oauthClientId is missing', () => {
+      const config = { ...baseConfig, oauthClientId: undefined }
+
+      expect(() =>
+        buildDiscordOAuthUrl({ state: 'test', config })
+      ).toThrow(
+        'DISCORD_OAUTH_CLIENT_ID and DISCORD_OAUTH_REDIRECT_URI are required'
+      )
+    })
+
+    it('throws when oauthRedirectUri is missing', () => {
+      const config = { ...baseConfig, oauthRedirectUri: undefined }
+
+      expect(() =>
+        buildDiscordOAuthUrl({ state: 'test', config })
+      ).toThrow(
+        'DISCORD_OAUTH_CLIENT_ID and DISCORD_OAUTH_REDIRECT_URI are required'
+      )
+    })
+  })
+
+  describe('getDiscordChannelUrl', () => {
+    it('returns the correct Discord channel URL format', () => {
+      const url = getDiscordChannelUrl('guild-123', 'channel-456')
+
+      expect(url).toBe(
+        'https://discord.com/channels/guild-123/channel-456'
+      )
     })
   })
 })

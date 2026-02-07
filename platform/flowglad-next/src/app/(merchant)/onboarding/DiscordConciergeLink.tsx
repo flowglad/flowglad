@@ -14,9 +14,7 @@ export function DiscordConciergeLink() {
   const createChannel =
     trpc.organizations.createDiscordConciergeChannel.useMutation({
       onSuccess: (data) => {
-        // Open Discord invite in new tab (noopener for security)
-        window.open(data.inviteUrl, '_blank', 'noopener,noreferrer')
-        setIsLoading(false)
+        window.location.href = data.oauthUrl
       },
       onError: (error) => {
         console.error('Failed to create Discord channel:', error)
@@ -50,9 +48,7 @@ export function DiscordConciergeLink() {
           onClick={handleClick}
           disabled={isLoading}
         >
-          {isLoading
-            ? 'Creating channel...'
-            : 'Join Concierge Channel'}
+          {isLoading ? 'Connecting...' : 'Join Concierge Channel'}
         </Button>
         {hasError ? (
           <p className="text-xs text-destructive text-center">
