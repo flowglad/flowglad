@@ -1,10 +1,11 @@
-import { organizations } from '@db-core/schema/organizations'
 import { Result } from 'better-result'
-import { and, eq, isNull } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import {
+  selectOrganizationById,
+  updateOrganization,
+} from '@/db/tableMethods/organizationMethods'
 import {
   addUserToGuild,
   exchangeDiscordOAuthCode,
@@ -82,42 +83,45 @@ export default async function DiscordOAuthCallbackPage({
       organization.discordConciergeChannelId
     )
 
-    // Persist channel ID if it changed, using compare-and-swap for race safety
+    // Persist channel ID if it changed
     if (channelId !== organization.discordConciergeChannelId) {
-      await adminTransaction(async ({ transaction }) => {
-        const condition =
-          organization.discordConciergeChannelId === null
-            ? and(
-                eq(organizations.id, validation.organizationId),
-                isNull(organizations.discordConciergeChannelId)
-              )
-            : and(
-                eq(organizations.id, validation.organizationId),
-                eq(
-                  organizations.discordConciergeChannelId,
-                  organization.discordConciergeChannelId
-                )
-              )
-
-        await transaction
-          .update(organizations)
-          .set({
-            discordConciergeChannelId: channelId,
-            updatedAt: Date.now(),
-          })
-          .where(condition)
-
-        return Result.ok(undefined)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: validation.organizationId,
+              discordConciergeChannelId: channelId,
+            },
+            transaction
+          )
+          return Result.ok(undefined)
+        })
+      ).unwrap()
     }
 
+    // Re-read org to get actual stored channel (handles concurrent race)
+    const updatedOrg = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectOrganizationById(
+          validation.organizationId,
+          transaction
+        )
+      })
+    ).unwrap()
+
+    const actualChannelId =
+      updatedOrg.discordConciergeChannelId ?? channelId
+
     await grantChannelAccess({
-      channelId,
+      channelId: actualChannelId,
       discordUserId: discordUser.id,
       config,
     })
 
-    redirectUrl = getDiscordChannelUrl(config.guildId, channelId)
+    redirectUrl = getDiscordChannelUrl(
+      config.guildId,
+      actualChannelId
+    )
   } catch {
     redirectUrl = '/onboarding?error=discord_connection_failed'
   }
