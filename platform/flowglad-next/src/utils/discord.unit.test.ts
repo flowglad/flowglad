@@ -213,9 +213,10 @@ describe('discord', () => {
   })
 
   describe('buildWelcomeMessage', () => {
-    it('includes onboarding link', () => {
+    it('includes @here mention and onboarding link', () => {
       const message = buildWelcomeMessage('Acme Corp')
 
+      expect(message).toContain('@here')
       expect(message).toContain('https://app.flowglad.com/onboarding')
     })
 
