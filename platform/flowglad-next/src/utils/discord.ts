@@ -279,15 +279,6 @@ async function createPrivateChannel(
     permission_overwrites: permissionOverwrites,
   }
 
-  console.log('[Discord] createPrivateChannel:', {
-    name,
-    categoryId,
-    botUserId,
-    guildId,
-    permissionOverwrites: JSON.stringify(permissionOverwrites),
-    flowgladTeamRoleId: config.flowgladTeamRoleId,
-  })
-
   return (await rest.post(Routes.guildChannels(guildId), {
     body,
   })) as APIChannel

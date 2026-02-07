@@ -117,7 +117,6 @@ export const createDiscordConciergeChannel = protectedProcedure
 
       return { oauthUrl }
     } catch (error) {
-      console.error('[Discord Mutation] Error:', error)
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to create Discord channel',
