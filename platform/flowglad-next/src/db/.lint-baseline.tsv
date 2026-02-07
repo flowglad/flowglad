@@ -1,0 +1,5 @@
+src/db/authenticatedTransaction.rls.test.ts	no-explicit-any-in-tests	4
+src/db/createZodSchemas.db.test.ts	no-explicit-any-in-tests	73
+src/db/databaseAuthentication.db.test.ts	no-explicit-any-in-tests	33
+src/db/databaseAuthentication.ts	no-unwrap-outside-boundaries	1
+src/db/tableUtils.db.test.ts	no-explicit-any-in-tests	7

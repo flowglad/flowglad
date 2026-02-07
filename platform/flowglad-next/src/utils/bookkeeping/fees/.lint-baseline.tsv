@@ -1,0 +1,3 @@
+src/utils/bookkeeping/fees/checkoutSession.ts	no-unwrap-outside-boundaries	2
+src/utils/bookkeeping/fees/common.ts	no-unwrap-outside-boundaries	1
+src/utils/bookkeeping/fees/subscription.ts	no-unwrap-outside-boundaries	2

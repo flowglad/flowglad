@@ -1,7 +1,11 @@
-import { readBaseline, writePackageBaselineAt } from '../baseline'
+import {
+  getExistingBaselineDirectories,
+  readAllBaselinesForPackage,
+  writeBaselinesPerDirectory,
+} from '../baseline'
 import { countViolationsByFile, runBiomeLint } from '../biome'
 import {
-  getBaselinePathForPackage,
+  findRepoRoot,
   getFirstRule,
   loadConfig,
   resolvePackagePaths,
@@ -32,7 +36,8 @@ export interface UpdateResult {
 const updatePackageBaseline = async (
   packagePath: string,
   rule: RatchetRule,
-  exclude: string[]
+  exclude: string[],
+  repoRoot: string
 ): Promise<PackageUpdateResult> => {
   // Get current violations
   const diagnostics = await runBiomeLint(
@@ -44,9 +49,15 @@ const updatePackageBaseline = async (
 
   const currentCounts = countViolationsByFile(diagnostics, rule.name)
 
-  // Get existing baseline
-  const baselinePath = getBaselinePathForPackage(packagePath)
-  const baselineEntries = readBaseline(baselinePath)
+  // Get existing baseline from all per-directory baseline files
+  const baselineEntries = readAllBaselinesForPackage(
+    repoRoot,
+    packagePath
+  )
+  const existingDirectories = getExistingBaselineDirectories(
+    repoRoot,
+    packagePath
+  )
 
   // Build baseline map for this rule
   const baselineMap = new Map<string, number>()
@@ -116,9 +127,14 @@ const updatePackageBaseline = async (
     }
   }
 
-  // Write if there were changes
+  // Write if there were changes (writes to per-directory baseline files)
   if (changes.length > 0) {
-    writePackageBaselineAt(baselinePath, newEntries)
+    writeBaselinesPerDirectory(
+      repoRoot,
+      packagePath,
+      newEntries,
+      existingDirectories
+    )
   }
 
   return {
@@ -168,6 +184,7 @@ const printPackageUpdateResult = (
 export const updateCommand = async (): Promise<UpdateResult> => {
   const config = loadConfig()
   const packages = resolvePackagePaths(config)
+  const repoRoot = findRepoRoot()
 
   if (packages.length === 0) {
     console.error('No packages found to update')
@@ -188,7 +205,8 @@ export const updateCommand = async (): Promise<UpdateResult> => {
     const result = await updatePackageBaseline(
       pkg.path,
       rule,
-      config.exclude
+      config.exclude,
+      repoRoot
     )
     packageResults.push(result)
     printPackageUpdateResult(result)
