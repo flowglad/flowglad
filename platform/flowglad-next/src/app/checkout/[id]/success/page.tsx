@@ -1,6 +1,13 @@
 import { CheckoutSessionType } from '@db-core/enums'
 import { Result } from 'better-result'
+import type { Metadata } from 'next'
 import { adminTransaction } from '@/db/adminTransaction'
+
+export const metadata: Metadata = {
+  title: 'Payment Successful',
+  description: 'Your payment has been processed successfully',
+}
+
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import AddPaymentCheckoutSuccessPage from './AddPaymentCheckoutSuccessPage'
 import ProductCheckoutSuccessPage from './ProductCheckoutSuccessPage'
