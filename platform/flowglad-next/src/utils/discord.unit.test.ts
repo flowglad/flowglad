@@ -213,11 +213,23 @@ describe('discord', () => {
   })
 
   describe('buildWelcomeMessage', () => {
-    it('includes @here mention and onboarding link', () => {
+    it('mentions the user by Discord ID and includes onboarding link', () => {
+      const message = buildWelcomeMessage(
+        'Acme Corp',
+        undefined,
+        '987654321'
+      )
+
+      expect(message).toContain('<@987654321>')
+      expect(message).not.toContain('@here')
+      expect(message).toContain('https://app.flowglad.com/onboarding')
+    })
+
+    it('falls back to @here when no Discord user ID is provided', () => {
       const message = buildWelcomeMessage('Acme Corp')
 
       expect(message).toContain('@here')
-      expect(message).toContain('https://app.flowglad.com/onboarding')
+      expect(message).not.toContain('<@')
     })
 
     it('includes all four onboarding steps', () => {

@@ -81,7 +81,8 @@ export default async function DiscordOAuthCallbackPage({
     // Create or reuse existing concierge channel
     const { channelId } = await getOrCreateConciergeChannel(
       organization.name,
-      organization.discordConciergeChannelId
+      organization.discordConciergeChannelId,
+      discordUser.id
     )
 
     // Persist channel ID if it changed

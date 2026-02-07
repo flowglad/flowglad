@@ -291,13 +291,16 @@ async function createPrivateChannel(
  */
 export function buildWelcomeMessage(
   orgName: string,
-  flowgladTeamRoleId?: string
+  flowgladTeamRoleId?: string,
+  discordUserId?: string
 ): string {
   const teamMention = flowgladTeamRoleId
     ? `<@&${flowgladTeamRoleId}>`
     : 'the Flowglad team'
 
-  return `@here Welcome to your private concierge channel with ${teamMention}! Ask us any questions about onboarding, we're here to help 🙌
+  const greeting = discordUserId ? `<@${discordUserId}>` : '@here'
+
+  return `${greeting} Welcome to your private concierge channel with ${teamMention}! Ask us any questions about onboarding, we're here to help 🙌
 
 **To finish setup, head to <https://app.flowglad.com/onboarding>:**
 
@@ -316,11 +319,13 @@ async function postWelcomeMessage(
   rest: REST,
   channelId: string,
   orgName: string,
-  config: DiscordConfig
+  config: DiscordConfig,
+  discordUserId?: string
 ): Promise<APIMessage> {
   const content = buildWelcomeMessage(
     orgName,
-    config.flowgladTeamRoleId
+    config.flowgladTeamRoleId,
+    discordUserId
   )
 
   const body: RESTPostAPIChannelMessageJSONBody = {
@@ -344,7 +349,8 @@ async function postWelcomeMessage(
  */
 export async function getOrCreateConciergeChannel(
   orgName: string,
-  existingChannelId?: string | null
+  existingChannelId?: string | null,
+  discordUserId?: string
 ): Promise<ConciergeChannelResult> {
   const config = getDiscordConfig()
   const rest = getRestClient(config.botToken)
@@ -371,7 +377,13 @@ export async function getOrCreateConciergeChannel(
 
   // Post welcome message for newly created channels
   if (isNewChannel) {
-    await postWelcomeMessage(rest, channel.id, orgName, config)
+    await postWelcomeMessage(
+      rest,
+      channel.id,
+      orgName,
+      config,
+      discordUserId
+    )
   }
 
   return {
