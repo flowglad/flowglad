@@ -19,6 +19,7 @@ import {
   decodeDiscordOAuthState,
   validateAndConsumeDiscordOAuthCsrfToken,
 } from '@/utils/discordOAuthState'
+import { logger } from '@/utils/logger'
 export default async function DiscordOAuthCallbackPage({
   searchParams,
 }: {
@@ -122,7 +123,10 @@ export default async function DiscordOAuthCallbackPage({
       config.guildId,
       actualChannelId
     )
-  } catch {
+  } catch (error) {
+    logger.error('Discord OAuth callback failed', {
+      error: error instanceof Error ? error.message : String(error),
+    })
     redirectUrl = '/onboarding?error=discord_connection_failed'
   }
 

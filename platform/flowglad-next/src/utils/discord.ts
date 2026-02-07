@@ -13,8 +13,10 @@ import {
   type RESTPostOAuth2AccessTokenResult,
   type RESTPutAPIChannelPermissionJSONBody,
   type RESTPutAPIGuildMemberJSONBody,
+  RouteBases,
   Routes,
 } from 'discord-api-types/v10'
+import { z } from 'zod'
 import { panic } from '@/errors'
 
 export interface ConciergeChannelResult {
@@ -435,7 +437,14 @@ export async function exchangeDiscordOAuthCode(params: {
       `Discord OAuth token exchange failed: ${response.status} ${errorText}`
     )
   }
-  return response.json() as Promise<RESTPostOAuth2AccessTokenResult>
+  const json = await response.json()
+  const tokenSchema = z.object({
+    access_token: z.string(),
+    token_type: z.string(),
+    expires_in: z.number(),
+    scope: z.string(),
+  })
+  return tokenSchema.parse(json) as RESTPostOAuth2AccessTokenResult
 }
 
 /**
@@ -446,7 +455,7 @@ export async function getDiscordUserFromToken(
   accessToken: string
 ): Promise<APIUser> {
   const response = await fetch(
-    'https://discord.com/api/v10/users/@me',
+    `${RouteBases.api}${Routes.user('@me')}`,
     {
       headers: { Authorization: `Bearer ${accessToken}` },
     }

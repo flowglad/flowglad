@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test'
  * In-memory Redis mock for testing CSRF token storage.
  */
 const mockRedisStore: Map<string, string> = new Map()
+let getdelOverride: ((key: string) => unknown) | null = null
 
 const mockGenerateRandomBytes = mock(
   () => 'mock-csrf-token-32-bytes-long-xx'
@@ -13,6 +14,9 @@ mock.module('./redis', () => ({
   redis: () => ({
     get: mock((key: string) => mockRedisStore.get(key) || null),
     getdel: mock((key: string) => {
+      if (getdelOverride) {
+        return getdelOverride(key)
+      }
       const value = mockRedisStore.get(key) || null
       mockRedisStore.delete(key)
       return value
@@ -56,6 +60,7 @@ import {
 describe('discordOAuthState', () => {
   beforeEach(() => {
     mockRedisStore.clear()
+    getdelOverride = null
     mockGenerateRandomBytes.mockReset()
     mockGenerateRandomBytes.mockImplementation(
       () => 'mock-csrf-token-32-bytes-long-xx'
@@ -269,10 +274,13 @@ describe('discordOAuthState', () => {
         createdAt: new Date().toISOString(),
       }
 
-      mockRedisStore.set(
-        `discordOAuthCsrfToken:object-token`,
-        tokenData as unknown as string
-      )
+      // Simulate Redis clients that return parsed objects
+      getdelOverride = (key: string) => {
+        if (key === `discordOAuthCsrfToken:object-token`) {
+          return tokenData
+        }
+        return null
+      }
 
       const result = await validateAndConsumeDiscordOAuthCsrfToken({
         csrfToken: 'object-token',
