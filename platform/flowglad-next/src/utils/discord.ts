@@ -29,6 +29,9 @@ export interface DiscordConfig {
   conciergeCategoryPrefix: string
   flowgladTeamRoleId?: string
   internalBotRoleId?: string
+  oauthClientId?: string
+  oauthClientSecret?: string
+  oauthRedirectUri?: string
 }
 
 const DISCORD_CATEGORY_CHANNEL_LIMIT = 50
@@ -69,6 +72,9 @@ export function getDiscordConfig(): DiscordConfig {
     conciergeCategoryPrefix,
     flowgladTeamRoleId,
     internalBotRoleId,
+    oauthClientId,
+    oauthClientSecret,
+    oauthRedirectUri,
   }
 }
 
