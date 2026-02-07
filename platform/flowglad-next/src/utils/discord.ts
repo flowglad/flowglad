@@ -1,22 +1,24 @@
 import { REST } from '@discordjs/rest'
 import {
   type APIChannel,
-  type APIExtendedInvite,
   type APIMessage,
   type APIOverwrite,
+  type APIUser,
   ChannelType,
+  OAuth2Routes,
   OverwriteType,
   PermissionFlagsBits,
-  type RESTPostAPIChannelInviteJSONBody,
   type RESTPostAPIChannelMessageJSONBody,
   type RESTPostAPIGuildChannelJSONBody,
+  type RESTPostOAuth2AccessTokenResult,
+  type RESTPutAPIChannelPermissionJSONBody,
+  type RESTPutAPIGuildMemberJSONBody,
   Routes,
 } from 'discord-api-types/v10'
 import { panic } from '@/errors'
 
 export interface ConciergeChannelResult {
   channelId: string
-  inviteUrl: string
 }
 
 export interface DiscordConfig {
@@ -24,6 +26,9 @@ export interface DiscordConfig {
   guildId: string
   conciergeCategoryPrefix: string
   flowgladTeamRoleId?: string
+  oauthClientId?: string
+  oauthClientSecret?: string
+  oauthRedirectUri?: string
 }
 
 const DISCORD_CATEGORY_CHANNEL_LIMIT = 50
@@ -53,11 +58,18 @@ export function getDiscordConfig(): DiscordConfig {
     panic('DISCORD_GUILD_ID environment variable is required')
   }
 
+  const oauthClientId = process.env.DISCORD_OAUTH_CLIENT_ID
+  const oauthClientSecret = process.env.DISCORD_OAUTH_CLIENT_SECRET
+  const oauthRedirectUri = process.env.DISCORD_OAUTH_REDIRECT_URI
+
   return {
     botToken,
     guildId,
     conciergeCategoryPrefix,
     flowgladTeamRoleId,
+    oauthClientId,
+    oauthClientSecret,
+    oauthRedirectUri,
   }
 }
 
@@ -267,6 +279,15 @@ async function createPrivateChannel(
     permission_overwrites: permissionOverwrites,
   }
 
+  console.log('[Discord] createPrivateChannel:', {
+    name,
+    categoryId,
+    botUserId,
+    guildId,
+    permissionOverwrites: JSON.stringify(permissionOverwrites),
+    flowgladTeamRoleId: config.flowgladTeamRoleId,
+  })
+
   return (await rest.post(Routes.guildChannels(guildId), {
     body,
   })) as APIChannel
@@ -319,42 +340,6 @@ async function postWelcomeMessage(
 }
 
 /**
- * Get channel invites and find a valid one, or create a new invite.
- */
-async function getOrCreateInvite(
-  rest: REST,
-  channelId: string
-): Promise<string> {
-  // Fetch existing invites
-  const invites = (await rest.get(
-    Routes.channelInvites(channelId)
-  )) as APIExtendedInvite[]
-
-  // Find a valid invite (unlimited uses, not expired)
-  const existingInvite = invites.find(
-    (inv) =>
-      inv.max_uses === 0 &&
-      (!inv.expires_at || new Date(inv.expires_at) > new Date())
-  )
-
-  if (existingInvite) {
-    return `https://discord.gg/${existingInvite.code}`
-  }
-
-  // Create new invite: 7 days, unlimited uses
-  const body: RESTPostAPIChannelInviteJSONBody = {
-    max_age: 604800, // 7 days in seconds
-    max_uses: 0, // unlimited
-    unique: false,
-  }
-
-  const invite = (await rest.post(Routes.channelInvites(channelId), {
-    body,
-  })) as APIExtendedInvite
-  return `https://discord.gg/${invite.code}`
-}
-
-/**
  * Main function: Get or create a concierge channel for an organization.
  * If existingChannelId is provided, tries to find that channel first.
  * Returns channelId so caller can persist it in the database.
@@ -396,11 +381,138 @@ export async function getOrCreateConciergeChannel(
     await postWelcomeMessage(rest, channel.id, orgName, config)
   }
 
-  // Get or create invite
-  const inviteUrl = await getOrCreateInvite(rest, channel.id)
-
   return {
     channelId: channel.id,
-    inviteUrl,
   }
+}
+
+/**
+ * Build the Discord OAuth2 authorization URL.
+ * Requires oauthClientId and oauthRedirectUri in config.
+ */
+export function buildDiscordOAuthUrl(params: {
+  state: string
+  config: DiscordConfig
+}): string {
+  const { state, config } = params
+  if (!config.oauthClientId || !config.oauthRedirectUri) {
+    panic(
+      'DISCORD_OAUTH_CLIENT_ID and DISCORD_OAUTH_REDIRECT_URI are required'
+    )
+  }
+  const url = new URL(OAuth2Routes.authorizationURL)
+  url.searchParams.set('response_type', 'code')
+  url.searchParams.set('client_id', config.oauthClientId)
+  url.searchParams.set('scope', 'identify guilds.join')
+  url.searchParams.set('redirect_uri', config.oauthRedirectUri)
+  url.searchParams.set('state', state)
+  url.searchParams.set('prompt', 'consent')
+  return url.toString()
+}
+
+/**
+ * Exchange an OAuth2 authorization code for an access token.
+ * Uses raw fetch (not the bot REST client) because this needs client credentials.
+ */
+export async function exchangeDiscordOAuthCode(params: {
+  code: string
+  config: DiscordConfig
+}): Promise<RESTPostOAuth2AccessTokenResult> {
+  const { code, config } = params
+  if (
+    !config.oauthClientId ||
+    !config.oauthClientSecret ||
+    !config.oauthRedirectUri
+  ) {
+    panic('Discord OAuth credentials are required')
+  }
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: config.oauthRedirectUri,
+    client_id: config.oauthClientId,
+    client_secret: config.oauthClientSecret,
+  })
+  const response = await fetch(OAuth2Routes.tokenURL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  })
+  if (!response.ok) {
+    const errorText = await response.text()
+    panic(
+      `Discord OAuth token exchange failed: ${response.status} ${errorText}`
+    )
+  }
+  return response.json() as Promise<RESTPostOAuth2AccessTokenResult>
+}
+
+/**
+ * Get the Discord user associated with an OAuth2 access token.
+ * Uses raw fetch with Bearer auth (not the bot REST client).
+ */
+export async function getDiscordUserFromToken(
+  accessToken: string
+): Promise<APIUser> {
+  const response = await fetch(
+    'https://discord.com/api/v10/users/@me',
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  )
+  if (!response.ok) {
+    panic(`Failed to fetch Discord user: ${response.status}`)
+  }
+  return response.json() as Promise<APIUser>
+}
+
+/**
+ * Add a user to a guild using their OAuth2 access token.
+ * Returns silently whether the user was newly added (201) or already a member (204).
+ */
+export async function addUserToGuild(params: {
+  guildId: string
+  discordUserId: string
+  accessToken: string
+  config: DiscordConfig
+}): Promise<void> {
+  const { guildId, discordUserId, accessToken, config } = params
+  const rest = getRestClient(config.botToken)
+  const body: RESTPutAPIGuildMemberJSONBody = {
+    access_token: accessToken,
+  }
+  await rest.put(Routes.guildMember(guildId, discordUserId), { body })
+}
+
+/**
+ * Grant a user ViewChannel + SendMessages on a private channel.
+ */
+export async function grantChannelAccess(params: {
+  channelId: string
+  discordUserId: string
+  config: DiscordConfig
+}): Promise<void> {
+  const { channelId, discordUserId, config } = params
+  const rest = getRestClient(config.botToken)
+  const body: RESTPutAPIChannelPermissionJSONBody = {
+    allow: (
+      PermissionFlagsBits.ViewChannel |
+      PermissionFlagsBits.SendMessages
+    ).toString(),
+    deny: '0',
+    type: OverwriteType.Member,
+  }
+  await rest.put(Routes.channelPermission(channelId, discordUserId), {
+    body,
+  })
+}
+
+/**
+ * Build the Discord channel URL for direct navigation.
+ */
+export function getDiscordChannelUrl(
+  guildId: string,
+  channelId: string
+): string {
+  return `https://discord.com/channels/${guildId}/${channelId}`
 }

@@ -14,8 +14,7 @@ export function DiscordConciergeLink() {
   const createChannel =
     trpc.organizations.createDiscordConciergeChannel.useMutation({
       onSuccess: (data) => {
-        // Open Discord invite in new tab (noopener for security)
-        window.open(data.inviteUrl, '_blank', 'noopener,noreferrer')
+        window.open(data.oauthUrl, '_blank', 'noopener,noreferrer')
         setIsLoading(false)
       },
       onError: (error) => {

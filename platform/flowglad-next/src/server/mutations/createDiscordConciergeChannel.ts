@@ -6,15 +6,24 @@ import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { protectedProcedure } from '@/server/trpc'
-import { getOrCreateConciergeChannel } from '@/utils/discord'
+import {
+  buildDiscordOAuthUrl,
+  getDiscordConfig,
+  getOrCreateConciergeChannel,
+} from '@/utils/discord'
+import {
+  createDiscordOAuthCsrfToken,
+  encodeDiscordOAuthState,
+} from '@/utils/discordOAuthState'
 
 export const createDiscordConciergeChannelSchema = z.object({})
 
 export const createDiscordConciergeChannel = protectedProcedure
   .input(createDiscordConciergeChannelSchema)
-  .output(z.object({ inviteUrl: z.string() }))
+  .output(z.object({ oauthUrl: z.string() }))
   .mutation(async ({ ctx }) => {
     const { organizationId } = ctx
+    const userId = ctx.user!.id
 
     if (!organizationId) {
       throw new TRPCError({
@@ -32,11 +41,12 @@ export const createDiscordConciergeChannel = protectedProcedure
       ).unwrap()
 
       // Create or get concierge channel (pass existing ID for fast lookup)
-      const { channelId, inviteUrl } =
-        await getOrCreateConciergeChannel(
-          organization.name,
-          organization.discordConciergeChannelId
-        )
+      const { channelId } = await getOrCreateConciergeChannel(
+        organization.name,
+        organization.discordConciergeChannelId
+      )
+
+      let finalChannelId = channelId
 
       // Persist channel ID using conditional update to prevent race conditions.
       // If a concurrent request already set the channel ID, the WHERE clause
@@ -91,17 +101,23 @@ export const createDiscordConciergeChannel = protectedProcedure
           persistResult.unwrap()
 
         if (raceResolved && winnerChannelId) {
-          // Return invite for the channel that was persisted first
-          const winner = await getOrCreateConciergeChannel(
-            organization.name,
-            winnerChannelId
-          )
-          return { inviteUrl: winner.inviteUrl }
+          finalChannelId = winnerChannelId
         }
       }
 
-      return { inviteUrl }
+      // Generate OAuth URL so the user can authorize and get channel access
+      const config = getDiscordConfig()
+      const csrfToken = await createDiscordOAuthCsrfToken({
+        userId,
+        organizationId,
+        channelId: finalChannelId,
+      })
+      const state = encodeDiscordOAuthState(csrfToken)
+      const oauthUrl = buildDiscordOAuthUrl({ state, config })
+
+      return { oauthUrl }
     } catch (error) {
+      console.error('[Discord Mutation] Error:', error)
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to create Discord channel',
