@@ -28,9 +28,7 @@ export interface DiscordConfig {
   guildId: string
   conciergeCategoryPrefix: string
   flowgladTeamRoleId?: string
-  oauthClientId?: string
-  oauthClientSecret?: string
-  oauthRedirectUri?: string
+  internalBotRoleId?: string
 }
 
 const DISCORD_CATEGORY_CHANNEL_LIMIT = 50
@@ -52,6 +50,7 @@ export function getDiscordConfig(): DiscordConfig {
     process.env.DISCORD_CONCIERGE_CATEGORY_PREFIX ??
     'Concierge Cohort'
   const flowgladTeamRoleId = process.env.DISCORD_FLOWGLAD_TEAM_ROLE_ID
+  const internalBotRoleId = process.env.DISCORD_INTERNAL_BOT_ROLE_ID
 
   if (!botToken) {
     panic('DISCORD_BOT_TOKEN environment variable is required')
@@ -69,9 +68,7 @@ export function getDiscordConfig(): DiscordConfig {
     guildId,
     conciergeCategoryPrefix,
     flowgladTeamRoleId,
-    oauthClientId,
-    oauthClientSecret,
-    oauthRedirectUri,
+    internalBotRoleId,
   }
 }
 
@@ -269,6 +266,19 @@ async function createPrivateChannel(
       allow: (
         PermissionFlagsBits.ViewChannel |
         PermissionFlagsBits.SendMessages
+      ).toString(),
+      deny: '0',
+    })
+  }
+
+  // Add internal bot role if configured (for message monitoring)
+  if (config.internalBotRoleId) {
+    permissionOverwrites.push({
+      id: config.internalBotRoleId,
+      type: OverwriteType.Role,
+      allow: (
+        PermissionFlagsBits.ViewChannel |
+        PermissionFlagsBits.ReadMessageHistory
       ).toString(),
       deny: '0',
     })
