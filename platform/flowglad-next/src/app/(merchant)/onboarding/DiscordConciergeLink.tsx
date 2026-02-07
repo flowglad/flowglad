@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
@@ -10,11 +11,12 @@ export function DiscordConciergeLink() {
   const [isLoading, setIsLoading] = useState(false)
   const [hasError, setHasError] = useState(false)
   const { organization } = useAuthContext()
+  const router = useRouter()
 
   const createChannel =
     trpc.organizations.createDiscordConciergeChannel.useMutation({
       onSuccess: (data) => {
-        window.open(data.oauthUrl, '_blank', 'noopener,noreferrer')
+        router.push(data.oauthUrl)
         setIsLoading(false)
       },
       onError: (error) => {
