@@ -1,5 +1,6 @@
 import { CheckoutSessionStatus, PriceType } from '@db-core/enums'
 import { Result } from 'better-result'
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import CheckoutPage from '@/components/CheckoutPage'
@@ -13,6 +14,32 @@ import {
   getClientSecretsForCheckoutSession,
 } from '@/utils/checkoutHelpers'
 import core from '@/utils/core'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  try {
+    const { product, sellerOrganization } = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await checkoutInfoForCheckoutSession(id, transaction)
+        )
+      })
+    ).unwrap()
+    return {
+      title: `${sellerOrganization.name} | ${product.name}`,
+      description: `Purchase ${product.name} from ${sellerOrganization.name}`,
+    }
+  } catch {
+    return {
+      title: 'Checkout',
+      description: 'Complete your purchase',
+    }
+  }
+}
 
 const CheckoutSessionPage = async ({
   params,
