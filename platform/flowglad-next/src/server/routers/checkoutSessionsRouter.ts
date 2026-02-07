@@ -59,7 +59,9 @@ export const createCheckoutSession = protectedProcedure
   .meta({
     ...openApiMetas.POST,
     openapi: {
-      ...openApiMetas.POST.openapi,
+      ...openApiMetas.POST.openapi!,
+      method: 'POST',
+      path: '/api/v1/checkout-sessions',
       description:
         'Create a checkout session for various purposes:\n\n' +
         '**Product checkout (type: "product"):** Creates a session for purchasing a product/subscription. Requires priceId or priceSlug.\n\n' +

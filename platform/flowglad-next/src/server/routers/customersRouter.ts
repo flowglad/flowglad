@@ -125,7 +125,9 @@ const createCustomerProcedure = protectedProcedure
   .meta({
     ...openApiMetas.POST,
     openapi: {
-      ...openApiMetas.POST.openapi,
+      ...openApiMetas.POST.openapi!,
+      method: 'POST',
+      path: '/api/v1/customers',
       description:
         "Create a new customer. The customer is automatically assigned to the organization's default pricing model. If the default pricing model has a default product with a free tier (unitPrice = 0), a subscription is automatically created for the customer. The `pricingModelId` field is not exposed in the API - customers are always assigned to the default pricing model when created via API.",
     },
