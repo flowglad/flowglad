@@ -182,8 +182,13 @@ export const useInvoices = (
 
       const json: unknown = await response.json()
       if (!isInvoicesRouteResponse(json)) {
+        //to avoid logging the entire json object
+        const summary =
+          json !== null && typeof json === 'object'
+            ? `type=object, keys=[${Object.keys(json).join(', ')}]`
+            : `type=${typeof json}`
         throw new Error(
-          `Invalid invoices response format: ${JSON.stringify(json)}`
+          `Invalid invoices response format: ${summary}`
         )
       }
       return json
