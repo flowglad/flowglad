@@ -271,6 +271,68 @@ describe('usePurchases', () => {
     )
   })
 
+  it('passes limit param', async () => {
+    const limitedResponse = {
+      data: {
+        purchases: [mockPurchases[0]],
+      },
+    }
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(limitedResponse),
+    })
+
+    const { result } = renderHook(() => usePurchases({ limit: 1 }), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.purchases).toHaveLength(1)
+    expect(result.current.purchases?.[0]?.id).toBe('purch_123')
+    expect(result.current.error).toBe(null)
+
+    // Verify the fetch was called with the limit in the body
+    const fetchCall = mockFetch.mock.calls[0]
+    expect(JSON.parse(fetchCall[1].body)).toEqual({ limit: 1 })
+  })
+
+  it('passes startingAfter param', async () => {
+    const limitedResponse = {
+      data: {
+        purchases: [mockPurchases[1]],
+      },
+    }
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(limitedResponse),
+    })
+
+    const { result } = renderHook(
+      () => usePurchases({ startingAfter: 'purch_123' }),
+      {
+        wrapper: createWrapper(),
+      }
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.purchases).toHaveLength(1)
+    expect(result.current.purchases?.[0]?.id).toBe('purch_456')
+    expect(result.current.error).toBe(null)
+
+    const fetchCall = mockFetch.mock.calls[0]
+    expect(JSON.parse(fetchCall[1].body)).toEqual({
+      startingAfter: 'purch_123',
+    })
+  })
+
   it('hasPurchased returns false when purchases not loaded', () => {
     // Don't resolve the fetch so purchases remain undefined
     mockFetch.mockImplementation(

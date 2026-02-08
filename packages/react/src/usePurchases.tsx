@@ -8,6 +8,7 @@ import {
   type PurchaseDetails,
 } from '@flowglad/shared'
 import { useQuery } from '@tanstack/react-query'
+import { useCallback, useMemo } from 'react'
 import { useFlowgladConfig } from './FlowgladConfigContext'
 import { getFlowgladRoute } from './FlowgladContext'
 
@@ -96,6 +97,38 @@ export interface UsePurchasesResult {
 }
 
 /**
+ * Runtime type guard that checks whether a single item
+ * has the required PurchaseDetails shape (string id, name,
+ * priceId, and status).
+ */
+const isPurchaseDetails = (
+  value: unknown
+): value is PurchaseDetails => {
+  if (value === null || typeof value !== 'object') {
+    return false
+  }
+  const obj = value as Record<string, unknown>
+  return (
+    typeof obj.id === 'string' &&
+    typeof obj.name === 'string' &&
+    typeof obj.priceId === 'string' &&
+    typeof obj.status === 'string'
+  )
+}
+
+/**
+ * Runtime type guard for an array of PurchaseDetails.
+ */
+export const isPurchaseDetailsArray = (
+  value: unknown
+): value is PurchaseDetails[] => {
+  if (!Array.isArray(value)) {
+    return false
+  }
+  return value.every(isPurchaseDetails)
+}
+
+/**
  * Derives purchases data from billingMocks.
  */
 const derivePurchasesFromBillingMocks = (
@@ -103,8 +136,9 @@ const derivePurchasesFromBillingMocks = (
 ): {
   purchases: PurchaseDetails[]
 } => {
+  const raw = billingMocks.purchases ?? []
   return {
-    purchases: (billingMocks.purchases ?? []) as PurchaseDetails[],
+    purchases: isPurchaseDetailsArray(raw) ? raw : [],
   }
 }
 
@@ -197,6 +231,39 @@ export const usePurchases = (
     },
   })
 
+  // All hooks called unconditionally before any conditional returns.
+
+  // Memoize dev-mode purchases so the reference is stable across renders
+  const devPurchases = useMemo(() => {
+    if (!__devMode || !billingMocks) return undefined
+    return derivePurchasesFromBillingMocks(billingMocks).purchases
+  }, [__devMode, billingMocks])
+
+  // Resolved purchases: dev-mode derivation or API response
+  const purchases = __devMode
+    ? devPurchases
+    : responseData?.data?.purchases
+
+  // Stable hasPurchased callback keyed on the purchases reference
+  const hasPurchased = useCallback(
+    (purchaseName: string) => {
+      if (!purchases) return false
+      return purchases.some((p) => p.name === purchaseName)
+    },
+    [purchases]
+  )
+
+  // Memoize the API-level error so the same Error instance is
+  // returned across renders when responseData.error is unchanged.
+  const apiError = useMemo(() => {
+    if (!responseData?.error) return null
+    return new Error(
+      responseData.error.json?.message?.toString() ??
+        responseData.error.code ??
+        'Failed to fetch purchases'
+    )
+  }, [responseData?.error])
+
   // Dev mode: derive purchases from billingMocks
   if (__devMode) {
     if (!billingMocks) {
@@ -204,40 +271,27 @@ export const usePurchases = (
         'FlowgladProvider: __devMode requires billingMocks'
       )
     }
-    const { purchases } =
-      derivePurchasesFromBillingMocks(billingMocks)
-
     return {
       purchases,
-      hasPurchased: (purchaseName: string) =>
-        purchases.some((p) => p.name === purchaseName),
+      hasPurchased,
       isLoading: false,
       error: null,
     }
   }
 
   // Handle error responses from the API
-  if (responseData?.error) {
+  if (apiError) {
     return {
       purchases: undefined,
-      hasPurchased: () => false,
+      hasPurchased,
       isLoading: false,
-      error: new Error(
-        responseData.error.json?.message?.toString() ??
-          responseData.error.code ??
-          'Failed to fetch purchases'
-      ),
+      error: apiError,
     }
   }
 
-  const purchases = responseData?.data?.purchases
-
   return {
     purchases,
-    hasPurchased: (purchaseName: string) => {
-      if (!purchases) return false
-      return purchases.some((p) => p.name === purchaseName)
-    },
+    hasPurchased,
     isLoading,
     error: error ?? null,
   }
