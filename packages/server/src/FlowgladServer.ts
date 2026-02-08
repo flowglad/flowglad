@@ -252,6 +252,16 @@ export class FlowgladServer {
 
     let purchases = billing.purchases ?? []
 
+    if (params?.startingAfter !== undefined) {
+      const cursorIndex = purchases.findIndex(
+        (item) => item.id === params.startingAfter
+      )
+      purchases =
+        cursorIndex >= 0
+          ? purchases.slice(cursorIndex + 1)
+          : purchases
+    }
+
     if (params?.limit !== undefined) {
       purchases = purchases.slice(0, params.limit)
     }
