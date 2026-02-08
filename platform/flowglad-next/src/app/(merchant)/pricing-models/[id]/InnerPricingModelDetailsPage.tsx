@@ -84,13 +84,13 @@ function InnerPricingModelDetailsPage({
   const productFilterOptions = [
     { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
+    { value: 'archived', label: 'Archived' },
   ]
 
   const featureFilterOptions = [
     { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
+    { value: 'archived', label: 'Archived' },
   ]
 
   const getProductFilterForTab = (tab: string) => {
@@ -103,6 +103,7 @@ function InnerPricingModelDetailsPage({
       return baseFilter
     }
 
+    // Map 'archived' to active: false, 'active' to active: true
     return {
       ...baseFilter,
       active: tab === 'active',
@@ -116,6 +117,7 @@ function InnerPricingModelDetailsPage({
       return baseFilter
     }
 
+    // Map 'archived' to active: false, 'active' to active: true
     return {
       ...baseFilter,
       active: tab === 'active',
@@ -198,9 +200,7 @@ function InnerPricingModelDetailsPage({
               : [
                   {
                     icon: <Circle className="h-3.5 w-3.5" />,
-                    label: pricingModel.isDefault
-                      ? 'Test - Default'
-                      : 'Test',
+                    label: 'Test',
                     variant: 'warning' as const,
                     tooltip: pricingModel.isDefault
                       ? 'Your sandbox. Test changes risk-free before going live. New customers without a specified pricing model are assigned here.'
@@ -258,8 +258,7 @@ function InnerPricingModelDetailsPage({
             activeFilter={activeProductFilter}
             onFilterChange={setActiveProductFilter}
             onCreateProduct={() => setIsCreateProductModalOpen(true)}
-            // TODO: Add viewAllHref once dedicated products page is implemented
-            // viewAllHref={`/products?pricingModelId=${pricingModel.id}`}
+            viewAllHref={`/products?pricingModelId=${pricingModel.id}`}
           />
         </ExpandSection>
         <ExpandSection

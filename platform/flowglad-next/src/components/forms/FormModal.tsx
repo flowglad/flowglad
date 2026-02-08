@@ -387,11 +387,17 @@ const FormModal = <T extends FieldValues>({
     hardResetFormValues,
   })
 
-  const footer = (
-    <div className="flex flex-1 justify-end gap-2 w-full">
+  const footer = (isDrawer = false) => (
+    <div
+      className={cn(
+        'flex gap-2 w-full',
+        !isDrawer && 'flex-1 justify-end'
+      )}
+    >
       <Button
         variant="secondary"
         size="default"
+        className={isDrawer ? 'flex-1' : undefined}
         onClick={() => {
           if (resolvedDefaultValues) {
             form.reset(resolvedDefaultValues)
@@ -404,6 +410,7 @@ const FormModal = <T extends FieldValues>({
       <Button
         variant="default"
         size="default"
+        className={isDrawer ? 'flex-1' : undefined}
         type="submit"
         form={id}
         disabled={isSubmitting || submitDisabled}
@@ -473,9 +480,9 @@ const FormModal = <T extends FieldValues>({
             {innerContent}
           </div>
         </div>
-        {!hideFooter && footer && (
+        {!hideFooter && (
           <DialogFooter className="flex-shrink-0 pt-4">
-            {footer}
+            {footer(false)}
           </DialogFooter>
         )}
       </DialogContent>
@@ -495,7 +502,7 @@ const FormModal = <T extends FieldValues>({
           </DrawerHeader>
           <div className="flex-1 px-6 py-5">{innerContent}</div>
           <div className="sticky bottom-0 z-10 bg-background border-t border-muted px-6 py-4">
-            {hideFooter ? null : footer}
+            {hideFooter ? null : footer(true)}
           </div>
         </DrawerContent>
       </Drawer>

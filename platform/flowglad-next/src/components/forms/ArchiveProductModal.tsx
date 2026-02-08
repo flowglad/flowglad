@@ -4,6 +4,7 @@ import {
   type EditProductInput,
   editProductSchema,
 } from '@db-core/schema/prices'
+import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ interface ArchiveProductModalProps {
     active: boolean
     name: string
   }
+  onSuccess?: () => void
 }
 
 const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
@@ -33,6 +35,7 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
   isOpen,
   setIsOpen,
   product,
+  onSuccess,
 }) => {
   const router = useRouter()
   const editProduct = trpc.products.update.useMutation()
@@ -56,23 +59,10 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
     await editProduct.mutateAsync(parsed.data)
     router.refresh()
     setIsOpen(false)
+    onSuccess?.()
   }
 
-  const modalText = product.active ? (
-    <div className="text-muted-foreground gap-4">
-      <p>Deactivating will hide this product from new purchases.</p>
-      <p>Are you sure you want to deactivate this product?</p>
-    </div>
-  ) : (
-    <div className="text-muted-foreground gap-4">
-      <p className="text-muted-foreground pb-4">
-        Activating will make this product available for new purchases.
-      </p>
-      <p className="text-muted-foreground pb-4">
-        Are you sure you want to activate this product?
-      </p>
-    </div>
-  )
+  const isArchiving = product.active
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -80,12 +70,48 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {product.active
-              ? 'Deactivate product'
-              : 'Activate product'}
+            {isArchiving ? 'Archive product' : 'Restore product'}
           </DialogTitle>
+          <DialogDescription>
+            {isArchiving ? (
+              <>
+                Are you sure you want to archive{' '}
+                <span className="font-medium">{product.name}</span>?
+              </>
+            ) : (
+              <>
+                Are you sure you want to restore{' '}
+                <span className="font-medium">{product.name}</span>?
+              </>
+            )}
+          </DialogDescription>
         </DialogHeader>
-        {modalText}
+
+        <div className="space-y-4">
+          {isArchiving ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Archiving a product will:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                <li>Hide it from new purchases</li>
+                <li>Hide it from the active products list</li>
+                <li>Existing subscriptions will not be affected</li>
+              </ul>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Restoring a product will:
+              </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                <li>Make it available for new purchases</li>
+                <li>Show it in the active products list</li>
+              </ul>
+            </>
+          )}
+        </div>
+
         <DialogFooter>
           <div className="flex justify-end gap-3 w-full">
             <Button
@@ -95,12 +121,20 @@ const ArchiveProductModal: React.FC<ArchiveProductModalProps> = ({
               Cancel
             </Button>
             <Button
+              variant={isArchiving ? 'destructive' : 'default'}
               onClick={handleArchive}
               disabled={editProduct.isPending}
             >
-              {product.active
-                ? 'Deactivate product'
-                : 'Activate product'}
+              {editProduct.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {isArchiving ? 'Archiving...' : 'Restoring...'}
+                </>
+              ) : isArchiving ? (
+                'Archive product'
+              ) : (
+                'Restore product'
+              )}
             </Button>
           </div>
         </DialogFooter>

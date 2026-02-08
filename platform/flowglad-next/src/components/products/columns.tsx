@@ -9,12 +9,11 @@ import {
   Archive,
   ArchiveRestore,
   Copy,
-  Image as ImageIcon,
+  Lock,
   Pencil,
   Plus,
 } from 'lucide-react'
 // Other imports
-import Image from 'next/image'
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import ArchiveProductModal from '@/components/forms/ArchiveProductModal'
@@ -32,6 +31,11 @@ import {
   ActiveStatusTag,
   booleanToActiveStatus,
 } from '@/components/ui/status-tag'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export interface ProductRow {
   prices: Price.ClientRecord[]
@@ -139,32 +143,30 @@ export const columns: ColumnDef<ProductRow>[] = [
     accessorFn: (row) => row.product.name,
     header: 'Product',
     cell: ({ row }) => {
-      const imageURL = row.original.product.imageURL
       const productName = row.getValue('name') as string
+      const isDefault = row.original.product.default
+
       return (
-        <div className="flex items-center">
-          <div className="mr-4 h-6 w-8 flex-shrink-0 rounded bg-muted flex items-center justify-center overflow-hidden bg-cover bg-center bg-no-repeat">
-            {imageURL ? (
-              <Image
-                src={imageURL}
-                alt={productName}
-                width={32}
-                height={24}
-                className="object-cover object-center h-6 w-8"
-              />
-            ) : (
-              <ImageIcon
-                size={16}
-                className="text-muted-foreground/25"
-              />
-            )}
-          </div>
-          <div
+        <div className="flex items-center gap-1.5">
+          <span
             className="font-normal text-sm truncate"
             title={productName}
           >
             {productName}
-          </div>
+          </span>
+          {isDefault && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Lock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  Default products are automatically assigned to
+                  customers and cannot be archived.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       )
     },

@@ -63,7 +63,9 @@ function InternalProductDetailsPage(
   const [isArchiveOpen, setIsArchiveOpen] = useState(false)
 
   const productURL = `${
-    window ? window.location.origin : 'https://app.flowglad.com'
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : 'https://app.flowglad.com'
   }/product/${product.id}/purchase`
 
   const previewProductHandler = () => {
@@ -71,7 +73,7 @@ function InternalProductDetailsPage(
   }
 
   const handleBreadcrumbClick = () => {
-    router.push(`/pricing-models/${pricingModel.id}`)
+    router.push('/products')
   }
 
   // Build badges array
@@ -94,7 +96,7 @@ function InternalProductDetailsPage(
               strokeWidth={3}
             />
           ),
-          label: 'Inactive',
+          label: 'Archived',
           variant: 'muted' as const,
         },
     ...(product.default
@@ -109,29 +111,37 @@ function InternalProductDetailsPage(
       : []),
   ]
 
+  const isArchived = !product.active
+
   // Build actions array
   const actions = [
     {
       label: 'Edit',
       onClick: () => setIsEditOpen(true),
+      disabled: isArchived,
+      disabledTooltip: isArchived
+        ? 'Cannot edit archived products'
+        : undefined,
       variant: 'secondary' as const,
     },
     {
-      label: product.active ? 'Archive' : 'Reactivate',
+      label: product.active ? 'Archive' : 'Restore',
       onClick: () => setIsArchiveOpen(true),
       disabled: product.default,
       disabledTooltip: product.default
-        ? `Cannot ${product.active ? 'archive' : 'reactivate'} default products.`
+        ? `Cannot ${product.active ? 'archive' : 'restore'} default products.`
         : undefined,
       variant: 'secondary' as const,
     },
     {
       label: 'Preview',
       onClick: () => previewProductHandler(),
-      disabled: product.default,
-      disabledTooltip: product.default
-        ? 'Cannot preview checkout for default products.'
-        : undefined,
+      disabled: product.default || isArchived,
+      disabledTooltip: isArchived
+        ? 'Cannot preview archived products'
+        : product.default
+          ? 'Cannot preview checkout for default products.'
+          : undefined,
       variant: 'secondary' as const,
     },
   ]
@@ -141,7 +151,7 @@ function InternalProductDetailsPage(
       <div className="w-full relative flex flex-col justify-center pb-6">
         <PageHeaderNew
           title={product.name}
-          breadcrumb={pricingModel.name}
+          breadcrumb="Products"
           onBreadcrumbClick={handleBreadcrumbClick}
           className="pb-4"
           badges={badges}
