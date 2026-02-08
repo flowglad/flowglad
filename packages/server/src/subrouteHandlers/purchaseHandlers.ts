@@ -4,7 +4,7 @@ import {
   HTTPMethod,
 } from '@flowglad/shared'
 import type { FlowgladServer } from '../FlowgladServer'
-import { parseErrorStringToErrorObject } from '../serverUtils'
+import { mapCaughtErrorToStatusAndPayload } from '../serverUtils'
 import type {
   SubRouteHandler,
   SubRouteHandlerResultData,
@@ -28,7 +28,7 @@ export const getPurchases: SubRouteHandler<
   if (params.method !== HTTPMethod.POST) {
     error = {
       code: 'Method not allowed',
-      json: {},
+      json: { message: 'Method not allowed' },
     }
     status = 405
     return {
@@ -46,7 +46,10 @@ export const getPurchases: SubRouteHandler<
       status: 400,
       error: {
         code: 'Validation error',
-        json: { issues: parsed.error.issues },
+        json: {
+          message: 'Validation error',
+          issues: parsed.error.issues,
+        },
       },
     }
   }
@@ -57,22 +60,9 @@ export const getPurchases: SubRouteHandler<
     data = result
     status = 200
   } catch (e) {
-    if (e instanceof Error) {
-      error = parseErrorStringToErrorObject(e.message)
-      if (e.message === 'User not authenticated') {
-        status = 401
-      } else if (e.message === 'Customer not found') {
-        status = 404
-      } else {
-        status = 500
-      }
-    } else {
-      error = {
-        code: 'Unknown error',
-        json: {},
-      }
-      status = 500
-    }
+    const mapped = mapCaughtErrorToStatusAndPayload(e)
+    error = mapped.error
+    status = mapped.status
   }
 
   return {

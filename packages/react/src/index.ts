@@ -43,6 +43,12 @@ export {
   usePaymentMethods,
 } from './usePaymentMethods'
 export {
+  isPurchasesRouteResponse,
+  PURCHASES_QUERY_KEY,
+  type UsePurchasesResult,
+  usePurchases,
+} from './usePurchases'
+export {
   RESOURCE_CLAIMS_QUERY_KEY,
   RESOURCES_QUERY_KEY,
   type UseResourceResult,

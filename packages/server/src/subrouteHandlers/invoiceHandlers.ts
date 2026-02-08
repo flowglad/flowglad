@@ -4,7 +4,7 @@ import {
   HTTPMethod,
 } from '@flowglad/shared'
 import type { FlowgladServer } from '../FlowgladServer'
-import { parseErrorStringToErrorObject } from '../serverUtils'
+import { mapCaughtErrorToStatusAndPayload } from '../serverUtils'
 import type {
   SubRouteHandler,
   SubRouteHandlerResultData,
@@ -60,22 +60,9 @@ export const getInvoices: SubRouteHandler<
     data = result
     status = 200
   } catch (e) {
-    if (e instanceof Error) {
-      error = parseErrorStringToErrorObject(e.message)
-      if (e.message === 'User not authenticated') {
-        status = 401
-      } else if (e.message === 'Customer not found') {
-        status = 404
-      } else {
-        status = 500
-      }
-    } else {
-      error = {
-        code: 'Unknown error',
-        json: { message: 'Unknown error' },
-      }
-      status = 500
-    }
+    const mapped = mapCaughtErrorToStatusAndPayload(e)
+    error = mapped.error
+    status = mapped.status
   }
 
   return {
