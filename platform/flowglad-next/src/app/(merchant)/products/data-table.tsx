@@ -17,6 +17,10 @@ import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
+import {
+  DataTableFilterPopover,
+  type FilterSection,
+} from '@/components/ui/data-table-filter-popover'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
@@ -42,12 +46,44 @@ export interface ProductsTableFilters {
   excludeProductsWithNoPrices?: boolean
 }
 
+/**
+ * Filter state for the products filter popover.
+ */
+interface ProductFilterValues {
+  [key: string]: string
+  status: string
+}
+
+/**
+ * Default filter values - what the filter starts with.
+ * Defaults to "Active" to match the previous Tabs implementation.
+ */
+const defaultFilterValues: ProductFilterValues = {
+  status: 'active',
+}
+
+/**
+ * Neutral filter values - represents "no filter applied" state.
+ */
+const neutralFilterValues: ProductFilterValues = {
+  status: 'all',
+}
+
+const statusFilterOptions = [
+  { value: 'all', label: 'All Products' },
+  { value: 'active', label: 'Active' },
+  { value: 'archived', label: 'Archived' },
+]
+
 interface ProductsDataTableProps {
-  filters?: ProductsTableFilters
+  /** Optional external filters (e.g., organizationId, pricingModelId) */
+  externalFilters?: Pick<
+    ProductsTableFilters,
+    | 'organizationId'
+    | 'pricingModelId'
+    | 'excludeProductsWithNoPrices'
+  >
   onCreateProduct?: () => void
-  filterOptions?: { value: string; label: string }[]
-  activeFilter?: string
-  onFilterChange?: (value: string) => void
   buttonVariant?:
     | 'default'
     | 'outline'
@@ -59,11 +95,8 @@ interface ProductsDataTableProps {
 }
 
 export function ProductsDataTable({
-  filters = {},
+  externalFilters = {},
   onCreateProduct,
-  filterOptions,
-  activeFilter,
-  onFilterChange,
   buttonVariant = 'secondary',
   hiddenColumns = [],
 }: ProductsDataTableProps) {
@@ -76,6 +109,41 @@ export function ProductsDataTable({
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
 
+  // Filter state for status (active/archived)
+  const [filterValues, setFilterValues] =
+    React.useState<ProductFilterValues>(defaultFilterValues)
+
+  // Build filter sections for the popover
+  const filterSections: FilterSection[] = React.useMemo(
+    () => [
+      {
+        id: 'status',
+        label: 'Status',
+        type: 'single-select' as const,
+        options: statusFilterOptions,
+      },
+    ],
+    []
+  )
+
+  // Derive server filters from UI filter state
+  // Logic inversion: status === 'archived' → active: false, status === 'active' → active: true
+  const derivedFilters = React.useMemo((): ProductsTableFilters => {
+    const filters: ProductsTableFilters = {
+      ...externalFilters,
+    }
+
+    // Apply status filter
+    if (filterValues.status === 'active') {
+      filters.active = true
+    } else if (filterValues.status === 'archived') {
+      filters.active = false
+    }
+    // 'all' means no active filter
+
+    return filters
+  }, [filterValues, externalFilters])
+
   const {
     pageIndex,
     pageSize,
@@ -87,14 +155,14 @@ export function ProductsDataTable({
   } = usePaginatedTableState<ProductRow, ProductsTableFilters>({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters: filters,
+    filters: derivedFilters,
     searchQuery: searchQuery,
     useQuery: trpc.products.getTableRows.useQuery,
   })
 
   // Reset to first page when filters change
   // Use JSON.stringify to get stable comparison of filter object
-  const filtersKey = JSON.stringify(filters)
+  const filtersKey = JSON.stringify(derivedFilters)
   React.useEffect(() => {
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -160,25 +228,20 @@ export function ProductsDataTable({
     },
   })
 
+  // Calculate if any filter deviates from neutral (for pagination display)
+  const hasActiveFilters =
+    filterValues.status !== neutralFilterValues.status
+
   return (
     <div className="w-full">
       {/* Toolbar */}
-      <div className="pt-1 pb-2 px-4">
+      <div className="flex flex-col gap-3 pt-1 pb-2 px-6">
         <DataTableToolbar
           search={{
             value: inputValue,
             onChange: setInputValue,
             placeholder: 'Search products...',
           }}
-          filter={
-            filterOptions && activeFilter && onFilterChange
-              ? {
-                  value: activeFilter,
-                  options: filterOptions,
-                  onChange: onFilterChange,
-                }
-              : undefined
-          }
           actionButton={
             onCreateProduct
               ? {
@@ -190,7 +253,24 @@ export function ProductsDataTable({
           }
           isLoading={isLoading}
           isFetching={isFetching}
-        />
+        >
+          <DataTableFilterPopover
+            sections={filterSections}
+            values={filterValues}
+            onChange={setFilterValues}
+            defaultValues={defaultFilterValues}
+            neutralValues={neutralFilterValues}
+            disabled={isLoading}
+            triggerLabel={
+              statusFilterOptions.find(
+                (opt) => opt.value === filterValues.status
+              )?.label ?? 'All Products'
+            }
+            triggerVariant="secondary"
+            triggerIcon="chevron"
+            excludeFromBadgeCount={['status']}
+          />
+        </DataTableToolbar>
       </div>
 
       {/* Table */}
@@ -230,35 +310,41 @@ export function ProductsDataTable({
               </TableCell>
             </TableRow>
           ) : table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                onClick={(e) => {
-                  const target = e.target as HTMLElement
-                  if (
-                    target.closest('button') ||
-                    target.closest('[role="checkbox"]') ||
-                    target.closest('input[type="checkbox"]')
-                  ) {
-                    return
-                  }
-                  router.push(`/products/${row.original.product.id}`)
-                }}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    style={{ width: cell.column.getSize() }}
-                  >
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const isArchived = !row.original.product.active
+              return (
+                <TableRow
+                  key={row.id}
+                  className={`cursor-pointer ${isFetching ? 'opacity-50' : ''} ${isArchived ? 'text-muted-foreground' : ''}`}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement
+                    if (
+                      target.closest('button') ||
+                      target.closest('[role="checkbox"]') ||
+                      target.closest('input[type="checkbox"]') ||
+                      target.closest('[data-radix-collection-item]')
+                    ) {
+                      return
+                    }
+                    router.push(
+                      `/products/${row.original.product.id}`
+                    )
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      style={{ width: cell.column.getSize() }}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            })
           ) : (
             <TableRow>
               <TableCell
@@ -273,13 +359,11 @@ export function ProductsDataTable({
       </Table>
 
       {/* Enhanced pagination with proper spacing */}
-      <div className="py-2 px-4">
+      <div className="py-2 px-6">
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={
-            !!searchQuery || Object.keys(filters).length > 0
-          }
+          isFiltered={hasActiveFilters || !!searchQuery}
           filteredCount={data?.total}
           entityName="product"
         />

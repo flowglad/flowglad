@@ -1,7 +1,7 @@
 import SidebarLayout from '@/components/SidebarLayout'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
-export default function ProductLayout({
+export default function ProductsLayout({
   children,
 }: {
   children: React.ReactNode

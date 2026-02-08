@@ -12,8 +12,8 @@ import type {
 
 /**
  * Handler for fetching invoices for the authenticated customer.
- * Returns invoices with optional pagination (limit, startingAfter).
- * Delegates to FlowgladServer.getInvoices which extracts data from getBilling().
+ * Returns invoices with optional pagination.
+ * Delegates to FlowgladServer.getInvoices which processes billing data.
  */
 export const getInvoices: SubRouteHandler<
   FlowgladActionKey.GetInvoices
@@ -28,7 +28,7 @@ export const getInvoices: SubRouteHandler<
   if (params.method !== HTTPMethod.POST) {
     error = {
       code: 'Method not allowed',
-      json: {},
+      json: { message: 'Method not allowed' },
     }
     status = 405
     return {
@@ -38,22 +38,25 @@ export const getInvoices: SubRouteHandler<
     }
   }
 
-  // Validate and parse input params
-  const parseResult = getInvoicesSchema.safeParse(params.data)
-  if (!parseResult.success) {
+  // Validate input params
+  const parsed = getInvoicesSchema.safeParse(params.data)
+  if (!parsed.success) {
     return {
       data,
       status: 400,
       error: {
-        code: 'Invalid input',
-        json: { issues: parseResult.error.issues },
+        code: 'Validation error',
+        json: {
+          message: 'Validation error',
+          issues: parsed.error.issues,
+        },
       },
     }
   }
 
   try {
     // Delegate to FlowgladServer method
-    const result = await flowgladServer.getInvoices(parseResult.data)
+    const result = await flowgladServer.getInvoices(parsed.data)
     data = result
     status = 200
   } catch (e) {
@@ -62,7 +65,7 @@ export const getInvoices: SubRouteHandler<
     } else {
       error = {
         code: 'Unknown error',
-        json: {},
+        json: { message: 'Unknown error' },
       }
     }
     status = 500

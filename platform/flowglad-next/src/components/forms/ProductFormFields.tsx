@@ -66,7 +66,7 @@ export const ProductFormFields = ({
   }
   return (
     <div className="relative flex justify-between items-start gap-2.5 bg-background">
-      <div className="flex-1 w-full min-w-[460px] relative flex flex-col rounded-lg-md">
+      <div className="flex-1 w-full relative flex flex-col rounded-lg-md">
         <div className="w-full relative flex flex-col items-start">
           <div className="flex-1 w-full relative flex flex-col justify-center gap-6">
             {isDefaultProduct && (

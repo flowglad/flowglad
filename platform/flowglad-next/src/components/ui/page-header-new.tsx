@@ -180,7 +180,7 @@ export function PageHeaderNew({
                         side="bottom"
                         align="start"
                         variant="muted"
-                        className="max-w-xs px-3 py-2 text-sm font-medium"
+                        className="max-w-xs text-sm px-3 py-2"
                       >
                         <p>{badge.tooltip}</p>
                       </TooltipContent>
@@ -200,7 +200,14 @@ export function PageHeaderNew({
 
           {/* Optional description */}
           {description && (
-            <div className="font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-nowrap">
+            <div
+              className={cn(
+                'font-sans font-medium text-sm text-muted-foreground leading-5 whitespace-normal break-words',
+                // Only take full width when no badges - allows justify-between to work in description content
+                // When badges exist, stay inline with them
+                badges.length === 0 && 'w-full'
+              )}
+            >
               {description}
             </div>
           )}
