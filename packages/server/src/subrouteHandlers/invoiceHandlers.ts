@@ -28,7 +28,7 @@ export const getInvoices: SubRouteHandler<
   if (params.method !== HTTPMethod.POST) {
     error = {
       code: 'Method not allowed',
-      json: { message: 'Method not allowed' },
+      json: {},
     }
     status = 405
     return {
