@@ -62,13 +62,20 @@ export const getInvoices: SubRouteHandler<
   } catch (e) {
     if (e instanceof Error) {
       error = parseErrorStringToErrorObject(e.message)
+      if (e.message === 'User not authenticated') {
+        status = 401
+      } else if (e.message === 'Customer not found') {
+        status = 404
+      } else {
+        status = 500
+      }
     } else {
       error = {
         code: 'Unknown error',
         json: { message: 'Unknown error' },
       }
+      status = 500
     }
-    status = 500
   }
 
   return {
