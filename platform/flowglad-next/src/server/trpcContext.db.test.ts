@@ -71,6 +71,7 @@ describe('context type structure', () => {
       apiKey: undefined,
       authScope: 'merchant',
       focusedPricingModelId: undefined,
+      apiKeyPricingModelId: undefined,
     }
     expect(mockContext.authScope).toBe('merchant')
   })
@@ -88,6 +89,7 @@ describe('context type structure', () => {
       isApi: false,
       apiKey: undefined,
       authScope: 'customer',
+      apiKeyPricingModelId: undefined,
     }
     expect(mockContext.authScope).toBe('customer')
   })
