@@ -211,6 +211,14 @@ export class FlowgladServer {
 
     let invoices = billing.invoices ?? []
 
+    if (params?.startingAfter !== undefined) {
+      const cursorIndex = invoices.findIndex(
+        (item) => item.invoice.id === params.startingAfter
+      )
+      invoices =
+        cursorIndex >= 0 ? invoices.slice(cursorIndex + 1) : invoices
+    }
+
     if (params?.limit !== undefined) {
       invoices = invoices.slice(0, params.limit)
     }

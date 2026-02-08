@@ -7,8 +7,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
@@ -58,13 +56,10 @@ export function EnhancedDataTableActionsMenu({
         <DropdownMenuContent align="end">
           {items.map((item, index) => (
             <React.Fragment key={index}>
-              {index > 0 && index % 3 === 0 && (
-                <DropdownMenuSeparator />
-              )}
               <DropdownMenuItem
                 onClick={() => handleItemClick(item.handler)}
                 disabled={item.disabled}
-                className={item.destructive ? 'text-red-600' : ''}
+                className={item.destructive ? 'text-destructive' : ''}
                 title={item.helperText}
               >
                 {item.icon && (

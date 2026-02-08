@@ -12,8 +12,8 @@ import type {
 
 /**
  * Handler for fetching purchases for the authenticated customer.
- * Returns purchases with optional pagination (limit).
- * Delegates to FlowgladServer.getPurchases which extracts data from getBilling().
+ * Returns purchases with optional pagination.
+ * Delegates to FlowgladServer.getPurchases which processes billing data.
  */
 export const getPurchases: SubRouteHandler<
   FlowgladActionKey.GetPurchases
@@ -38,22 +38,22 @@ export const getPurchases: SubRouteHandler<
     }
   }
 
-  // Validate and parse input params
-  const parseResult = getPurchasesSchema.safeParse(params.data)
-  if (!parseResult.success) {
+  // Validate input params
+  const parsed = getPurchasesSchema.safeParse(params.data)
+  if (!parsed.success) {
     return {
       data,
       status: 400,
       error: {
-        code: 'Invalid input',
-        json: { issues: parseResult.error.issues },
+        code: 'Validation error',
+        json: { issues: parsed.error.issues },
       },
     }
   }
 
   try {
     // Delegate to FlowgladServer method
-    const result = await flowgladServer.getPurchases(parseResult.data)
+    const result = await flowgladServer.getPurchases(parsed.data)
     data = result
     status = 200
   } catch (e) {

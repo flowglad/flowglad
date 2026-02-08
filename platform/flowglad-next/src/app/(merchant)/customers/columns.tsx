@@ -109,10 +109,11 @@ function CustomerActionsMenu({
       handler: copyIDHandler,
     },
     {
-      label: 'Archive Customer',
+      label: 'Archive',
       icon: <Archive className="h-4 w-4" />,
       handler: () => setIsArchiveOpen(true),
       disabled: isArchived,
+      destructive: true,
     },
   ]
 

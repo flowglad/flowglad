@@ -1,6 +1,7 @@
 'use client'
 import { BusinessOnboardingStatus } from '@db-core/enums'
 import type { LucideIcon } from 'lucide-react'
+import { Shapes } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
@@ -128,6 +129,12 @@ export const SideNavigation = () => {
       isActive: isActive('/pricing-models'),
     },
     {
+      title: 'Products',
+      url: '/products',
+      icon: Shapes,
+      isActive: isActive('/products'),
+    },
+    {
       title: 'Customers',
       url: '/customers',
       icon: CustomersIcon,
@@ -151,13 +158,6 @@ export const SideNavigation = () => {
       icon: SubscriptionsIcon,
       isActive: isActive('/finance/subscriptions'),
     },
-    // TODO: Reintroduce Products menu item after the product page is created
-    // {
-    //   title: 'Products',
-    //   url: '/products',
-    //   icon: Shapes,
-    //   isActive: isActive('/products'),
-    // },
     {
       title: 'Discounts',
       url: '/finance/discounts',

@@ -39,6 +39,7 @@ export const CustomerSubscriptionCreatedEmail = ({
   paymentMethodLast4,
   trial,
   dateConfirmed,
+  isDoNotCharge,
 }: {
   customerName: string
   organizationName: string
@@ -53,6 +54,8 @@ export const CustomerSubscriptionCreatedEmail = ({
   paymentMethodLast4?: string
   trial?: TrialInfo
   dateConfirmed?: Date
+  /** When true, subscription was created with doNotCharge - shows "Free" instead of price */
+  isDoNotCharge?: boolean
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
@@ -99,7 +102,9 @@ export const CustomerSubscriptionCreatedEmail = ({
       <Paragraph>Hi {customerName},</Paragraph>
 
       <Paragraph>
-        You've successfully subscribed to the following plan:
+        {isDoNotCharge
+          ? "You've been granted access to the following plan at no charge:"
+          : "You've successfully subscribed to the following plan:"}
       </Paragraph>
 
       <DetailTable>
@@ -108,7 +113,9 @@ export const CustomerSubscriptionCreatedEmail = ({
           value={planName}
           dataTestId="plan-name"
         />
-        {trial ? (
+        {isDoNotCharge ? (
+          <DetailRow label="Price" value="Free" dataTestId="price" />
+        ) : trial ? (
           <>
             <DetailRow
               label="Trial"
@@ -151,7 +158,24 @@ export const CustomerSubscriptionCreatedEmail = ({
         )}
       </DetailTable>
 
-      {trial ? (
+      {isDoNotCharge ? (
+        <div data-testid="complimentary-notice">
+          <Paragraph>
+            You have full access to this plan with no payment
+            required. To learn more,{' '}
+            <Link
+              href={billingPortalUrl}
+              style={{
+                color: LINK_COLOR,
+                textDecoration: 'underline',
+              }}
+            >
+              manage your subscription
+            </Link>
+            .
+          </Paragraph>
+        </div>
+      ) : trial ? (
         <div data-testid="trial-auto-renew-notice">
           <Paragraph>
             Your subscription automatically renews until canceled. To

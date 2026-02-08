@@ -88,6 +88,7 @@ const createTestOrganization = (
     monthlyBillingVolumeFreeTier: 100000,
     upfrontProcessingCredits: 0,
     codebaseMarkdownHash: null,
+    discordConciergeChannelId: null,
     ...overrides,
   }
 }
