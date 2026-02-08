@@ -28,7 +28,7 @@ export const getInvoices: SubRouteHandler<
   if (params.method !== HTTPMethod.POST) {
     error = {
       code: 'Method not allowed',
-      json: {},
+      json: { message: 'Method not allowed' },
     }
     status = 405
     return {
@@ -46,7 +46,10 @@ export const getInvoices: SubRouteHandler<
       status: 400,
       error: {
         code: 'Validation error',
-        json: { issues: parsed.error.issues },
+        json: {
+          message: 'Validation error',
+          issues: parsed.error.issues,
+        },
       },
     }
   }
@@ -62,7 +65,7 @@ export const getInvoices: SubRouteHandler<
     } else {
       error = {
         code: 'Unknown error',
-        json: {},
+        json: { message: 'Unknown error' },
       }
     }
     status = 500
