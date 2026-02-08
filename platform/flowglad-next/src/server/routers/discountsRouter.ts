@@ -29,7 +29,6 @@ import {
   selectDiscountsTableRowData,
   updateDiscount as updateDiscountDB,
 } from '@/db/tableMethods/discountMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { protectedProcedure } from '@/server/trpc'
@@ -48,23 +47,25 @@ export const createDiscount = protectedProcedure
   .input(createDiscountInputSchema)
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new Error('organizationId is required')
+    }
+
     const discount = (
       await authenticatedTransaction(
-        async ({ transaction, userId, livemode }) => {
-          const [{ organization }] =
-            await selectMembershipAndOrganizations(
-              {
-                userId,
-                focused: true,
-              },
-              transaction
-            )
-
-          // Validate and resolve pricingModelId (uses default if not provided)
+        async ({ transaction, livemode }) => {
+          // Validate and resolve pricingModelId
+          // For API calls, use the API key's pricing model to ensure
+          // RLS policies are satisfied and the discount is created
+          // in the correct pricing model scope.
+          // For dashboard calls, use the input pricingModelId or fall back to default.
           const pricingModelId =
             await validateAndResolvePricingModelId({
-              pricingModelId: input.discount.pricingModelId,
-              organizationId: organization.id,
+              pricingModelId: ctx.isApi
+                ? ctx.apiKeyPricingModelId
+                : input.discount.pricingModelId,
+              organizationId,
               livemode,
               transaction,
             })
@@ -74,7 +75,7 @@ export const createDiscount = protectedProcedure
               {
                 ...input.discount,
                 pricingModelId,
-                organizationId: organization.id,
+                organizationId,
                 livemode,
               },
               transaction
