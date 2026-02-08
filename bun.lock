@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@flowglad/javascript",
@@ -87,13 +86,13 @@
       "dependencies": {
         "@flowglad/node": "0.29.0",
         "@flowglad/shared": "workspace:*",
-        "@tanstack/react-query": "5.66.0",
         "clsx": "2.1.1",
         "date-fns": "4.1.0",
         "tailwind-merge": "3.0.2",
         "zod": "4.1.5",
       },
       "devDependencies": {
+        "@tanstack/react-query": "5.66.0",
         "@testing-library/dom": "^10.4.1",
         "@testing-library/jest-dom": "^6.6.3",
         "@testing-library/react": "^16.3.1",
@@ -108,6 +107,7 @@
         "typescript": "5.8.2",
       },
       "peerDependencies": {
+        "@tanstack/react-query": "^5.0.0",
         "react": "^19.0.0 || ^18.0.0",
       },
     },
