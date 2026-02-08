@@ -17,7 +17,9 @@ import {
 import { renderHook, waitFor } from '@testing-library/react'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
-import { usePurchases } from './usePurchases'
+import { invalidateCustomerData } from './lib/invalidation'
+import { INVOICES_QUERY_KEY } from './useInvoices'
+import { PURCHASES_QUERY_KEY, usePurchases } from './usePurchases'
 
 const mockPurchases: PurchaseDetails[] = [
   {
@@ -403,7 +405,73 @@ describe('usePurchases', () => {
 })
 
 describe('subscription mutations', () => {
-  it.skip('invalidate invoices and purchases query keys', async () => {
-    // TODO: Implement in Patch 8
+  it('invalidate invoices and purchases query keys', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+
+    // Pre-populate query cache with purchases data
+    queryClient.setQueryData([PURCHASES_QUERY_KEY], {
+      data: {
+        purchases: mockPurchases,
+      },
+    })
+
+    // Pre-populate query cache with invoices data
+    queryClient.setQueryData([INVOICES_QUERY_KEY], {
+      data: {
+        invoices: [],
+      },
+    })
+
+    // Verify purchases data is in cache before invalidation
+    const purchasesDataBefore = queryClient.getQueryData([
+      PURCHASES_QUERY_KEY,
+    ])
+    expect(purchasesDataBefore).toEqual({
+      data: {
+        purchases: mockPurchases,
+      },
+    })
+
+    // Verify invoices data is in cache before invalidation
+    const invoicesDataBefore = queryClient.getQueryData([
+      INVOICES_QUERY_KEY,
+    ])
+    expect(invoicesDataBefore).toEqual({
+      data: {
+        invoices: [],
+      },
+    })
+
+    // Get query state before invalidation
+    const purchasesStateBefore = queryClient.getQueryState([
+      PURCHASES_QUERY_KEY,
+    ])
+    expect(purchasesStateBefore?.isInvalidated).toBe(false)
+
+    const invoicesStateBefore = queryClient.getQueryState([
+      INVOICES_QUERY_KEY,
+    ])
+    expect(invoicesStateBefore?.isInvalidated).toBe(false)
+
+    // Call the shared invalidation helper
+    await invalidateCustomerData(queryClient)
+
+    // Assert that the purchases query is now invalidated
+    const purchasesStateAfter = queryClient.getQueryState([
+      PURCHASES_QUERY_KEY,
+    ])
+    expect(purchasesStateAfter?.isInvalidated).toBe(true)
+
+    // Assert that the invoices query is now invalidated
+    const invoicesStateAfter = queryClient.getQueryState([
+      INVOICES_QUERY_KEY,
+    ])
+    expect(invoicesStateAfter?.isInvalidated).toBe(true)
   })
 })

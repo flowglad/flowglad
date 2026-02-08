@@ -2,7 +2,9 @@ import { FlowgladActionKey } from '@flowglad/shared'
 import type { QueryClient } from '@tanstack/react-query'
 import { CUSTOMER_DETAILS_QUERY_KEY } from '../useCustomerDetails'
 import { FEATURES_QUERY_KEY } from '../useFeatures'
+import { INVOICES_QUERY_KEY } from '../useInvoices'
 import { PAYMENT_METHODS_QUERY_KEY } from '../usePaymentMethods'
+import { PURCHASES_QUERY_KEY } from '../usePurchases'
 import { SUBSCRIPTIONS_QUERY_KEY } from '../useSubscriptions'
 import { USAGE_METERS_QUERY_KEY } from '../useUsageMeters'
 
@@ -32,6 +34,12 @@ export const invalidateCustomerData = async (
     }),
     queryClient.invalidateQueries({
       queryKey: [CUSTOMER_DETAILS_QUERY_KEY],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: [INVOICES_QUERY_KEY],
+    }),
+    queryClient.invalidateQueries({
+      queryKey: [PURCHASES_QUERY_KEY],
     }),
   ])
 }
