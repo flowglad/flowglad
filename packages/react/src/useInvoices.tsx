@@ -94,6 +94,50 @@ export interface UseInvoicesResult {
 }
 
 /**
+ * Runtime type guard that checks whether a single item
+ * has the required InvoiceDetails shape (invoice object with
+ * string id, and an invoiceLineItems array).
+ */
+const isInvoiceDetails = (
+  value: unknown
+): value is InvoiceDetails => {
+  if (value === null || typeof value !== 'object') {
+    return false
+  }
+  const obj = value as Record<string, unknown>
+  if (
+    !('invoice' in obj) ||
+    obj.invoice === null ||
+    typeof obj.invoice !== 'object'
+  ) {
+    return false
+  }
+  const invoice = obj.invoice as Record<string, unknown>
+  if (typeof invoice.id !== 'string') {
+    return false
+  }
+  if (
+    !('invoiceLineItems' in obj) ||
+    !Array.isArray(obj.invoiceLineItems)
+  ) {
+    return false
+  }
+  return true
+}
+
+/**
+ * Runtime type guard for an array of InvoiceDetails.
+ */
+export const isInvoiceDetailsArray = (
+  value: unknown
+): value is InvoiceDetails[] => {
+  if (!Array.isArray(value)) {
+    return false
+  }
+  return value.every(isInvoiceDetails)
+}
+
+/**
  * Derives invoices data from billingMocks.
  */
 const deriveInvoicesFromBillingMocks = (
@@ -101,8 +145,9 @@ const deriveInvoicesFromBillingMocks = (
 ): {
   invoices: InvoiceDetails[]
 } => {
+  const raw = billingMocks.invoices ?? []
   return {
-    invoices: (billingMocks.invoices ?? []) as InvoiceDetails[],
+    invoices: isInvoiceDetailsArray(raw) ? raw : [],
   }
 }
 
@@ -217,7 +262,9 @@ export const useInvoices = (
       invoices: undefined,
       isLoading: false,
       error: new Error(
-        responseData.error.json?.message?.toString() ??
+        (typeof responseData.error.json?.message === 'string'
+          ? responseData.error.json.message
+          : undefined) ??
           responseData.error.code ??
           'Failed to fetch invoices'
       ),

@@ -32,6 +32,7 @@ export {
 } from './useFeatures'
 export {
   INVOICES_QUERY_KEY,
+  isInvoiceDetailsArray,
   isInvoicesRouteResponse,
   type UseInvoicesResult,
   useInvoices,
@@ -42,6 +43,13 @@ export {
   type UsePaymentMethodsResult,
   usePaymentMethods,
 } from './usePaymentMethods'
+export {
+  isPurchaseDetailsArray,
+  isPurchasesRouteResponse,
+  PURCHASES_QUERY_KEY,
+  type UsePurchasesResult,
+  usePurchases,
+} from './usePurchases'
 export {
   RESOURCE_CLAIMS_QUERY_KEY,
   RESOURCES_QUERY_KEY,
