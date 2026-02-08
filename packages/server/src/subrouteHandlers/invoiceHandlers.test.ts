@@ -2,11 +2,7 @@ import { HTTPMethod } from '@flowglad/shared'
 import { describe, expect, it, vi } from 'vitest'
 import type { FlowgladServer } from '../FlowgladServer'
 import { getInvoices } from './invoiceHandlers'
-import {
-  assert200Success,
-  assert405MethodNotAllowed,
-  assertHandlerResponse,
-} from './test-utils'
+import { assert200Success, assertHandlerResponse } from './test-utils'
 
 const mockInvoices = [
   {
@@ -62,7 +58,14 @@ describe('getInvoices handler', () => {
       server
     )
 
-    assert405MethodNotAllowed(result)
+    assertHandlerResponse(result, {
+      status: 405,
+      error: {
+        code: 'Method not allowed',
+        json: { message: 'Method not allowed' },
+      },
+      data: {},
+    })
   })
 
   it('returns invoices via FlowgladServer', async () => {
