@@ -126,10 +126,58 @@ describe('getInvoices handler', () => {
     assert200Success(result, { invoices: [] })
   })
 
-  it('returns 500 with parsed error on failure', async () => {
+  it('returns 401 when user is not authenticated', async () => {
     const { server, mocks } = createMockFlowgladServer()
     mocks.getInvoices.mockRejectedValue(
-      new Error('404 {"message": "Customer not found"}')
+      new Error('User not authenticated')
+    )
+
+    const result = await getInvoices(
+      {
+        method: HTTPMethod.POST,
+        data: {},
+      },
+      server
+    )
+
+    assertHandlerResponse(result, {
+      status: 401,
+      error: {
+        code: 'Unknown',
+        json: { message: 'User not authenticated' },
+      },
+      data: {},
+    })
+  })
+
+  it('returns 404 when customer is not found', async () => {
+    const { server, mocks } = createMockFlowgladServer()
+    mocks.getInvoices.mockRejectedValue(
+      new Error('Customer not found')
+    )
+
+    const result = await getInvoices(
+      {
+        method: HTTPMethod.POST,
+        data: {},
+      },
+      server
+    )
+
+    assertHandlerResponse(result, {
+      status: 404,
+      error: {
+        code: 'Unknown',
+        json: { message: 'Customer not found' },
+      },
+      data: {},
+    })
+  })
+
+  it('returns 500 with parsed error on unrecognized failure', async () => {
+    const { server, mocks } = createMockFlowgladServer()
+    mocks.getInvoices.mockRejectedValue(
+      new Error('404 {"message": "Something went wrong"}')
     )
 
     const result = await getInvoices(
@@ -144,7 +192,7 @@ describe('getInvoices handler', () => {
       status: 500,
       error: {
         code: '404',
-        json: { message: 'Customer not found' },
+        json: { message: 'Something went wrong' },
       },
       data: {},
     })
