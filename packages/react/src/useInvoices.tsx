@@ -262,7 +262,9 @@ export const useInvoices = (
       invoices: undefined,
       isLoading: false,
       error: new Error(
-        responseData.error.json?.message?.toString() ??
+        (typeof responseData.error.json?.message === 'string'
+          ? responseData.error.json.message
+          : undefined) ??
           responseData.error.code ??
           'Failed to fetch invoices'
       ),
