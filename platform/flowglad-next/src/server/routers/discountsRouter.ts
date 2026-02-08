@@ -52,7 +52,7 @@ export const createDiscount = protectedProcedure
       throw new Error('organizationId is required')
     }
 
-    const discount = (
+    const discount = unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction, livemode }) => {
           // Validate and resolve pricingModelId
@@ -86,7 +86,7 @@ export const createDiscount = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
     return { discount }
   })
 
@@ -157,7 +157,7 @@ export const updateDiscount = protectedProcedure
   .input(editDiscountInputSchema)
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
-    const discount = (
+    const discount = unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction }) => {
           const updatedDiscount = await updateDiscountDB(
@@ -173,7 +173,7 @@ export const updateDiscount = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
     return { discount }
   })
 
@@ -181,7 +181,7 @@ export const deleteDiscount = protectedProcedure
   .input(idInputSchema)
   .mutation(async ({ input, ctx }) => {
     const { id } = input
-    ;(
+    unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction }) => {
           await deleteDiscountMethod(id, transaction)
@@ -191,7 +191,7 @@ export const deleteDiscount = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
     return { success: true }
   })
 
@@ -203,9 +203,9 @@ export const getDiscount = protectedProcedure
     const discount = unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction }) => {
-          const discountRecord = (
+          const discountRecord = unwrapOrThrow(
             await selectDiscountById(input.id, transaction)
-          ).unwrap()
+          )
           const [enriched] =
             await enrichDiscountsWithRedemptionCounts(
               [discountRecord],
