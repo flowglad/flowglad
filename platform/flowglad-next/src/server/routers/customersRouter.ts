@@ -153,10 +153,12 @@ const createCustomerProcedure = protectedProcedure
                   ...customer,
                   organizationId,
                   // For dashboard calls, use the user's focused pricing model.
-                  // For API calls, let it fall through to use the default pricing model.
-                  pricingModelId: !ctx.isApi
-                    ? ctx.focusedPricingModelId
-                    : undefined,
+                  // For API calls, use the API key's pricing model to ensure
+                  // RLS policies are satisfied and the customer is created
+                  // in the correct pricing model scope.
+                  pricingModelId: ctx.isApi
+                    ? ctx.apiKeyPricingModelId
+                    : ctx.focusedPricingModelId,
                 },
               },
               {
