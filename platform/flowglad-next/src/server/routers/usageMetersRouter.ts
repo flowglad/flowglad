@@ -61,10 +61,20 @@ export const createUsageMeter = protectedProcedure
               'Organization ID is required for this operation.',
           })
         }
+        const pricingModelId = ctx.isApi
+          ? ctx.apiKeyPricingModelId
+          : ctx.focusedPricingModelId
+        if (!pricingModelId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.',
+          })
+        }
         try {
           const { usageMeter } = await createUsageMeterTransaction(
             {
-              usageMeter: input.usageMeter,
+              usageMeter: { ...input.usageMeter, pricingModelId },
               price: input.price,
             },
             {

@@ -17,14 +17,12 @@ interface CreateUsageMeterModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   defaultPricingModelId?: string
-  hidePricingModelSelect?: boolean
 }
 
 const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
   isOpen,
   setIsOpen,
   defaultPricingModelId,
-  hidePricingModelSelect,
 }) => {
   const createUsageMeter = trpc.usageMeters.create.useMutation({
     onSuccess: () => {
@@ -55,7 +53,6 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
         usageMeter: {
           name: '',
           slug: '',
-          pricingModelId: defaultPricingModelId || '',
           aggregationType: UsageMeterAggregationType.Sum,
         },
         price: {
@@ -81,9 +78,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
       }}
     >
       <div className="space-y-6">
-        <UsageMeterFormFields
-          hidePricingModelSelect={hidePricingModelSelect}
-        />
+        <UsageMeterFormFields />
         <div className="border-t pt-6">
           <h3 className="text-sm font-medium mb-4">
             Price Configuration

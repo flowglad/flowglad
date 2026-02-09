@@ -328,7 +328,6 @@ function InnerPricingModelDetailsPage({
         isOpen={isCreateUsageMeterModalOpen}
         setIsOpen={setIsCreateUsageMeterModalOpen}
         defaultPricingModelId={pricingModel.id}
-        hidePricingModelSelect={true}
       />
       <CreateResourceModal
         isOpen={isCreateResourceModalOpen}
