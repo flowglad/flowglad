@@ -71,6 +71,16 @@ export const createProduct = protectedProcedure
               'Organization ID is required for this operation.',
           })
         }
+        const pricingModelId = ctx.isApi
+          ? ctx.apiKeyPricingModelId
+          : ctx.focusedPricingModelId
+        if (!pricingModelId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.',
+          })
+        }
         try {
           // Validate that default products cannot be created manually
           const validationResult = validateProductCreation(
@@ -86,7 +96,7 @@ export const createProduct = protectedProcedure
           const { product, price, featureIds } = input
           const txResult = await createProductTransaction(
             {
-              product,
+              product: { ...product, pricingModelId },
               prices: [
                 {
                   ...price,
