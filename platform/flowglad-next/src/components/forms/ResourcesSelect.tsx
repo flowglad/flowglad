@@ -21,20 +21,17 @@ interface ResourcesSelectProps {
   name: string
   control: Control<any>
   disabled?: boolean
-  pricingModelId?: string
 }
 
 const ResourcesSelect = ({
   name,
   control,
   disabled,
-  pricingModelId,
 }: ResourcesSelectProps) => {
   const { data, isLoading: isLoadingResources } =
     trpc.resources.list.useQuery(
-      { pricingModelId: pricingModelId! },
+      {},
       {
-        enabled: !!pricingModelId,
         refetchOnMount: 'always',
         staleTime: 0,
       }

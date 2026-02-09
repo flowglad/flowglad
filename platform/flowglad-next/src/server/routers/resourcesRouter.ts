@@ -47,7 +47,7 @@ const resourcesPaginatedListSchema = createPaginatedListQuerySchema(
 
 const listProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
-  .input(z.object({ pricingModelId: z.string() }))
+  .input(z.object({}))
   .output(
     z.object({
       resources: z.array(resourcesClientSelectSchema),
@@ -55,11 +55,21 @@ const listProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
+      async ({ ctx, transactionCtx }) => {
         const { transaction } = transactionCtx
+        const pricingModelId = ctx.isApi
+          ? ctx.apiKeyPricingModelId
+          : ctx.focusedPricingModelId
+        if (!pricingModelId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.',
+          })
+        }
         const resources = await selectResources(
           {
-            pricingModelId: input.pricingModelId,
+            pricingModelId,
           },
           transaction
         )
