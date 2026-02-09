@@ -11,6 +11,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@db-core/tableUtils'
+import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
@@ -56,13 +57,31 @@ export const createFeature = protectedProcedure
       async ({ input, ctx, transactionCtx }) => {
         const { livemode, organizationId } = ctx
         if (!organizationId) {
-          throw new Error('organizationId is required')
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
+        // For API calls, use the API key's pricing model to ensure
+        // RLS policies are satisfied and the feature is created
+        // in the correct pricing model scope.
+        // For dashboard calls, use the user's focused pricing model.
+        const pricingModelId = ctx.isApi
+          ? ctx.apiKeyPricingModelId
+          : ctx.focusedPricingModelId
+        if (!pricingModelId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.',
+          })
         }
         const feature = await insertFeature(
           {
             ...input.feature,
             organizationId,
             livemode,
+            pricingModelId,
           },
           transactionCtx
         )
