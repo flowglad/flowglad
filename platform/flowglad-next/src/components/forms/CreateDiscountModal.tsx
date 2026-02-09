@@ -19,11 +19,6 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
 }) => {
   const createDiscount = trpc.discounts.create.useMutation()
   const { organization } = useAuthenticatedContext()
-  // Get focused membership to auto-set pricingModelId
-  const focusedMembership =
-    trpc.organizations.getFocusedMembership.useQuery()
-  const focusedPricingModelId =
-    focusedMembership.data?.pricingModel?.id ?? ''
   return (
     <FormModal
       isOpen={isOpen}
@@ -45,12 +40,11 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
           duration: DiscountDuration.Once as const,
           active: true,
           numberOfPayments: null,
-          pricingModelId: focusedPricingModelId,
         },
         __rawAmountString: '0',
       })}
     >
-      <DiscountFormFields hidePricingModelSelector />
+      <DiscountFormFields />
     </FormModal>
   )
 }

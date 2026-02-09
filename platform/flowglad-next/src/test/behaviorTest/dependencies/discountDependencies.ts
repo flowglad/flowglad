@@ -33,11 +33,11 @@ import { Dependency } from '../index'
 interface DiscountConfig {
   /**
    * The discount to create, or null for no discount.
-   * Note: id, organizationId, livemode will be set by the behavior.
+   * Note: id, organizationId, livemode, pricingModelId will be set by the behavior.
    */
   discountInsert: Omit<
     Discount.Insert,
-    'id' | 'organizationId' | 'livemode'
+    'id' | 'organizationId' | 'livemode' | 'pricingModelId'
   > | null
   /** Human-readable description of this discount variant */
   description: string

@@ -138,11 +138,8 @@ export const {
 } = buildSchemas(discounts, {
   discriminator: 'duration',
   refine: { ...columnRefinements, ...defaultDiscountsRefinements },
-  insertRefine: {
-    pricingModelId: z.string().optional(),
-  },
   client: {
-    createOnlyColumns: {
+    readOnlyColumns: {
       pricingModelId: true,
     },
   },
@@ -164,11 +161,8 @@ export const {
     ...columnRefinements,
     ...numberOfPaymentsDiscountsRefinements,
   },
-  insertRefine: {
-    pricingModelId: z.string().optional(),
-  },
   client: {
-    createOnlyColumns: {
+    readOnlyColumns: {
       pricingModelId: true,
     },
   },
@@ -187,11 +181,8 @@ export const {
 } = buildSchemas(discounts, {
   discriminator: 'duration',
   refine: { ...columnRefinements, ...foreverDiscountsRefinements },
-  insertRefine: {
-    pricingModelId: z.string().optional(),
-  },
   client: {
-    createOnlyColumns: {
+    readOnlyColumns: {
       pricingModelId: true,
     },
   },
