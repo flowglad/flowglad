@@ -37,7 +37,6 @@ export const featurePricingModelSetupSchema = z
   .discriminatedUnion('type', [
     toggleFeatureClientInsertSchema
       .omit({
-        pricingModelId: true,
         usageMeterId: true,
         amount: true,
         renewalFrequency: true,
@@ -48,7 +47,6 @@ export const featurePricingModelSetupSchema = z
       ),
     usageCreditGrantFeatureClientInsertSchema
       .omit({
-        pricingModelId: true,
         usageMeterId: true,
         resourceId: true,
       })
@@ -62,7 +60,6 @@ export const featurePricingModelSetupSchema = z
       .describe('A credit grant to give for a usage meter.'),
     resourceFeatureClientInsertSchema
       .omit({
-        pricingModelId: true,
         usageMeterId: true,
         resourceId: true,
         renewalFrequency: true,
