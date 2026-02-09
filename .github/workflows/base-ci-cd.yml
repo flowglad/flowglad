@@ -326,7 +326,7 @@ jobs:
       - name: Generate diffable OpenAPI specs
         run: bun openapi:generate-diffables
       - name: Check for OpenAPI differences
-        uses: oasdiff/oasdiff-action/diff@d853d8a35cb455a6229fd368d5111cf806751d18
+        uses: oasdiff/oasdiff-action/diff@ccb863950ce437a50f8f1a40d2a1112117e06ce4
         with:
           base: 'platform/flowglad-next/temp-openapi__diffable.json'
           revision: 'platform/flowglad-next/temp-openapi-head__diffable.json'
