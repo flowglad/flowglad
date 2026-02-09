@@ -83,9 +83,6 @@ export const featurePricingModelSetupSchema = z
   )
 
 const productPricingModelSetupSchema = productsClientInsertSchema
-  .omit({
-    pricingModelId: true,
-  })
   .extend({
     name: safeZodSanitizedString.describe('The name of the product'),
     slug: safeZodSanitizedString.describe('The slug of the product'),

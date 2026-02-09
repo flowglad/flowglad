@@ -25,7 +25,6 @@ const defaultProduct: Product.ClientInsert = {
   imageURL: '',
   singularQuantityLabel: null,
   pluralQuantityLabel: null,
-  pricingModelId: 'pricing_model_111____',
   default: false,
   slug: '',
 }
@@ -36,8 +35,6 @@ export const CreateProductModal = ({
   defaultValues,
   onSubmitStart,
   onSubmitSuccess,
-  defaultPricingModelId,
-  hidePricingModelSelect,
 }: {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
@@ -45,8 +42,6 @@ export const CreateProductModal = ({
   onSubmitStart?: () => void
   onSubmitSuccess?: () => void
   onSubmitError?: (error: Error) => void
-  defaultPricingModelId: string
-  hidePricingModelSelect?: boolean
 }) => {
   const { organization } = useAuthenticatedContext()
   const createProduct = trpc.products.create.useMutation()
@@ -57,7 +52,6 @@ export const CreateProductModal = ({
     defaultValues ?? {
       product: {
         ...defaultProduct,
-        pricingModelId: defaultPricingModelId,
       },
       price: {
         ...defaultPrice,
@@ -101,9 +95,7 @@ export const CreateProductModal = ({
       mode="drawer"
       submitButtonText="Create Product"
     >
-      <ProductFormFields
-        hidePricingModelSelect={hidePricingModelSelect}
-      />
+      <ProductFormFields />
     </FormModal>
   )
 }

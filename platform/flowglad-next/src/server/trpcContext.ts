@@ -100,6 +100,7 @@ export const createContext = async (
     isApi: false,
     apiKey: undefined,
     focusedPricingModelId,
+    apiKeyPricingModelId: undefined,
     authScope: 'merchant' as const,
   }
 }
@@ -185,9 +186,11 @@ export const createCustomerContext = async (
 export const createApiContext = ({
   organizationId,
   environment,
+  apiKeyPricingModelId,
 }: {
   organizationId: string
   environment: ApiEnvironment
+  apiKeyPricingModelId?: string
 }) => {
   return async (opts: trpcNext.CreateNextContextOptions) => {
     /**
@@ -215,6 +218,7 @@ export const createApiContext = ({
       environment,
       livemode: environment === 'live',
       focusedPricingModelId: undefined,
+      apiKeyPricingModelId,
     }
   }
 }

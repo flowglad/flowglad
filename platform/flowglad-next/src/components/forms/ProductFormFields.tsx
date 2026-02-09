@@ -3,6 +3,7 @@ import type { CreateProductSchema } from '@db-core/schema/prices'
 import type { Product } from '@db-core/schema/products'
 import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
+import { trpc } from '@/app/_trpc/client'
 import { usePriceFormContext } from '@/app/hooks/usePriceFormContext'
 import FileInput from '@/components/FileInput'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
@@ -24,19 +25,20 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import core from '@/utils/core'
-import PricingModelSelect from './PricingModelSelect'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
 
 export const ProductFormFields = ({
   editProduct = false,
-  hidePricingModelSelect = false,
 }: {
   editProduct?: boolean
-  hidePricingModelSelect?: boolean
 }) => {
   const form = useFormContext<CreateProductSchema>()
   const priceForm = usePriceFormContext()
   const product = form.watch('product')
+  const focusedMembership =
+    trpc.organizations.getFocusedMembership.useQuery()
+  const focusedPricingModelId =
+    focusedMembership.data?.pricingModel?.id
   const priceType = priceForm.watch('price.type')
   const isDefaultProduct = product?.default === true
 
@@ -142,14 +144,6 @@ export const ProductFormFields = ({
                 </FormItem>
               )}
             />
-            {!editProduct && !hidePricingModelSelect && (
-              <div className="w-full relative flex flex-col gap-3">
-                <PricingModelSelect
-                  name="product.pricingModelId"
-                  control={form.control}
-                />
-              </div>
-            )}
             {editProduct && (
               <FormField
                 control={form.control}
@@ -186,13 +180,13 @@ export const ProductFormFields = ({
           <div className="w-full mt-6">
             <PriceFormFields
               edit={editProduct}
-              pricingModelId={product?.pricingModelId}
+              pricingModelId={focusedPricingModelId}
             />
           </div>
           {priceType !== PriceType.Usage && (
             <div className="w-full mt-6">
               <ProductFeatureMultiSelect
-                pricingModelId={product.pricingModelId}
+                pricingModelId={focusedPricingModelId ?? ''}
                 productId={
                   editProduct
                     ? (product as unknown as Product.ClientUpdate).id

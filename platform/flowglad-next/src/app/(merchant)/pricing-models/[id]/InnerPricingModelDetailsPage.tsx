@@ -316,8 +316,6 @@ function InnerPricingModelDetailsPage({
       <CreateProductModal
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
-        defaultPricingModelId={pricingModel.id}
-        hidePricingModelSelect={true}
       />
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}
