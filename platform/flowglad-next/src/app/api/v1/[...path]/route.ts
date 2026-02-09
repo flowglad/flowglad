@@ -535,6 +535,7 @@ const innerHandler = async (
             createContext: createApiContext({
               organizationId,
               environment: apiEnvironment as ApiEnvironment,
+              pricingModelId,
             }) as unknown as FetchCreateContextFn<typeof appRouter>,
           })
         )

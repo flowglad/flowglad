@@ -29,7 +29,6 @@ import {
   selectDiscountsTableRowData,
   updateDiscount as updateDiscountDB,
 } from '@/db/tableMethods/discountMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { protectedProcedure } from '@/server/trpc'
@@ -48,23 +47,25 @@ export const createDiscount = protectedProcedure
   .input(createDiscountInputSchema)
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
-    const discount = (
-      await authenticatedTransaction(
-        async ({ transaction, userId, livemode }) => {
-          const [{ organization }] =
-            await selectMembershipAndOrganizations(
-              {
-                userId,
-                focused: true,
-              },
-              transaction
-            )
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new Error('organizationId is required')
+    }
 
-          // Validate and resolve pricingModelId (uses default if not provided)
+    const discount = unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction, livemode }) => {
+          // Validate and resolve pricingModelId
+          // For API calls, use the API key's pricing model to ensure
+          // RLS policies are satisfied and the discount is created
+          // in the correct pricing model scope.
+          // For dashboard calls, use the input pricingModelId or fall back to default.
           const pricingModelId =
             await validateAndResolvePricingModelId({
-              pricingModelId: input.discount.pricingModelId,
-              organizationId: organization.id,
+              pricingModelId: ctx.isApi
+                ? ctx.apiKeyPricingModelId
+                : input.discount.pricingModelId,
+              organizationId,
               livemode,
               transaction,
             })
@@ -74,7 +75,7 @@ export const createDiscount = protectedProcedure
               {
                 ...input.discount,
                 pricingModelId,
-                organizationId: organization.id,
+                organizationId,
                 livemode,
               },
               transaction
@@ -85,7 +86,7 @@ export const createDiscount = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
     return { discount }
   })
 
@@ -156,7 +157,7 @@ export const updateDiscount = protectedProcedure
   .input(editDiscountInputSchema)
   .output(z.object({ discount: discountClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
-    const discount = (
+    const discount = unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction }) => {
           const updatedDiscount = await updateDiscountDB(
@@ -172,7 +173,7 @@ export const updateDiscount = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
     return { discount }
   })
 
@@ -180,7 +181,7 @@ export const deleteDiscount = protectedProcedure
   .input(idInputSchema)
   .mutation(async ({ input, ctx }) => {
     const { id } = input
-    ;(
+    unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction }) => {
           await deleteDiscountMethod(id, transaction)
@@ -190,7 +191,7 @@ export const deleteDiscount = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
-    ).unwrap()
+    )
     return { success: true }
   })
 
@@ -202,9 +203,9 @@ export const getDiscount = protectedProcedure
     const discount = unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction }) => {
-          const discountRecord = (
+          const discountRecord = unwrapOrThrow(
             await selectDiscountById(input.id, transaction)
-          ).unwrap()
+          )
           const [enriched] =
             await enrichDiscountsWithRedemptionCounts(
               [discountRecord],
