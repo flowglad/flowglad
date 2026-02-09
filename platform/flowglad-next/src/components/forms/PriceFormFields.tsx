@@ -215,12 +215,10 @@ const SinglePaymentFields = ({
 const UsageFields = ({
   defaultPriceLocked,
   edit,
-  pricingModelId,
   hideUsageMeter,
 }: {
   defaultPriceLocked: boolean
   edit?: boolean
-  pricingModelId?: string
   hideUsageMeter?: boolean
 }) => {
   const {
@@ -301,7 +299,6 @@ const UsageFields = ({
           name="price.usageMeterId"
           control={control}
           disabled={edit}
-          pricingModelId={pricingModelId}
         />
       )}
     </div>
@@ -314,7 +311,6 @@ const PriceFormFields = ({
   productId,
   isDefaultProductOverride,
   isDefaultPriceOverride,
-  pricingModelId,
   hideUsageMeter,
   disablePriceType,
   hidePriceName,
@@ -325,7 +321,6 @@ const PriceFormFields = ({
   productId?: string
   isDefaultProductOverride?: boolean
   isDefaultPriceOverride?: boolean
-  pricingModelId?: string
   hideUsageMeter?: boolean
   disablePriceType?: boolean
   hidePriceName?: boolean
@@ -377,7 +372,6 @@ const PriceFormFields = ({
         <UsageFields
           defaultPriceLocked={defaultPriceLocked}
           edit={edit}
-          pricingModelId={pricingModelId}
           hideUsageMeter={hideUsageMeter}
         />
       )

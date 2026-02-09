@@ -202,7 +202,6 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
           <UsageMetersSelect
             name="feature.usageMeterId"
             control={form.control}
-            pricingModelId={pricingModelId}
           />
           <FormField
             control={form.control}
