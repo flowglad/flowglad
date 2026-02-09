@@ -100,11 +100,26 @@ const createProcedure = protectedProcedure
               'Organization ID is required for this operation.',
           })
         }
+        // For API calls, use the API key's pricing model to ensure
+        // RLS policies are satisfied and the resource is created
+        // in the correct pricing model scope.
+        // For dashboard calls, use the user's focused pricing model.
+        const pricingModelId = ctx.isApi
+          ? ctx.apiKeyPricingModelId
+          : ctx.focusedPricingModelId
+        if (!pricingModelId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.',
+          })
+        }
         const resource = await insertResource(
           {
             ...input.resource,
             organizationId,
             livemode,
+            pricingModelId,
           },
           transaction
         )

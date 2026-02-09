@@ -211,9 +211,6 @@ const slugsAreUnique = (sluggableResources: { slug: string }[]) => {
 }
 
 const resourcePricingModelSetupSchema = resourcesClientInsertSchema
-  .omit({
-    pricingModelId: true,
-  })
   .extend({
     slug: safeZodSanitizedString.describe('The slug of the resource'),
     name: safeZodSanitizedString.describe('The name of the resource'),
