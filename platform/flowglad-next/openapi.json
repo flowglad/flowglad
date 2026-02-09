@@ -770,9 +770,6 @@
                           }
                         ]
                       },
-                      "pricingModelId": {
-                        "type": "string"
-                      },
                       "default": {
                         "type": "boolean"
                       },
@@ -783,12 +780,7 @@
                         "maxLength": 255
                       }
                     },
-                    "required": [
-                      "name",
-                      "active",
-                      "pricingModelId",
-                      "slug"
-                    ]
+                    "required": ["name", "active", "slug"]
                   },
                   "price": {
                     "$ref": "#/components/schemas/CreateProductPriceInput"

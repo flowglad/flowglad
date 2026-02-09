@@ -13,7 +13,7 @@ import {
   usagePriceClientInsertSchema,
 } from '@db-core/schema/prices'
 import { pricingModelsClientInsertSchema } from '@db-core/schema/pricingModels'
-import { productsClientInsertSchema } from '@db-core/schema/products'
+import { baseClientInsertSchema as productsBaseClientInsertSchema } from '@db-core/schema/products'
 import { resourcesClientInsertSchema } from '@db-core/schema/resources'
 import { usageMetersClientInsertSchema } from '@db-core/schema/usageMeters'
 import { Result } from 'better-result'
@@ -82,7 +82,7 @@ export const featurePricingModelSetupSchema = z
     'A feature that can be granted to a customer. Will be associated with products.'
   )
 
-const productPricingModelSetupSchema = productsClientInsertSchema
+const productPricingModelSetupSchema = productsBaseClientInsertSchema
   .extend({
     name: safeZodSanitizedString.describe('The name of the product'),
     slug: safeZodSanitizedString.describe('The slug of the product'),
