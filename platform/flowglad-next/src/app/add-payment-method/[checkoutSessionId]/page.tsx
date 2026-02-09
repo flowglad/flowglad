@@ -4,8 +4,15 @@ import {
 } from '@db-core/enums'
 import { Result } from 'better-result'
 import { ChevronLeft } from 'lucide-react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+
+export const metadata: Metadata = {
+  title: 'Add Payment Method',
+  description: 'Add a payment method to your account',
+}
+
 import CheckoutForm from '@/components/CheckoutForm'
 import { LightThemeWrapper } from '@/components/LightThemeWrapper'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
