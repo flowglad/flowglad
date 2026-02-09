@@ -275,7 +275,6 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
           <ResourcesSelect
             name="feature.resourceId"
             control={form.control}
-            pricingModelId={pricingModelId}
           />
         </>
       )}
