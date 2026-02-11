@@ -258,7 +258,9 @@ export const usePurchases = (
   const apiError = useMemo(() => {
     if (!responseData?.error) return null
     return new Error(
-      responseData.error.json?.message?.toString() ??
+      (typeof responseData.error.json?.message === 'string'
+        ? responseData.error.json.message
+        : undefined) ??
         responseData.error.code ??
         'Failed to fetch purchases'
     )
