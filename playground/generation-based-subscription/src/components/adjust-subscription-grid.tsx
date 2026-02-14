@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  usePricingModel,
-  useSubscription,
-  useSubscriptions,
-} from '@flowglad/nextjs'
+import { useBilling } from '@flowglad/nextjs'
 import { useMemo, useState } from 'react'
 import { AdjustSubscriptionCard } from '@/components/adjust-subscription-card'
 import type { PricingPlan } from '@/components/pricing-card'
@@ -32,9 +28,7 @@ interface AdjustSubscriptionGridProps {
 export function AdjustSubscriptionGrid({
   onSuccess,
 }: AdjustSubscriptionGridProps) {
-  const pricingModel = usePricingModel()
-  const { adjust } = useSubscription()
-  const { currentSubscriptions } = useSubscriptions()
+  const billing = useBilling()
   const [selectedPlan, setSelectedPlan] =
     useState<PricingPlan | null>(null)
   const [isUpgrade, setIsUpgrade] = useState(false)
@@ -42,26 +36,30 @@ export function AdjustSubscriptionGrid({
   const [error, setError] = useState<string | null>(null)
 
   // Get current subscription and billing period end date
-  const currentSubscription = currentSubscriptions?.[0]
+  const currentSubscription = billing.currentSubscriptions?.[0]
   const billingPeriodEnd =
     currentSubscription?.currentBillingPeriodEnd ?? null
 
   // Get current subscription price for comparison
   const currentPlanPrice = useMemo(() => {
     if (
-      !currentSubscriptions ||
-      currentSubscriptions.length === 0 ||
-      !pricingModel
+      !billing.loaded ||
+      billing.errors ||
+      !billing.currentSubscriptions ||
+      billing.currentSubscriptions.length === 0
     ) {
       return 0
     }
 
-    const currentSub = currentSubscriptions[0]
+    const currentSub = billing.currentSubscriptions[0]
     const currentPriceId = currentSub?.priceId
-    if (!currentPriceId) return 0
+    if (!currentPriceId || !billing.getPrice) return 0
 
-    // Find the price by ID in the pricingModel
-    for (const product of pricingModel.products) {
+    // Find the price by ID in the catalog
+    const catalog = billing.catalog
+    if (!catalog) return 0
+
+    for (const product of catalog.products) {
       const price = product.prices.find(
         (p) => p.id === currentPriceId
       )
@@ -70,15 +68,16 @@ export function AdjustSubscriptionGrid({
       }
     }
     return 0
-  }, [currentSubscriptions, pricingModel])
+  }, [billing])
 
   // Build plans from pricingModel
   const plans = useMemo<PricingPlan[]>(() => {
-    if (!pricingModel) {
+    // Early return if billing isn't ready or has no pricing model
+    if (!billing.loaded || billing.errors || !billing.pricingModel) {
       return []
     }
 
-    const { products } = pricingModel
+    const { products } = billing.pricingModel
 
     // Filter products: subscription type, active, not default/free
     const filteredProducts = products.filter((product) => {
@@ -149,37 +148,35 @@ export function AdjustSubscriptionGrid({
         getPriceValue(a.displayPrice) - getPriceValue(b.displayPrice)
       )
     })
-  }, [pricingModel])
+  }, [billing])
 
   // Early returns after all hooks
-  if (!pricingModel) {
+  if (!billing.loaded || billing.errors || !billing.pricingModel) {
     return null
   }
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
-    if (!currentSubscriptions || currentSubscriptions.length === 0) {
+    if (
+      !billing.currentSubscriptions ||
+      billing.currentSubscriptions.length === 0
+    ) {
+      return false
+    }
+    if (!billing.getPrice) {
       return false
     }
     const priceSlug = plan.slug
-    // Look up price by slug in pricingModel
-    let priceId: string | null = null
-    for (const product of pricingModel.products) {
-      const found = product.prices.find((p) => p.slug === priceSlug)
-      if (found) {
-        priceId = found.id
-        break
-      }
-    }
-    if (!priceId) return false
+    const price = billing.getPrice(priceSlug)
+    if (!price) return false
     const currentPriceIds = new Set(
-      currentSubscriptions
+      billing.currentSubscriptions
         .map((sub) => sub.priceId)
         .filter(
           (id): id is string =>
             typeof id === 'string' && id.length > 0
         )
     )
-    return currentPriceIds.has(priceId)
+    return currentPriceIds.has(price.id)
   }
 
   const handleAdjustClick = (plan: PricingPlan, upgrade: boolean) => {
@@ -189,17 +186,21 @@ export function AdjustSubscriptionGrid({
   }
 
   const handleConfirm = async () => {
-    if (!selectedPlan) return
+    if (!selectedPlan || !billing.adjustSubscription) return
 
     setIsLoading(true)
     setError(null)
 
     try {
       // The API is atomic - it waits for any billing run to complete before returning
-      // adjust() auto-provides subscription ID and auto-invalidates cache
-      await adjust({
+      await billing.adjustSubscription({
         priceSlug: selectedPlan.slug,
       })
+
+      // Reload billing data to get the updated subscription
+      if (billing.reload) {
+        await billing.reload()
+      }
 
       setSelectedPlan(null)
       onSuccess?.()
@@ -232,13 +233,8 @@ export function AdjustSubscriptionGrid({
   // Get the new plan price for display
   const getNewPlanPrice = () => {
     if (!selectedPlan) return null
-    for (const product of pricingModel.products) {
-      const found = product.prices.find(
-        (p) => p.slug === selectedPlan.slug
-      )
-      if (found) return found.unitPrice
-    }
-    return 0
+    const price = billing.getPrice(selectedPlan.slug)
+    return price?.unitPrice ?? 0
   }
 
   // Calculate prorated amount for upgrades (approximate)

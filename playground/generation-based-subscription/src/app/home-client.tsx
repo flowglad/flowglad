@@ -1,16 +1,6 @@
 'use client'
 
-import {
-  invalidateCustomerData,
-  useCheckouts,
-  useCustomerDetails,
-  useFeature,
-  usePricingModel,
-  usePurchases,
-  useSubscriptions,
-  useUsageMeter,
-} from '@flowglad/nextjs'
-import { useQueryClient } from '@tanstack/react-query'
+import { useBilling } from '@flowglad/nextjs'
 import { CheckCircle2 } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -30,10 +20,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { authClient } from '@/lib/auth-client'
-import {
-  computeUsageTotal,
-  createUsageEvent,
-} from '@/lib/billing-helpers'
+import { computeUsageTotal } from '@/lib/billing-helpers'
 
 // Mock images to cycle through
 const mockImages = [
@@ -54,40 +41,9 @@ const mockVideoGif = [
 
 export function HomeClient() {
   const router = useRouter()
-  const queryClient = useQueryClient()
   const { data: session, isPending: isSessionPending } =
     authClient.useSession()
-
-  // Granular hooks
-  const {
-    currentSubscriptions,
-    isLoading: isLoadingSubscriptions,
-    error: subscriptionsError,
-  } = useSubscriptions()
-  const {
-    usageMeter: fastGenerationsBalance,
-    isLoading: isLoadingFastGen,
-  } = useUsageMeter('fast_generations')
-  const {
-    usageMeter: hdVideoMinutesBalance,
-    isLoading: isLoadingHdVideo,
-  } = useUsageMeter('hd_video_minutes')
-  const { hasAccess: hasRelaxMode } = useFeature(
-    'unlimited_relaxed_images'
-  )
-  const { hasAccess: hasUnlimitedRelaxedSDVideo } = useFeature(
-    'unlimited_relaxed_sd_video'
-  )
-  const { hasAccess: hasOptionalTopUps } = useFeature(
-    'optional_credit_top_ups'
-  )
-  const { hasPurchased } = usePurchases()
-  const { createCheckoutSession } = useCheckouts()
-  const { customer, isLoading: isLoadingCustomer } =
-    useCustomerDetails()
-
-  const pricingModel = usePricingModel()
-
+  const billing = useBilling()
   const [isGeneratingFastImage, setIsGeneratingFastImage] =
     useState(false)
   const [isGeneratingHDVideo, setIsGeneratingHDVideo] =
@@ -113,81 +69,114 @@ export function HomeClient() {
   // Refetch billing data when user ID changes to prevent showing previous user's data
   useEffect(() => {
     const currentUserId = session?.user?.id
+    // Only refetch if user ID actually changed and billing is loaded
     if (
       currentUserId &&
       currentUserId !== previousUserIdRef.current &&
-      !isLoadingCustomer
+      billing.loaded &&
+      billing.reload
     ) {
       previousUserIdRef.current = currentUserId
-      invalidateCustomerData(queryClient)
+      billing.reload()
     } else if (currentUserId) {
+      // Update ref even if we don't reload (e.g., on initial mount)
       previousUserIdRef.current = currentUserId
     }
-  }, [session?.user?.id, isLoadingCustomer, queryClient])
-
-  const isLoaded =
-    !isLoadingSubscriptions &&
-    !isLoadingFastGen &&
-    !isLoadingHdVideo &&
-    !isLoadingCustomer
+  }, [session?.user?.id, billing])
 
   // Check if user is on free plan and redirect to pricing page
   useEffect(() => {
-    if (isSessionPending || !isLoaded) {
+    if (isSessionPending || !billing.loaded) {
       return
     }
 
     // Check if user has at least one non-free plan subscription
+    // isFreePlan is true when the subscription's price has unitPrice === 0
     const hasNonFreePlan =
-      currentSubscriptions &&
-      currentSubscriptions.length > 0 &&
-      currentSubscriptions.some((sub) => !sub.isFreePlan)
+      billing.currentSubscriptions &&
+      billing.currentSubscriptions.length > 0 &&
+      billing.currentSubscriptions.some((sub) => !sub.isFreePlan)
 
     // If user is on free plan (no non-free plan found), redirect to pricing
     if (!hasNonFreePlan) {
       router.push('/pricing')
     }
-  }, [isSessionPending, isLoaded, currentSubscriptions, router])
+  }, [
+    isSessionPending,
+    billing.loaded,
+    billing.currentSubscriptions,
+    router,
+  ])
 
-  if (isSessionPending || !isLoaded) {
+  if (isSessionPending || !billing.loaded) {
     return <DashboardSkeleton />
   }
 
   if (
     !session?.user ||
-    subscriptionsError ||
-    !pricingModel ||
-    !customer
+    billing.errors !== null ||
+    !billing.pricingModel ||
+    !billing.customer
   ) {
     return <DashboardSkeleton />
   }
 
   // Get current subscription plan
-  const currentSubscription = currentSubscriptions?.[0]
+  // By default, each customer can only have one active subscription at a time,
+  // so accessing the first currentSubscriptions is sufficient.
+  // Multiple subscriptions per customer can be enabled in dashboard > settings
+  const currentSubscription = billing.currentSubscriptions?.[0]
   const planName = currentSubscription?.name || 'Unknown Plan'
+
+  if (!billing.checkUsageBalance || !billing.checkFeatureAccess) {
+    return <DashboardSkeleton />
+  }
+
+  const fastGenerationsBalance = billing.checkUsageBalance(
+    'fast_generations'
+  )
+  const hdVideoMinutesBalance = billing.checkUsageBalance(
+    'hd_video_minutes'
+  )
 
   // Check if user has access to usage meters (has balance object, even if balance is 0)
   const hasFastGenerationsAccess = fastGenerationsBalance != null
   const hasHDVideoMinutesAccess = hdVideoMinutesBalance != null
 
+  // Get feature access
+  const hasRelaxMode = !!billing.checkFeatureAccess(
+    'unlimited_relaxed_images'
+  )
+  const hasUnlimitedRelaxedSDVideo = !!billing.checkFeatureAccess(
+    'unlimited_relaxed_sd_video'
+  )
+  const hasOptionalTopUps = !!billing.checkFeatureAccess(
+    'optional_credit_top_ups'
+  )
+
   // Check if customer has purchased top-up products by product slug
-  const hasPurchasedFastGenTopUp = hasPurchased(
+  // This is a bit of a strange use case, but is just demonstrating how to use the hasPurchased function
+  const hasPurchasedFastGenTopUp = billing.hasPurchased(
     'fast_generation_top_ups'
   )
-  const hasPurchasedHDVideoTopUp = hasPurchased(
+  const hasPurchasedHDVideoTopUp = billing.hasPurchased(
     'hd_video_minute_top_ups'
   )
 
-  // Calculate progress for usage meters
+  // Calculate progress for usage meters - get slug from price using priceId
   const fastGenerationsRemaining =
     fastGenerationsBalance?.availableBalance ?? 0
 
   // Compute plan totals dynamically from current subscription's feature items
+  // This calculates how many usage credits (e.g., "360 fast generations")
+  // are included in the current subscription plan
   const fastGenerationsPlanTotal = computeUsageTotal(
     'fast_generations',
     currentSubscription,
-    pricingModel
+    billing.pricingModel
   )
+  // Use the higher of plan total or remaining balance as the display total
+  // This handles cases where top-ups increase balance beyond plan allocation
   const fastGenerationsTotal = Math.max(
     fastGenerationsPlanTotal,
     fastGenerationsRemaining
@@ -205,8 +194,10 @@ export function HomeClient() {
   const hdVideoMinutesPlanTotal = computeUsageTotal(
     'hd_video_minutes',
     currentSubscription,
-    pricingModel
+    billing.pricingModel
   )
+  // Use the higher of plan total or remaining balance as the display total
+  // This handles cases where top-ups increase balance beyond plan allocation
   const hdVideoMinutesTotal = Math.max(
     hdVideoMinutesPlanTotal,
     hdVideoMinutesRemaining
@@ -225,14 +216,21 @@ export function HomeClient() {
       return
     }
 
+    if (!billing.createUsageEvent) {
+      setGenerateError('createUsageEvent is not available')
+      return
+    }
+
     setIsGeneratingFastImage(true)
     setGenerateError(null)
 
     try {
+      // Generate a unique transaction ID for idempotency
       const transactionId = `fast_image_${Date.now()}_${Math.random().toString(36).substring(7)}`
+      // Random amount between 3-5
       const amount = Math.floor(Math.random() * 3) + 3
 
-      const result = await createUsageEvent({
+      const result = await billing.createUsageEvent({
         usageMeterSlug: 'fast_generations',
         amount,
         transactionId,
@@ -248,6 +246,7 @@ export function HomeClient() {
         )
       }
 
+      // Cycle through mock images
       const nextIndex = (currentImageIndex + 1) % mockImages.length
       setCurrentImageIndex(nextIndex)
       const nextImage = mockImages[nextIndex]
@@ -255,8 +254,8 @@ export function HomeClient() {
         setDisplayedContent(nextImage)
       }
 
-      // Invalidate to refresh usage balances
-      await invalidateCustomerData(queryClient)
+      // Reload billing data to update usage balances
+      await billing.reload()
     } catch (error) {
       setGenerateError(
         error instanceof Error
@@ -273,14 +272,21 @@ export function HomeClient() {
       return
     }
 
+    if (!billing.createUsageEvent) {
+      setHdVideoError('createUsageEvent is not available')
+      return
+    }
+
     setIsGeneratingHDVideo(true)
     setHdVideoError(null)
 
     try {
+      // Generate a unique transaction ID for idempotency
       const transactionId = `hd_video_${Date.now()}_${Math.random().toString(36).substring(7)}`
+      // Random amount between 1-3 minutes
       const amount = Math.floor(Math.random() * 3) + 1
 
-      const result = await createUsageEvent({
+      const result = await billing.createUsageEvent({
         usageMeterSlug: 'hd_video_minutes',
         amount,
         transactionId,
@@ -296,6 +302,7 @@ export function HomeClient() {
         )
       }
 
+      // Cycle through mock video GIFs
       const nextIndex =
         (currentVideoGifIndex + 1) % mockVideoGif.length
       setCurrentVideoGifIndex(nextIndex)
@@ -304,8 +311,8 @@ export function HomeClient() {
         setDisplayedContent(nextGif)
       }
 
-      // Invalidate to refresh usage balances
-      await invalidateCustomerData(queryClient)
+      // Reload billing data to update usage balances
+      await billing.reload()
     } catch (error) {
       setHdVideoError(
         error instanceof Error
@@ -325,6 +332,7 @@ export function HomeClient() {
     setIsGeneratingRelaxImage(true)
 
     try {
+      // Cycle through mock images for relax mode
       const nextIndex = (currentImageIndex + 1) % mockImages.length
       setCurrentImageIndex(nextIndex)
       const nextImage = mockImages[nextIndex]
@@ -344,6 +352,7 @@ export function HomeClient() {
     setIsGeneratingRelaxSDVideo(true)
 
     try {
+      // Cycle through mock video GIFs
       const nextIndex =
         (currentVideoGifIndex + 1) % mockVideoGif.length
       setCurrentVideoGifIndex(nextIndex)
@@ -357,27 +366,20 @@ export function HomeClient() {
   }
 
   const handlePurchaseFastGenerationTopUp = async () => {
-    // Look up price by slug in pricingModel
-    let price: { id: string } | null = null
-    for (const product of pricingModel.products) {
-      const found = product.prices.find(
-        (p) => p.slug === 'fast_generation_top_up'
-      )
-      if (found) {
-        price = found
-        break
-      }
-    }
-
-    if (!price) {
-      setTopUpError('Price not found. Please contact support.')
+    if (!billing.createCheckoutSession || !billing.getPrice) {
       return
     }
 
     setTopUpError(null)
 
+    const price = billing.getPrice('fast_generation_top_up')
+    if (!price) {
+      setTopUpError('Price not found. Please contact support.')
+      return
+    }
+
     try {
-      await createCheckoutSession({
+      await billing.createCheckoutSession({
         priceId: price.id,
         successUrl: window.location.href,
         cancelUrl: window.location.href,
@@ -393,27 +395,20 @@ export function HomeClient() {
   }
 
   const handlePurchaseHDVideoTopUp = async () => {
-    // Look up price by slug in pricingModel
-    let price: { id: string } | null = null
-    for (const product of pricingModel.products) {
-      const found = product.prices.find(
-        (p) => p.slug === 'hd_video_minute_top_up'
-      )
-      if (found) {
-        price = found
-        break
-      }
-    }
-
-    if (!price) {
-      setTopUpError('Price not found. Please contact support.')
+    if (!billing.createCheckoutSession || !billing.getPrice) {
       return
     }
 
     setTopUpError(null)
 
+    const price = billing.getPrice('hd_video_minute_top_up')
+    if (!price) {
+      setTopUpError('Price not found. Please contact support.')
+      return
+    }
+
     try {
-      await createCheckoutSession({
+      await billing.createCheckoutSession({
         priceId: price.id,
         successUrl: window.location.href,
         cancelUrl: window.location.href,
@@ -684,6 +679,7 @@ export function HomeClient() {
                 </h3>
                 <div className="space-y-6">
                   {/* Fast Generations Meter */}
+                  {/* Show if user has access OR if we have a balance (even if total is 0, show remaining) */}
                   {(hasFastGenerationsAccess ||
                     fastGenerationsRemaining > 0) && (
                     <div className="space-y-2">
@@ -711,6 +707,7 @@ export function HomeClient() {
                   )}
 
                   {/* HD Video Minutes Meter */}
+                  {/* Show if user has access OR if we have a balance (even if total is 0, show remaining) */}
                   {(hasHDVideoMinutesAccess ||
                     hdVideoMinutesRemaining > 0) && (
                     <div className="space-y-2">

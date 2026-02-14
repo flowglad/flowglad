@@ -1,6 +1,6 @@
 'use client'
 
-import { usePricingModel, useSubscriptions } from '@flowglad/nextjs'
+import { useBilling } from '@flowglad/nextjs'
 import Autoplay from 'embla-carousel-autoplay'
 import { useMemo, useRef } from 'react'
 import type { PricingPlan } from '@/components/pricing-card'
@@ -32,16 +32,16 @@ export function PricingCardsGrid() {
       stopOnInteraction: true,
     })
   )
-  const pricingModel = usePricingModel()
-  const { currentSubscriptions } = useSubscriptions()
+  const billing = useBilling()
 
   // Build plans from pricingModel
   const plans = useMemo<PricingPlan[]>(() => {
-    if (!pricingModel) {
+    // Early return if billing isn't ready or has no pricing model
+    if (!billing.loaded || billing.errors || !billing.pricingModel) {
       return []
     }
 
-    const { products } = pricingModel
+    const { products } = billing.pricingModel
 
     // Filter products: subscription type, active, not default/free
     const filteredProducts = products.filter((product) => {
@@ -112,37 +112,35 @@ export function PricingCardsGrid() {
         getPriceValue(a.displayPrice) - getPriceValue(b.displayPrice)
       )
     })
-  }, [pricingModel])
+  }, [billing])
 
   // Early returns after all hooks to prevent type issues in the rest of the component
-  if (!pricingModel) {
+  if (!billing.loaded || billing.errors || !billing.pricingModel) {
     return null // or loading skeleton
   }
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
-    if (!currentSubscriptions || currentSubscriptions.length === 0) {
+    if (
+      !billing.currentSubscriptions ||
+      billing.currentSubscriptions.length === 0
+    ) {
+      return false
+    }
+    if (!billing.getPrice) {
       return false
     }
     const priceSlug = plan.slug
-    // Look up price by slug in pricingModel
-    let priceId: string | null = null
-    for (const product of pricingModel.products) {
-      const found = product.prices.find((p) => p.slug === priceSlug)
-      if (found) {
-        priceId = found.id
-        break
-      }
-    }
-    if (!priceId) return false
+    const price = billing.getPrice(priceSlug)
+    if (!price) return false
     const currentPriceIds = new Set(
-      currentSubscriptions
+      billing.currentSubscriptions
         .map((sub) => sub.priceId)
         .filter(
           (id): id is string =>
             typeof id === 'string' && id.length > 0
         )
     )
-    return currentPriceIds.has(priceId)
+    return currentPriceIds.has(price.id)
   }
 
   return (

@@ -1,6 +1,6 @@
 'use client'
 
-import { usePricingModel } from '@flowglad/nextjs'
+import { useBilling } from '@flowglad/nextjs'
 import { ArrowDown, ArrowUp, Check, Minus } from 'lucide-react'
 import type { PricingPlan } from '@/components/pricing-card'
 import { Badge } from '@/components/ui/badge'
@@ -37,27 +37,31 @@ export function AdjustSubscriptionCard({
   hideFeatures = false,
   onAdjustClick,
 }: AdjustSubscriptionCardProps) {
-  const pricingModel = usePricingModel()
+  const billing = useBilling()
 
-  if (!pricingModel) {
+  if (!billing.loaded) {
     return <div>Loading...</div>
+  }
+
+  if (billing.errors) {
+    return <div>Error loading billing data</div>
+  }
+
+  if (!billing.getPrice) {
+    return <div>Billing not available</div>
   }
 
   const priceSlug = plan.slug
   const displayPrice = plan.displayPrice
 
   // Check if this plan is a default plan by checking the pricing model
-  const isDefaultPlan = isDefaultPlanBySlug(pricingModel, priceSlug)
+  const isDefaultPlan = isDefaultPlanBySlug(
+    billing.pricingModel,
+    priceSlug
+  )
 
   // Get the price for this plan to compare with current plan
-  let price: { unitPrice: number } | null = null
-  for (const product of pricingModel.products) {
-    const found = product.prices.find((p) => p.slug === priceSlug)
-    if (found) {
-      price = found
-      break
-    }
-  }
+  const price = billing.getPrice(priceSlug)
   const planPrice = price?.unitPrice ?? 0
 
   // Determine if this is an upgrade or downgrade
@@ -213,7 +217,13 @@ export function AdjustSubscriptionCard({
           <Button
             className="w-full text-xs md:text-sm"
             variant={getButtonVariant()}
-            disabled={isCurrentPlan || isDefaultPlan || !price}
+            disabled={
+              isCurrentPlan ||
+              isDefaultPlan ||
+              !billing.loaded ||
+              !billing.adjustSubscription ||
+              !billing.getPrice
+            }
             size="sm"
             onClick={handleClick}
           >

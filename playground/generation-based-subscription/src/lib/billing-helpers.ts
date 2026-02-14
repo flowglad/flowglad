@@ -1,7 +1,7 @@
 import type {
+  BillingWithChecks,
   Price,
-  PricingModel,
-  SubscriptionDetails,
+  Product,
   UsageMeter,
 } from '@flowglad/nextjs'
 
@@ -20,8 +20,12 @@ type UsageMeterSlug = 'fast_generations' | 'hd_video_minutes'
  */
 export function computeUsageTotal(
   usageMeterSlug: UsageMeterSlug,
-  currentSubscription: SubscriptionDetails | undefined,
-  pricingModel: PricingModel | null | undefined
+  currentSubscription:
+    | NonNullable<
+        NonNullable<BillingWithChecks['currentSubscriptions']>[number]
+      >
+    | undefined,
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): number {
   try {
     // Early returns if we don't have the necessary data
@@ -70,7 +74,7 @@ export function computeUsageTotal(
  */
 export function findUsageMeterBySlug(
   usageMeterSlug: string,
-  pricingModel: PricingModel | null | undefined
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): { id: string; slug: string } | null {
   if (!pricingModel?.usageMeters) return null
 
@@ -98,7 +102,7 @@ export function findUsageMeterBySlug(
  */
 export function findUsagePriceByMeterSlug(
   usageMeterSlug: string,
-  pricingModel: PricingModel | null | undefined
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): Price | null {
   if (!pricingModel?.usageMeters) return null
 
@@ -129,7 +133,7 @@ export function findUsagePriceByMeterSlug(
  * @returns true if the plan is a default plan, false otherwise
  */
 export function isDefaultPlanBySlug(
-  pricingModel: PricingModel | null | undefined,
+  pricingModel: BillingWithChecks['pricingModel'] | null | undefined,
   priceSlug: string | undefined
 ): boolean {
   if (!pricingModel?.products || !priceSlug) return false
@@ -147,35 +151,11 @@ export function isDefaultPlanBySlug(
 }
 
 /**
- * Creates a usage event by calling the Flowglad API directly.
- * This replaces the useBilling().createUsageEvent pattern with a direct API call.
+ * Checks if a subscription is a default plan by looking up the price by ID.
+ * Default plans have default: true at the product level.
+ * Only checks product.default, not price.isDefault (which is set for all subscription prices).
  *
- * @param params - The usage event parameters
- * @param params.usageMeterSlug - The slug of the usage meter
- * @param params.amount - The amount to record
- * @param params.transactionId - Optional transaction ID for idempotency
- * @returns The created usage event or an error
+ * @param pricingModel - The billing pricing model (from billing.pricingModel)
+ * @param priceId - The ID of the price to check
+ * @returns true if the plan is a default plan, false otherwise
  */
-export async function createUsageEvent(params: {
-  usageMeterSlug: string
-  amount: number
-  transactionId?: string
-}): Promise<
-  | { usageEvent: { id: string } }
-  | { error: { code: string; json: Record<string, unknown> } }
-> {
-  const response = await fetch(
-    '/api/auth/flowglad/usage-events/create',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    }
-  )
-
-  const json = await response.json()
-  if (json.error) {
-    return { error: json.error }
-  }
-  return { usageEvent: { id: json.data.usageEvent.id } }
-}
