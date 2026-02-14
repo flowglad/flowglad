@@ -1,7 +1,7 @@
 import type {
+  BillingWithChecks,
   Price,
-  PricingModel,
-  SubscriptionDetails,
+  Product,
   UsageMeter,
 } from '@flowglad/nextjs'
 import type { PricingPlan } from '@/components/pricing-card'
@@ -37,7 +37,7 @@ export function formatPriceFromCents(cents: number): string {
  * @returns Array of PricingPlan objects sorted by price
  */
 export function transformProductsToPricingPlans(
-  pricingModel: PricingModel | null | undefined
+  pricingModel: BillingWithChecks['pricingModel'] | null | undefined
 ): PricingPlan[] {
   if (!pricingModel?.products) return []
 
@@ -118,8 +118,12 @@ export function transformProductsToPricingPlans(
  */
 export function computeUsageTotal(
   usageMeterSlug: UsageMeterSlug,
-  currentSubscription: SubscriptionDetails | undefined,
-  pricingModel: PricingModel | null | undefined
+  currentSubscription:
+    | NonNullable<
+        NonNullable<BillingWithChecks['currentSubscriptions']>[number]
+      >
+    | undefined,
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): number {
   try {
     // Early returns if we don't have the necessary data
@@ -168,7 +172,7 @@ export function computeUsageTotal(
  */
 export function findUsageMeterBySlug(
   usageMeterSlug: string,
-  pricingModel: PricingModel | null | undefined
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): { id: string; slug: string } | null {
   if (!pricingModel?.usageMeters) return null
 
@@ -196,7 +200,7 @@ export function findUsageMeterBySlug(
  */
 export function findUsagePriceByMeterSlug(
   usageMeterSlug: string,
-  pricingModel: PricingModel | null | undefined
+  pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): Price | null {
   if (!pricingModel?.usageMeters) return null
 
@@ -227,7 +231,7 @@ export function findUsagePriceByMeterSlug(
  * @returns true if the plan is a default plan, false otherwise
  */
 export function isDefaultPlanBySlug(
-  pricingModel: PricingModel | null | undefined,
+  pricingModel: BillingWithChecks['pricingModel'] | null | undefined,
   priceSlug: string | undefined
 ): boolean {
   if (!pricingModel?.products || !priceSlug) return false
@@ -254,7 +258,7 @@ export function isDefaultPlanBySlug(
  * @returns true if the plan is a default plan, false otherwise
  */
 export function isDefaultPlanById(
-  pricingModel: PricingModel | null | undefined,
+  pricingModel: BillingWithChecks['pricingModel'] | null | undefined,
   priceId: string | undefined
 ): boolean {
   if (!pricingModel?.products || !priceId) return false

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCheckouts, usePricingModel } from '@flowglad/nextjs'
+import { useBilling } from '@flowglad/nextjs'
 import { Check } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -42,8 +42,7 @@ export function PricingCard({
   isCurrentPlan = false,
   hideFeatures = false,
 }: PricingCardProps) {
-  const pricingModel = usePricingModel()
-  const { createCheckoutSession } = useCheckouts()
+  const billing = useBilling()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
@@ -51,15 +50,26 @@ export function PricingCard({
   // Determine if this plan supports quantity selection (non-free plans with unitPrice > 0)
   const supportsQuantity = plan.unitPrice > 0
 
-  if (!pricingModel) {
+  if (!billing.loaded) {
     return <div>Loading...</div>
+  }
+
+  if (billing.errors) {
+    return <div>Error loading billing data</div>
+  }
+
+  if (!billing.createCheckoutSession) {
+    return <div>Billing not available</div>
   }
 
   const priceSlug = plan.slug
   const displayPrice = plan.displayPrice
 
   // Check if this plan is a default plan by checking the pricing model
-  const isDefaultPlan = isDefaultPlanBySlug(pricingModel, priceSlug)
+  const isDefaultPlan = isDefaultPlanBySlug(
+    billing.pricingModel,
+    priceSlug
+  )
 
   // Calculate total price for display
   const totalPrice = supportsQuantity
@@ -76,7 +86,7 @@ export function PricingCard({
 
     setIsLoading(true)
     try {
-      await createCheckoutSession({
+      await billing.createCheckoutSession({
         priceSlug: priceSlug,
         quantity: supportsQuantity ? quantity : undefined,
         successUrl: `${window.location.origin}/`,
@@ -197,7 +207,14 @@ export function PricingCard({
           <Button
             className="w-full text-xs md:text-sm"
             variant={plan.isPopular ? 'default' : 'outline'}
-            disabled={isCurrentPlan || isDefaultPlan || isLoading}
+            disabled={
+              isCurrentPlan ||
+              isDefaultPlan ||
+              isLoading ||
+              !billing.loaded ||
+              !billing.createCheckoutSession ||
+              !billing.getPrice
+            }
             size="sm"
             onClick={handleCheckout}
           >

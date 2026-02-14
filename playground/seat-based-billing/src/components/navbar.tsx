@@ -1,6 +1,6 @@
 'use client'
 
-import { useCustomerDetails, useSubscription } from '@flowglad/nextjs'
+import { useBilling } from '@flowglad/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -32,18 +32,7 @@ export function Navbar() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { data: session } = authClient.useSession()
-  const {
-    subscription: currentSubscription,
-    isLoading: isLoadingSubscription,
-    error: subscriptionError,
-    cancel,
-    uncancel,
-  } = useSubscription()
-  const {
-    customer,
-    isLoading: isLoadingCustomer,
-    error: customerError,
-  } = useCustomerDetails()
+  const billing = useBilling()
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [isUncancelling, setIsUncancelling] = useState(false)
@@ -56,13 +45,7 @@ export function Navbar() {
     return null
   }
 
-  if (
-    isLoadingSubscription ||
-    isLoadingCustomer ||
-    subscriptionError ||
-    customerError ||
-    !customer
-  ) {
+  if (!billing.loaded || billing.errors || !billing.customer) {
     return null // or loading skeleton
   }
 
@@ -78,7 +61,13 @@ export function Navbar() {
   }
 
   async function handleCancelSubscription() {
-    if (!currentSubscription) {
+    // By default, each customer can only have one active subscription at a time,
+    // so accessing the first currentSubscriptions is sufficient.
+    // Multiple subscriptions per customer can be enabled in dashboard > settings
+    const currentSubscription = billing.currentSubscriptions?.[0]
+    const subscriptionId = currentSubscription?.id
+
+    if (!subscriptionId || !billing.cancelSubscription) {
       return
     }
 
@@ -95,7 +84,8 @@ export function Navbar() {
     setCancelError(null)
 
     try {
-      await cancel({
+      await billing.cancelSubscription({
+        id: subscriptionId,
         cancellation: {
           timing: 'at_end_of_current_billing_period',
         },
@@ -112,7 +102,10 @@ export function Navbar() {
   }
 
   async function handleUncancelSubscription() {
-    if (!currentSubscription) {
+    const currentSubscription = billing.currentSubscriptions?.[0]
+    const subscriptionId = currentSubscription?.id
+
+    if (!subscriptionId || !billing.uncancelSubscription) {
       return
     }
 
@@ -129,7 +122,9 @@ export function Navbar() {
     setUncancelError(null)
 
     try {
-      await uncancel()
+      await billing.uncancelSubscription({
+        id: subscriptionId,
+      })
     } catch (error) {
       setUncancelError(
         error instanceof Error
@@ -143,6 +138,10 @@ export function Navbar() {
 
   const accountName =
     session.user.name || session.user.email || 'Account'
+  // By default, each customer can only have one active subscription at a time,
+  // so accessing the first currentSubscriptions is sufficient.
+  // Multiple subscriptions per customer can be enabled in dashboard > settings
+  const currentSubscription = billing.currentSubscriptions?.[0]
 
   // Check if subscription is scheduled for cancellation
   // Flowglad subscriptions have: status === "cancellation_scheduled" or cancelScheduledAt property

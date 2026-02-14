@@ -1,4 +1,4 @@
-import { useCustomerDetails } from '@flowglad/react'
+import { useBilling } from '@flowglad/react'
 import {
   Button,
   ScrollView,
@@ -10,7 +10,8 @@ import { authClient } from '@/lib/auth-client'
 
 export default function TabOneScreen() {
   const { data: session } = authClient.useSession()
-  const { customer } = useCustomerDetails()
+  const billing = useBilling()
+  console.log('billing====', billing)
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
@@ -43,9 +44,9 @@ export default function TabOneScreen() {
           }}
         >
           {JSON.stringify(
-            customer
+            billing?.customer
               ? Object.fromEntries(
-                  Object.entries(customer).filter(
+                  Object.entries(billing.customer).filter(
                     ([key, value]) =>
                       key !== 'email' && value !== null
                   )
