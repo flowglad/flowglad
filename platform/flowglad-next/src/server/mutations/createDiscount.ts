@@ -14,8 +14,9 @@ export const createDiscount = protectedProcedure
     if (!pricingModelId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message:
-          'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.',
+        message: ctx.isApi
+          ? 'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.'
+          : 'Unable to determine pricing model scope. Ensure you have a focused pricing model selected.',
       })
     }
 
@@ -40,6 +41,9 @@ export const createDiscount = protectedProcedure
             transaction
           )
           return Result.ok(discount)
+        },
+        {
+          apiKey: ctx.apiKey,
         }
       )
     ).unwrap()
