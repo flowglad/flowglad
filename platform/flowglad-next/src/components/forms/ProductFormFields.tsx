@@ -29,8 +29,10 @@ import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
 
 export const ProductFormFields = ({
   editProduct = false,
+  pricingModelId: pricingModelIdProp,
 }: {
   editProduct?: boolean
+  pricingModelId?: string
 }) => {
   const form = useFormContext<CreateProductSchema>()
   const priceForm = usePriceFormContext()
@@ -39,6 +41,8 @@ export const ProductFormFields = ({
     trpc.organizations.getFocusedMembership.useQuery()
   const focusedPricingModelId =
     focusedMembership.data?.pricingModel?.id
+  const effectivePricingModelId =
+    pricingModelIdProp ?? focusedPricingModelId
   const priceType = priceForm.watch('price.type')
   const isDefaultProduct = product?.default === true
 
@@ -180,13 +184,13 @@ export const ProductFormFields = ({
           <div className="w-full mt-6">
             <PriceFormFields
               edit={editProduct}
-              pricingModelId={focusedPricingModelId}
+              pricingModelId={effectivePricingModelId}
             />
           </div>
           {priceType !== PriceType.Usage && (
             <div className="w-full mt-6">
               <ProductFeatureMultiSelect
-                pricingModelId={focusedPricingModelId ?? ''}
+                pricingModelId={effectivePricingModelId ?? ''}
                 productId={
                   editProduct
                     ? (product as unknown as Product.ClientUpdate).id
