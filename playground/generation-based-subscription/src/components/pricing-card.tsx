@@ -1,6 +1,6 @@
 'use client'
 
-import { useBilling } from '@flowglad/nextjs'
+import { useCheckouts, usePricingModel } from '@flowglad/nextjs'
 import { Check } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -39,37 +39,27 @@ export function PricingCard({
   isCurrentPlan = false,
   hideFeatures = false,
 }: PricingCardProps) {
-  const billing = useBilling()
+  const pricingModel = usePricingModel()
+  const { createCheckoutSession } = useCheckouts()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!billing.loaded) {
+  if (!pricingModel) {
     return <div>Loading...</div>
-  }
-
-  if (billing.errors) {
-    return <div>Error loading billing data</div>
-  }
-
-  if (!billing.createCheckoutSession) {
-    return <div>Billing not available</div>
   }
 
   const priceSlug = plan.slug
   const displayPrice = plan.displayPrice
 
   // Check if this plan is a default plan by checking the pricing model
-  const isDefaultPlan = isDefaultPlanBySlug(
-    billing.pricingModel,
-    priceSlug
-  )
+  const isDefaultPlan = isDefaultPlanBySlug(pricingModel, priceSlug)
 
   const handleCheckout = async () => {
     setError(null)
 
     setIsLoading(true)
     try {
-      await billing.createCheckoutSession({
+      await createCheckoutSession({
         priceSlug: priceSlug,
         successUrl: `${window.location.origin}/`,
         cancelUrl: window.location.href,
@@ -152,14 +142,7 @@ export function PricingCard({
           <Button
             className="w-full text-xs md:text-sm"
             variant={plan.isPopular ? 'default' : 'outline'}
-            disabled={
-              isCurrentPlan ||
-              isDefaultPlan ||
-              isLoading ||
-              !billing.loaded ||
-              !billing.createCheckoutSession ||
-              !billing.getPrice
-            }
+            disabled={isCurrentPlan || isDefaultPlan || isLoading}
             size="sm"
             onClick={handleCheckout}
           >
