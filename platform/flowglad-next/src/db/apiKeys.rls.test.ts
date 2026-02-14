@@ -6,11 +6,17 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { FlowgladApiKeyType, MembershipRole } from '@db-core/enums'
+import {
+  DiscountAmountType,
+  DiscountDuration,
+  FlowgladApiKeyType,
+  MembershipRole,
+} from '@db-core/enums'
 import type { ApiKey } from '@db-core/schema/apiKeys'
 import type { Customer } from '@db-core/schema/customers'
 import type { Membership } from '@db-core/schema/memberships'
 import type { Organization } from '@db-core/schema/organizations'
+import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Product } from '@db-core/schema/products'
 import type { User } from '@db-core/schema/users'
 import { Result } from 'better-result'
@@ -27,14 +33,22 @@ import {
   insertApiKey,
   selectApiKeys,
 } from '@/db/tableMethods/apiKeyMethods'
-import { selectCustomers } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerById,
+  selectCustomers,
+} from '@/db/tableMethods/customerMethods'
+import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import {
   insertMembership,
   selectMemberships,
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
+import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
+import { customersRouter } from '@/server/routers/customersRouter'
+import { discountsRouter } from '@/server/routers/discountsRouter'
+import type { TRPCApiContext } from '@/server/trpcContext'
 import { deleteSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
@@ -708,6 +722,475 @@ describe('API Key RLS', () => {
         })
       ).unwrap()
       expect(remainingKeys).toHaveLength(1)
+    })
+  })
+
+  describe('Scenario 6: API Key Pricing Model Scoping for Customer Creation', () => {
+    /**
+     * These tests verify that:
+     * 1. Customers created via API are assigned the API key's pricing model
+     * 2. API key operations don't affect the membership's focusedPricingModelId
+     * 3. Both default and non-default pricing models work correctly with API keys
+     */
+
+    let nonDefaultPricingModel: PricingModel.Record
+    let apiKeyForNonDefault: ApiKey.Record & { token: string }
+
+    beforeEach(async () => {
+      // Create a non-default pricing model in orgA (testmode)
+      nonDefaultPricingModel = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertPricingModel(
+              {
+                organizationId: orgA.id,
+                name: 'Non-Default Pricing Model',
+                livemode: false,
+                isDefault: false,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
+
+      // Create an API key tied to the non-default pricing model
+      // Use insertApiKey directly like other tests to ensure proper setup
+      const token = `test_sk_nondefault_${core.nanoid()}`
+      const apiKey = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertApiKey(
+              {
+                organizationId: orgA.id,
+                pricingModelId: nonDefaultPricingModel.id,
+                name: 'Non-Default Pricing Model API Key',
+                token,
+                type: FlowgladApiKeyType.Secret,
+                active: true,
+                livemode: false,
+                hashText: await hashData(token),
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
+      apiKeyForNonDefault = { ...apiKey, token }
+    })
+
+    /**
+     * Helper to create a TRPC caller with API key context
+     */
+    const createApiCaller = (
+      organization: Organization.Record,
+      apiKeyToken: string,
+      apiKeyPricingModelId: string,
+      livemode: boolean = false
+    ) => {
+      const ctx = {
+        organizationId: organization.id,
+        organization,
+        apiKey: apiKeyToken,
+        livemode,
+        environment: (livemode ? 'live' : 'test') satisfies
+          | 'live'
+          | 'test',
+        isApi: true,
+        path: '',
+        focusedPricingModelId: undefined,
+        apiKeyPricingModelId,
+      } as unknown as TRPCApiContext
+      return customersRouter.createCaller(ctx)
+    }
+
+    it('should create customer in API key pricing model (non-default)', async () => {
+      const caller = createApiCaller(
+        orgA,
+        apiKeyForNonDefault.token,
+        nonDefaultPricingModel.id,
+        false
+      )
+
+      const result = await caller.create({
+        customer: {
+          name: 'Test Customer Non-Default PM',
+          email: `test+non-default-${Date.now()}@test.com`,
+          externalId: `ext-non-default-${Date.now()}`,
+        },
+      })
+
+      // Verify customer was created with the API key's (non-default) pricing model
+      expect(result.data.customer.pricingModelId).toBe(
+        nonDefaultPricingModel.id
+      )
+      // Should NOT be the default pricing model
+      expect(result.data.customer.pricingModelId).not.toBe(
+        orgAPricingModelIdTest
+      )
+
+      // Verify the customer exists in the database with correct pricing model
+      const customerInDb = (
+        await adminTransaction(async ({ transaction }) => {
+          return selectCustomerById(
+            result.data.customer.id,
+            transaction
+          )
+        })
+      ).unwrap()
+      expect(customerInDb.pricingModelId).toBe(
+        nonDefaultPricingModel.id
+      )
+    })
+
+    it('should create customer in API key pricing model (default)', async () => {
+      // Use the regular API key which is tied to the default pricing model
+      const caller = createApiCaller(
+        orgA,
+        apiKeyOrgA.token,
+        orgAPricingModelIdTest,
+        false
+      )
+
+      const result = await caller.create({
+        customer: {
+          name: 'Test Customer Default PM',
+          email: `test+default-${Date.now()}@test.com`,
+          externalId: `ext-default-${Date.now()}`,
+        },
+      })
+
+      // Verify customer was created with the default pricing model
+      expect(result.data.customer.pricingModelId).toBe(
+        orgAPricingModelIdTest
+      )
+    })
+
+    it('API key usage should NOT affect membership focusedPricingModelId', async () => {
+      // Get the membership's focusedPricingModelId before API call
+      const membershipBefore = (
+        await adminTransaction(async ({ transaction }) => {
+          const [membership] = await selectMemberships(
+            { userId: userA.id, organizationId: orgA.id },
+            transaction
+          )
+          return Result.ok(membership)
+        })
+      ).unwrap()
+
+      const originalFocusedPricingModelId =
+        membershipBefore.focusedPricingModelId
+
+      // Make an API call using the non-default pricing model API key
+      // to create a customer
+      const caller = createApiCaller(
+        orgA,
+        apiKeyForNonDefault.token,
+        nonDefaultPricingModel.id,
+        false
+      )
+
+      await caller.create({
+        customer: {
+          name: 'Test Customer For Focus Check',
+          email: `test+focus-check-${Date.now()}@test.com`,
+          externalId: `ext-focus-check-${Date.now()}`,
+        },
+      })
+
+      // Verify the membership's focusedPricingModelId is unchanged
+      const membershipAfter = (
+        await adminTransaction(async ({ transaction }) => {
+          const [membership] = await selectMemberships(
+            { userId: userA.id, organizationId: orgA.id },
+            transaction
+          )
+          return Result.ok(membership)
+        })
+      ).unwrap()
+
+      expect(membershipAfter.focusedPricingModelId).toBe(
+        originalFocusedPricingModelId
+      )
+    })
+
+    it('should be able to read customer created with non-default PM using same API key', async () => {
+      // Create customer using non-default pricing model API key
+      const caller = createApiCaller(
+        orgA,
+        apiKeyForNonDefault.token,
+        nonDefaultPricingModel.id,
+        false
+      )
+
+      const externalId = `ext-read-test-${Date.now()}`
+      await caller.create({
+        customer: {
+          name: 'Test Customer Read Check',
+          email: `test+read-check-${Date.now()}@test.com`,
+          externalId,
+        },
+      })
+
+      // Should be able to read the customer back using the same API key
+      const getResult = await caller.get({ externalId })
+      expect(getResult.customer.externalId).toBe(externalId)
+      expect(getResult.customer.pricingModelId).toBe(
+        nonDefaultPricingModel.id
+      )
+    })
+
+    it('should NOT be able to read customer from different pricing model', async () => {
+      // Create customer using non-default pricing model API key
+      const nonDefaultCaller = createApiCaller(
+        orgA,
+        apiKeyForNonDefault.token,
+        nonDefaultPricingModel.id,
+        false
+      )
+
+      const externalId = `ext-cross-pm-${Date.now()}`
+      await nonDefaultCaller.create({
+        customer: {
+          name: 'Test Customer Cross PM',
+          email: `test+cross-pm-${Date.now()}@test.com`,
+          externalId,
+        },
+      })
+
+      // Try to read the customer using the default pricing model API key
+      // This should fail because RLS blocks cross-PM access
+      const defaultCaller = createApiCaller(
+        orgA,
+        apiKeyOrgA.token,
+        orgAPricingModelIdTest,
+        false
+      )
+
+      await expect(
+        defaultCaller.get({ externalId })
+      ).rejects.toThrow()
+    })
+  })
+
+  describe('Scenario 7: API Key Pricing Model Scoping for Discount Creation', () => {
+    /**
+     * These tests verify that:
+     * 1. Discounts created via API without pricingModelId are assigned the API key's pricing model
+     * 2. Both default and non-default pricing models work correctly with API keys
+     */
+
+    let nonDefaultPricingModel: PricingModel.Record
+    let apiKeyForNonDefault: ApiKey.Record & { token: string }
+
+    beforeEach(async () => {
+      // Create a non-default pricing model in orgA (testmode)
+      nonDefaultPricingModel = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertPricingModel(
+              {
+                organizationId: orgA.id,
+                name: 'Non-Default Pricing Model for Discounts',
+                livemode: false,
+                isDefault: false,
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
+
+      // Create an API key tied to the non-default pricing model
+      const token = `test_sk_discount_nondefault_${core.nanoid()}`
+      const apiKey = (
+        await adminTransaction(async ({ transaction }) => {
+          return Result.ok(
+            await insertApiKey(
+              {
+                organizationId: orgA.id,
+                pricingModelId: nonDefaultPricingModel.id,
+                name: 'Non-Default Pricing Model API Key for Discounts',
+                token,
+                type: FlowgladApiKeyType.Secret,
+                active: true,
+                livemode: false,
+                hashText: await hashData(token),
+              },
+              transaction
+            )
+          )
+        })
+      ).unwrap()
+      apiKeyForNonDefault = { ...apiKey, token }
+    })
+
+    /**
+     * Helper to create a TRPC caller for discounts with API key context
+     */
+    const createDiscountApiCaller = (
+      organization: Organization.Record,
+      apiKeyToken: string,
+      apiKeyPricingModelId: string,
+      livemode: boolean = false
+    ) => {
+      const ctx = {
+        organizationId: organization.id,
+        organization,
+        apiKey: apiKeyToken,
+        livemode,
+        environment: (livemode ? 'live' : 'test') satisfies
+          | 'live'
+          | 'test',
+        isApi: true,
+        path: '',
+        focusedPricingModelId: undefined,
+        apiKeyPricingModelId,
+      } as unknown as TRPCApiContext
+      return discountsRouter.createCaller(ctx)
+    }
+
+    it('should create discount in API key pricing model when pricingModelId not provided (non-default)', async () => {
+      const caller = createDiscountApiCaller(
+        orgA,
+        apiKeyForNonDefault.token,
+        nonDefaultPricingModel.id,
+        false
+      )
+
+      // Discount code max length is 20 chars
+      const discountCode = `ND${core.nanoid().slice(0, 10)}`
+      const result = await caller.create({
+        discount: {
+          name: 'Test Discount Non-Default PM',
+          code: discountCode,
+          amount: 10,
+          amountType: DiscountAmountType.Percent,
+          duration: DiscountDuration.Once,
+          active: true,
+          numberOfPayments: null,
+          // Note: NOT providing pricingModelId - should use API key's pricing model
+        },
+      })
+
+      // Verify discount was created with the API key's (non-default) pricing model
+      expect(result.discount.pricingModelId).toBe(
+        nonDefaultPricingModel.id
+      )
+      // Should NOT be the default pricing model
+      expect(result.discount.pricingModelId).not.toBe(
+        orgAPricingModelIdTest
+      )
+
+      // Verify the discount exists in the database with correct pricing model
+      const discountInDb = (
+        await adminTransaction(async ({ transaction }) => {
+          return selectDiscountById(result.discount.id, transaction)
+        })
+      ).unwrap()
+      expect(discountInDb.pricingModelId).toBe(
+        nonDefaultPricingModel.id
+      )
+    })
+
+    it('should create discount in API key pricing model when pricingModelId not provided (default)', async () => {
+      // Use the regular API key which is tied to the default pricing model
+      const caller = createDiscountApiCaller(
+        orgA,
+        apiKeyOrgA.token,
+        orgAPricingModelIdTest,
+        false
+      )
+
+      // Discount code max length is 20 chars
+      const discountCode = `DF${core.nanoid().slice(0, 10)}`
+      const result = await caller.create({
+        discount: {
+          name: 'Test Discount Default PM',
+          code: discountCode,
+          amount: 15,
+          amountType: DiscountAmountType.Percent,
+          duration: DiscountDuration.Once,
+          active: true,
+          numberOfPayments: null,
+          // Note: NOT providing pricingModelId - should use API key's pricing model
+        },
+      })
+
+      // Verify discount was created with the default pricing model
+      expect(result.discount.pricingModelId).toBe(
+        orgAPricingModelIdTest
+      )
+    })
+
+    it('should be able to read discount created with non-default PM using same API key', async () => {
+      // Create discount using non-default pricing model API key
+      const caller = createDiscountApiCaller(
+        orgA,
+        apiKeyForNonDefault.token,
+        nonDefaultPricingModel.id,
+        false
+      )
+
+      // Discount code max length is 20 chars
+      const discountCode = `RD${core.nanoid().slice(0, 10)}`
+      const createResult = await caller.create({
+        discount: {
+          name: 'Test Discount Read Check',
+          code: discountCode,
+          amount: 20,
+          amountType: DiscountAmountType.Percent,
+          duration: DiscountDuration.Once,
+          active: true,
+          numberOfPayments: null,
+        },
+      })
+
+      // Should be able to read the discount back using the same API key
+      const getResult = await caller.get({
+        id: createResult.discount.id,
+      })
+      expect(getResult.discount.id).toBe(createResult.discount.id)
+      expect(getResult.discount.pricingModelId).toBe(
+        nonDefaultPricingModel.id
+      )
+    })
+
+    it('should NOT be able to read discount from different pricing model', async () => {
+      // Create discount using non-default pricing model API key
+      const nonDefaultCaller = createDiscountApiCaller(
+        orgA,
+        apiKeyForNonDefault.token,
+        nonDefaultPricingModel.id,
+        false
+      )
+
+      // Discount code max length is 20 chars
+      const discountCode = `XP${core.nanoid().slice(0, 10)}`
+      const createResult = await nonDefaultCaller.create({
+        discount: {
+          name: 'Test Discount Cross PM',
+          code: discountCode,
+          amount: 25,
+          amountType: DiscountAmountType.Percent,
+          duration: DiscountDuration.Once,
+          active: true,
+          numberOfPayments: null,
+        },
+      })
+
+      // Try to read the discount using the default pricing model API key
+      // This should fail because RLS blocks cross-PM access
+      const defaultCaller = createDiscountApiCaller(
+        orgA,
+        apiKeyOrgA.token,
+        orgAPricingModelIdTest,
+        false
+      )
+
+      await expect(
+        defaultCaller.get({ id: createResult.discount.id })
+      ).rejects.toThrow()
     })
   })
 })

@@ -50,6 +50,7 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectBillingPeriodById,
+  selectBillingPeriods,
   updateBillingPeriod,
 } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -1036,7 +1037,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       }
     })
 
-    it('should throw an error if the cancellation date is before the subscription start date', async () => {
+    it('should successfully cancel a subscription whose billing periods have not started yet and mark all billing periods as canceled', async () => {
       ;(
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1049,24 +1050,30 @@ describe('Subscription Cancellation Test Suite', async () => {
             paymentMethodId: paymentMethod.id,
             priceId: price.id,
           })
-          await setupBillingPeriod({
+          const billingPeriod = await setupBillingPeriod({
             subscriptionId: subscription.id,
             startDate: futureStart,
             endDate: new Date(futureStart.getTime() + 60 * 60 * 1000),
           })
-          // Because the current time is before the billing period start, expect an error.
           const result = await cancelSubscriptionImmediately(
             {
               subscription,
             },
             createDiscardingEffectsContext(transaction)
           )
-          expect(result.status).toBe('error')
-          if (result.status === 'error') {
-            expect(result.error).toBeInstanceOf(ValidationError)
-            expect(result.error.message).toMatch(
-              /Cannot end a subscription before its start date/
-            )
+          expect(result.status).toBe('ok')
+          const canceledSubscription = result.unwrap()
+          expect(canceledSubscription.status).toBe(
+            SubscriptionStatus.Canceled
+          )
+          expect(canceledSubscription.canceledAt).toBeNumber()
+          // Verify the future billing period was marked as canceled
+          const billingPeriods = await selectBillingPeriods(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          for (const bp of billingPeriods) {
+            expect(bp.status).toBe(BillingPeriodStatus.Canceled)
           }
           return Result.ok(undefined)
         })

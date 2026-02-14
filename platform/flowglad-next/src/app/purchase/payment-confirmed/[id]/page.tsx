@@ -1,6 +1,13 @@
 import { Result } from 'better-result'
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { adminTransaction } from '@/db/adminTransaction'
+
+export const metadata: Metadata = {
+  title: 'Payment Confirmed',
+  description: 'Your payment has been confirmed',
+}
+
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import InnerPaymentConfirmedPage from './InnerPaymentConfirmedPage'
 

@@ -107,6 +107,7 @@ const createAuthenticatedCaller = (testUser: User.Record) => {
     apiKey: undefined,
     session: null,
     focusedPricingModelId: undefined,
+    apiKeyPricingModelId: undefined,
     authScope: 'merchant',
   }
   return supportChatRouter.createCaller(ctx)
