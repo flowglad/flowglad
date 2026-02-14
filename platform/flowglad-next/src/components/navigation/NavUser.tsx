@@ -150,10 +150,23 @@ export const NavUser: React.FC<NavUserProps> = ({
                   {organization.name}
                 </span>
                 <span
-                  className="truncate text-xs font-medium text-muted-foreground"
+                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
                   data-testid="nav-user-org"
                 >
-                  {pricingModel?.name ?? 'No pricing model'}
+                  <span className="truncate">
+                    {pricingModel?.name ?? 'No pricing model'}
+                  </span>
+                  {pricingModel && (
+                    <span
+                      className={cn(
+                        'h-2 w-2 shrink-0 rounded-full',
+                        pricingModel.livemode
+                          ? 'bg-jade-muted-foreground'
+                          : 'bg-amber-400'
+                      )}
+                      data-testid="nav-user-mode-indicator"
+                    />
+                  )}
                 </span>
               </div>
             )}
