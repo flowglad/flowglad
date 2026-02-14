@@ -44,7 +44,6 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
           name: '',
           slug: '',
           description: '',
-          pricingModelId: defaultPricingModelId,
           amount: null,
           usageMeterId: null,
           renewalFrequency: null,
@@ -55,7 +54,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
         await createFeatureMutation.mutateAsync(data)
       }}
     >
-      <FeatureFormFields />
+      <FeatureFormFields pricingModelId={defaultPricingModelId} />
     </FormModal>
   )
 }
