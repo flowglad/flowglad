@@ -1,10 +1,15 @@
 'use client'
 
 import {
+  invalidateCustomerData,
   type ResourceClaim,
-  useBilling,
+  useCustomerDetails,
+  usePricingModel,
   useResource,
+  useSubscription,
+  useSubscriptions,
 } from '@flowglad/nextjs'
+import { useQueryClient } from '@tanstack/react-query'
 import { Loader2, Trash2, UserPlus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -23,9 +28,21 @@ import { authClient } from '@/lib/auth-client'
 
 export function HomeClient() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { data: session, isPending: isSessionPending } =
     authClient.useSession()
-  const billing = useBilling()
+
+  // Granular hooks
+  const {
+    subscription: currentSubscription,
+    adjust,
+    isLoading: isLoadingSubscription,
+  } = useSubscription()
+  const { currentSubscriptions, isLoading: isLoadingSubscriptions } =
+    useSubscriptions()
+  const { customer, isLoading: isLoadingCustomer } =
+    useCustomerDetails()
+  const pricingModel = usePricingModel()
   const {
     usage: seatUsage,
     claims,
@@ -46,21 +63,25 @@ export function HomeClient() {
 
   const previousUserIdRef = useRef<string | undefined>(undefined)
 
+  const isLoaded =
+    !isLoadingSubscription &&
+    !isLoadingSubscriptions &&
+    !isLoadingCustomer
+
   // Refetch billing data when user ID changes to prevent showing previous user's data
   useEffect(() => {
     const currentUserId = session?.user?.id
     if (
       currentUserId &&
       currentUserId !== previousUserIdRef.current &&
-      billing.loaded &&
-      billing.reload
+      isLoaded
     ) {
       previousUserIdRef.current = currentUserId
-      billing.reload()
+      invalidateCustomerData(queryClient)
     } else if (currentUserId) {
       previousUserIdRef.current = currentUserId
     }
-  }, [session?.user?.id, billing])
+  }, [session?.user?.id, isLoaded, queryClient])
 
   // Initialize newQuantity when seat usage loads (only run once when capacity becomes available)
   const hasInitializedQuantity = useRef(false)
@@ -73,39 +94,28 @@ export function HomeClient() {
 
   // Check if user is on free plan and redirect to pricing page
   useEffect(() => {
-    if (isSessionPending || !billing.loaded) {
+    if (isSessionPending || !isLoaded) {
       return
     }
 
     const hasNonFreePlan =
-      billing.currentSubscriptions &&
-      billing.currentSubscriptions.length > 0 &&
-      billing.currentSubscriptions.some((sub) => !sub.isFreePlan)
+      currentSubscriptions &&
+      currentSubscriptions.length > 0 &&
+      currentSubscriptions.some((sub) => !sub.isFreePlan)
 
     if (!hasNonFreePlan) {
       router.push('/pricing')
     }
-  }, [
-    isSessionPending,
-    billing.loaded,
-    billing.currentSubscriptions,
-    router,
-  ])
+  }, [isSessionPending, isLoaded, currentSubscriptions, router])
 
-  if (isSessionPending || !billing.loaded) {
+  if (isSessionPending || !isLoaded) {
     return <DashboardSkeleton />
   }
 
-  if (
-    !session?.user ||
-    billing.errors !== null ||
-    !billing.pricingModel ||
-    !billing.customer
-  ) {
+  if (!session?.user || !pricingModel || !customer) {
     return <DashboardSkeleton />
   }
 
-  const currentSubscription = billing.currentSubscriptions?.[0]
   const planName = currentSubscription?.name || 'Unknown Plan'
 
   const handleClaimSeat = async () => {
@@ -146,8 +156,6 @@ export function HomeClient() {
   }
 
   const handleAdjustSeats = async () => {
-    if (!billing.adjustSubscription) return
-
     // Block reducing below claimed count
     const claimedCount = seatUsage?.claimed ?? 0
     if (newQuantity < claimedCount) {
@@ -157,17 +165,16 @@ export function HomeClient() {
       return
     }
 
-    // Derive slug from current subscription's priceId using catalog
-    const currentSubscription = billing.currentSubscriptions?.[0]
+    // Derive slug from current subscription's priceId using pricingModel
     const currentPriceId = currentSubscription?.priceId
-    if (!currentPriceId || !billing.catalog) {
+    if (!currentPriceId || !pricingModel) {
       setError('Unable to determine current subscription plan.')
       return
     }
 
-    // Find the price slug from the catalog
+    // Find the price slug from the pricingModel
     let priceSlug: string | null = null
-    for (const product of billing.catalog.products) {
+    for (const product of pricingModel.products) {
       const price = product.prices.find(
         (p) => p.id === currentPriceId
       )
@@ -186,14 +193,13 @@ export function HomeClient() {
     setError(null)
 
     try {
-      await billing.adjustSubscription({
+      // adjust() auto-provides subscription ID and auto-invalidates cache
+      await adjust({
         priceSlug,
         quantity: newQuantity,
       })
       // Reset initialized flag so the useEffect will update newQuantity after reload
       hasInitializedQuantity.current = false
-      // Reload billing to get updated subscription
-      await billing.reload()
     } catch (err) {
       setError(
         err instanceof Error
@@ -420,8 +426,7 @@ export function HomeClient() {
                   disabled={
                     isAdjustingSeats ||
                     newQuantity === capacity ||
-                    newQuantity < claimed ||
-                    !billing.adjustSubscription
+                    newQuantity < claimed
                   }
                   className="w-full"
                 >
