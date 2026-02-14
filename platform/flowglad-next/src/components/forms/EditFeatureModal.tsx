@@ -39,7 +39,10 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
         await editFeatureMutation.mutateAsync(data)
       }}
     >
-      <FeatureFormFields edit />
+      <FeatureFormFields
+        edit
+        pricingModelId={feature.pricingModelId}
+      />
     </FormModal>
   )
 }

@@ -69,8 +69,9 @@ export const createFeature = protectedProcedure
         if (!pricingModelId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message:
-              'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.',
+            message: ctx.isApi
+              ? 'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.'
+              : 'Unable to determine pricing model scope. Please select a pricing model.',
           })
         }
         const feature = await insertFeature(
