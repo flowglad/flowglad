@@ -24,6 +24,7 @@ export const ProductFeatureMultiSelect = ({
         pricingModelId,
       },
       {
+        enabled: !!pricingModelId,
         refetchOnMount: 'always',
         staleTime: 0,
       }
