@@ -16,6 +16,7 @@ import {
 interface CreateUsageMeterModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
+  /** Used exclusively for price form context — the usage meter's pricingModelId is derived server-side. */
   defaultPricingModelId?: string
 }
 
