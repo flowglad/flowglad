@@ -605,6 +605,7 @@ const exportCsvProcedure = protectedProcedure
       filters: z
         .object({
           archived: z.boolean().optional(),
+          // Redundant with restrictive PM RLS policy (migration 0287), kept for dashboard PM switcher UI.
           pricingModelId: z.string().optional(),
         })
         .optional(),
