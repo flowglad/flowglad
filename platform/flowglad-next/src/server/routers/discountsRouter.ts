@@ -133,6 +133,7 @@ const getTableRowsProcedure = protectedProcedure
     createPaginatedTableRowInputSchema(
       z.object({
         active: z.boolean().optional(),
+        // Redundant with restrictive PM RLS policy (migration 0287), kept for dashboard PM switcher UI.
         pricingModelId: z.string().optional(),
       })
     )
