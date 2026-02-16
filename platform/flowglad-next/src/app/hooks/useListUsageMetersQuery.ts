@@ -23,9 +23,12 @@ export const useListUsageMetersQuery = () => {
       allData.push(...nextPage.data.data)
     }
     return {
-      ...firstPage.data,
       data: allData,
-      hasMore: nextPage.data?.hasMore ?? firstPage.data.hasMore,
+      total: firstPage.data.total,
+      currentCursor: firstPage.data.currentCursor,
+      nextCursor:
+        nextPage.data?.nextCursor ?? firstPage.data.nextCursor,
+      hasMore: false,
     }
   }, [firstPage.data, nextPage.data])
 
