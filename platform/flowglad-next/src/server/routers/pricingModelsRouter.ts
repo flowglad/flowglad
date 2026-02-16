@@ -43,6 +43,7 @@ import {
   constructIntegrationGuide,
   constructIntegrationGuideStream,
 } from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
+import { makeLivePricingModelTransaction } from '@/utils/pricingModels/makeLive'
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
@@ -666,6 +667,48 @@ const getIntegrationGuideProcedure = protectedProcedure
     })
   })
 
+const makeLiveProcedure = protectedProcedure
+  .input(z.object({ testPricingModelId: z.string() }))
+  .output(z.object({ pricingModel: pricingModelsClientSelectSchema }))
+  .mutation(async ({ input, ctx }) => {
+    // Authorization pre-check: verify user can access the test PM
+    unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const pricingModelResult = await selectPricingModelById(
+            input.testPricingModelId,
+            transaction
+          )
+          if (Result.isError(pricingModelResult)) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message:
+                'The pricing model you are trying to make live either does not exist or you do not have permission to access it.',
+            })
+          }
+          return Result.ok(undefined)
+        },
+        { apiKey: ctx.apiKey }
+      )
+    )
+
+    // Use adminTransaction to allow cross-environment operations
+    // (reading testmode PM, writing to livemode PM)
+    const result = (
+      await adminTransaction(async (transactionCtx) => {
+        return makeLivePricingModelTransaction(
+          {
+            testPricingModelId: input.testPricingModelId,
+            organizationId: ctx.organizationId!,
+          },
+          transactionCtx
+        )
+      })
+    ).unwrap()
+
+    return { pricingModel: result.pricingModel }
+  })
+
 export const pricingModelsRouter = router({
   list: listPricingModelsProcedure,
   setup: setupPricingModelProcedure,
@@ -674,6 +717,7 @@ export const pricingModelsRouter = router({
   create: createPricingModelProcedure,
   update: updatePricingModelProcedure,
   clone: clonePricingModelProcedure,
+  makeLive: makeLiveProcedure,
   getTableRows: getTableRowsProcedure,
   getAllForSwitcher: getAllForSwitcherProcedure,
   export: exportPricingModelProcedure,
