@@ -19,7 +19,7 @@ export const useListUsageMetersQuery = () => {
   const data = useMemo(() => {
     if (!firstPage.data) return undefined
     const allData = [...firstPage.data.data]
-    if (nextPage.data) {
+    if (firstPage.data.hasMore && nextPage.data) {
       allData.push(...nextPage.data.data)
     }
     return {
