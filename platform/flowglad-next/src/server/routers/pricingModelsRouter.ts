@@ -671,29 +671,10 @@ const makeLiveProcedure = protectedProcedure
   .input(z.object({ testPricingModelId: z.string() }))
   .output(z.object({ pricingModel: pricingModelsClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
-    // Authorization pre-check: verify user can access the test PM
-    unwrapOrThrow(
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          const pricingModelResult = await selectPricingModelById(
-            input.testPricingModelId,
-            transaction
-          )
-          if (Result.isError(pricingModelResult)) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message:
-                'The pricing model you are trying to make live either does not exist or you do not have permission to access it.',
-            })
-          }
-          return Result.ok(undefined)
-        },
-        { apiKey: ctx.apiKey }
-      )
-    )
-
     // Use adminTransaction to allow cross-environment operations
-    // (reading testmode PM, writing to livemode PM)
+    // (reading testmode PM, writing to livemode PM).
+    // Authorization is handled by makeLivePricingModelTransaction which validates
+    // that the test PM belongs to the user's organization.
     const result = (
       await adminTransaction(async (transactionCtx) => {
         return makeLivePricingModelTransaction(
