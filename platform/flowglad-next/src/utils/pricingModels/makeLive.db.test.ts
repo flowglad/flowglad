@@ -196,6 +196,20 @@ describe('makeLivePricingModel', () => {
       ],
     })
 
+    // Capture test PM's product count before makeLive
+    // (includes auto-generated free default product from setup)
+    const testPmProducts = await adminTransaction(
+      async ({ transaction }) => {
+        return Result.ok(
+          await selectProducts(
+            { pricingModelId: testPm.pricingModel.id, active: true },
+            transaction
+          )
+        )
+      }
+    ).then((r) => r.unwrap())
+    const testPmProductCount = testPmProducts.length
+
     const result = (
       await adminTransaction(async (ctx) => {
         return makeLivePricingModelTransaction(
@@ -226,7 +240,7 @@ describe('makeLivePricingModel', () => {
     expect(activeFeatures).toHaveLength(1)
     expect(activeFeatures[0].slug).toBe('new-feature')
 
-    // Verify live PM has the new product
+    // Verify live PM has the same number of active products as the test PM
     const liveProducts = await adminTransaction(
       async ({ transaction }) => {
         return Result.ok(
@@ -239,8 +253,8 @@ describe('makeLivePricingModel', () => {
     ).then((r) => r.unwrap())
 
     const activeProducts = liveProducts.filter((p) => p.active)
-    expect(activeProducts).toHaveLength(1)
-    expect(activeProducts[0].slug).toBe('new-product')
+    expect(activeProducts).toHaveLength(testPmProductCount)
+    expect(activeProducts.map((p) => p.slug)).toContain('new-product')
 
     // Verify live PM has the new price
     const livePrices = await adminTransaction(
@@ -254,11 +268,13 @@ describe('makeLivePricingModel', () => {
       }
     ).then((r) => r.unwrap())
 
-    const activeSubPrices = livePrices.filter(
-      (p) => p.active && p.type === PriceType.Subscription
+    const newProductPrice = livePrices.find(
+      (p) =>
+        p.active &&
+        p.type === PriceType.Subscription &&
+        p.unitPrice === 2999
     )
-    expect(activeSubPrices).toHaveLength(1)
-    expect(activeSubPrices[0].unitPrice).toBe(2999)
+    expect(newProductPrice?.slug).toBe('new-price')
   })
 
   it('should create live PM from test PM when no live PM exists', async () => {
@@ -600,6 +616,22 @@ describe('makeLivePricingModel', () => {
       name: 'Test PM Original',
     })
 
+    // Capture test PM state before makeLive
+    const productsBefore = await adminTransaction(
+      async ({ transaction }) => {
+        return Result.ok(
+          await selectProducts(
+            { pricingModelId: testPm.pricingModel.id, active: true },
+            transaction
+          )
+        )
+      }
+    ).then((r) => r.unwrap())
+    const productCountBefore = productsBefore.length
+    const productSlugsBefore = productsBefore
+      .map((p) => p.slug)
+      .sort()
+
     await adminTransaction(async (ctx) => {
       return makeLivePricingModelTransaction(
         {
@@ -636,8 +668,10 @@ describe('makeLivePricingModel', () => {
       }
     ).then((r) => r.unwrap())
 
-    expect(testProducts).toHaveLength(1)
-    expect(testProducts[0].slug).toBe('starter')
+    expect(testProducts).toHaveLength(productCountBefore)
+    expect(testProducts.map((p) => p.slug).sort()).toEqual(
+      productSlugsBefore
+    )
   })
 
   it('should preserve live PM name', async () => {
@@ -748,6 +782,19 @@ describe('makeLivePricingModel', () => {
       ],
     })
 
+    // Capture test PM's product count before makeLive
+    const testPmProducts = await adminTransaction(
+      async ({ transaction }) => {
+        return Result.ok(
+          await selectProducts(
+            { pricingModelId: testPm.pricingModel.id, active: true },
+            transaction
+          )
+        )
+      }
+    ).then((r) => r.unwrap())
+    const testPmProductCount = testPmProducts.length
+
     const result = (
       await adminTransaction(async (ctx) => {
         return makeLivePricingModelTransaction(
@@ -794,8 +841,9 @@ describe('makeLivePricingModel', () => {
     const activeProducts = liveProducts.filter((p) => p.active)
     const deactivatedProducts = liveProducts.filter((p) => !p.active)
 
-    expect(activeProducts).toHaveLength(1)
-    expect(activeProducts[0].slug).toBe('new-product')
+    // Active products should match test PM's product count
+    expect(activeProducts).toHaveLength(testPmProductCount)
+    expect(activeProducts.map((p) => p.slug)).toContain('new-product')
     expect(
       deactivatedProducts.some((p) => p.slug === 'live-only-product')
     ).toBe(true)
