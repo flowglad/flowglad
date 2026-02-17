@@ -26,7 +26,7 @@ const constructIdParam = (params: CreateOpenApiMetaParams) => {
 export const createGetOpenApiMeta = (
   params: CreateOpenApiMetaParams
 ): OpenApiMeta => {
-  const { summary, tags } = params
+  const { summary, tags, description } = params
   return {
     openapi: {
       method: 'GET',
@@ -34,6 +34,7 @@ export const createGetOpenApiMeta = (
         params.routeSuffix ? `/${params.routeSuffix}` : ''
       }`,
       summary,
+      ...(description ? { description } : {}),
       tags,
       protect: true,
     },

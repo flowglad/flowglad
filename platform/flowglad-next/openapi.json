@@ -317,6 +317,7 @@
       "post": {
         "operationId": "checkoutSessions-create",
         "summary": "Create Checkout Session",
+        "description": "Create a checkout session for various purposes:\n\n**Product checkout (type: \"product\"):** Creates a session for purchasing a product/subscription. Requires priceId or priceSlug.\n\n**Add payment method (type: \"add_payment_method\"):** Creates a session to collect a payment method from the customer without making a purchase. Use this to collect payment details before calling `/subscriptions/{id}/adjust` for subscriptions that require a payment method. Optionally set `targetSubscriptionId` to automatically assign the new payment method to a subscription, or `automaticallyUpdateSubscriptions` to update all current subscriptions.\n\n**Activate subscription (type: \"activate_subscription\"):** Creates a session to add a payment method and pay any outstanding invoices for a subscription. Requires targetSubscriptionId.",
         "tags": ["Checkout Sessions", "Purchases"],
         "security": [
           {
@@ -1533,6 +1534,7 @@
       "post": {
         "operationId": "customers-create",
         "summary": "Create Customer",
+        "description": "Create a new customer. The customer is automatically assigned to the organization's default pricing model. If the default pricing model has a default product with a free tier (unitPrice = 0), a subscription is automatically created for the customer. The `pricingModelId` field is not exposed in the API - customers are always assigned to the default pricing model when created via API.",
         "tags": ["Customer"],
         "security": [
           {
@@ -1993,6 +1995,7 @@
       "get": {
         "operationId": "customers-getBilling",
         "summary": "Get Billing Details",
+        "description": "Retrieves a comprehensive billing snapshot for a customer. Unlike list endpoints that return `{ data: [...] }` wrappers for paginated collections, this endpoint returns an aggregated view with multiple resource types at the top level (customer, subscriptions, invoices, paymentMethods, etc.). This format provides a complete billing overview in a single request, suitable for building customer billing portals.",
         "tags": ["Customer", "Customer Billing"],
         "security": [
           {
@@ -5739,7 +5742,7 @@
       "post": {
         "operationId": "subscriptions-adjust",
         "summary": "Adjust Subscription",
-        "description": "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id. For immediate adjustments with proration, this endpoint waits for the billing run to complete before returning, ensuring the subscription is fully updated.",
+        "description": "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id. For immediate adjustments with proration, this endpoint waits for the billing run to complete before returning, ensuring the subscription is fully updated.\n\n**Constraints:**\n- The subscription cannot be on a free plan (unitPrice must be > 0 for at least one item)\n- The subscription cannot have the `doNotCharge` flag set to true\n- The subscription cannot have a pending scheduled adjustment (scheduledAdjustmentAt must be null)\n- The subscription cannot have a pending cancellation (status cannot be `cancellation_scheduled`)",
         "tags": ["Subscriptions"],
         "security": [
           {
@@ -6622,6 +6625,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "description": "Response containing the subscription item feature that was added or updated.",
                   "$ref": "#/components/schemas/AddFeatureToSubscriptionOutput"
                 }
               }
@@ -17833,6 +17837,7 @@
           "subscriptionItems": {
             "type": "array",
             "items": {
+              "description": "A subscription item with its associated price details. The price object includes productId for identifying the associated product.",
               "type": "object",
               "properties": {
                 "id": {
@@ -17955,6 +17960,7 @@
                   "type": "string"
                 },
                 "price": {
+                  "description": "The price associated with this subscription item. Contains productId which identifies the product this price belongs to.",
                   "$ref": "#/components/schemas/PriceRecord"
                 }
               },
@@ -18095,7 +18101,7 @@
         "additionalProperties": false
       },
       "SubscriptionItemFeaturesClientSelectSchema": {
-        "oneOf": [
+        "anyOf": [
           {
             "$ref": "#/components/schemas/ToggleSubscriptionItemFeatureRecord"
           },
@@ -18105,16 +18111,7 @@
           {
             "$ref": "#/components/schemas/ResourceSubscriptionItemFeatureRecord"
           }
-        ],
-        "type": "object",
-        "discriminator": {
-          "propertyName": "type",
-          "mapping": {
-            "toggle": "#/components/schemas/ToggleSubscriptionItemFeatureRecord",
-            "usage_credit_grant": "#/components/schemas/UsageCreditGrantSubscriptionItemFeatureRecord",
-            "resource": "#/components/schemas/ResourceSubscriptionItemFeatureRecord"
-          }
-        }
+        ]
       },
       "ToggleSubscriptionItemFeatureRecord": {
         "type": "object",
@@ -18738,6 +18735,7 @@
           "subscriptionItems": {
             "type": "array",
             "items": {
+              "description": "A subscription item with its associated price details. The price object includes productId for identifying the associated product.",
               "type": "object",
               "properties": {
                 "id": {
@@ -18860,6 +18858,7 @@
                   "type": "string"
                 },
                 "price": {
+                  "description": "The price associated with this subscription item. Contains productId which identifies the product this price belongs to.",
                   "$ref": "#/components/schemas/PriceRecord"
                 }
               },
@@ -21086,6 +21085,7 @@
         "type": "object",
         "properties": {
           "subscriptionItemFeature": {
+            "description": "The created or updated subscription item feature. For toggle features, returns the existing feature if already attached (idempotent). For usage credit features, the amount field reflects the accumulated credits. Includes feature metadata (name, slug) and type-specific fields like usageMeterId for credit grants.",
             "$ref": "#/components/schemas/SubscriptionItemFeaturesClientSelectSchema"
           }
         },

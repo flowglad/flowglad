@@ -434,7 +434,7 @@ const adjustSubscriptionProcedure = protectedProcedure
       path: '/api/v1/subscriptions/{id}/adjust',
       summary: 'Adjust Subscription',
       description:
-        "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id. For immediate adjustments with proration, this endpoint waits for the billing run to complete before returning, ensuring the subscription is fully updated.",
+        "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id. For immediate adjustments with proration, this endpoint waits for the billing run to complete before returning, ensuring the subscription is fully updated.\n\n**Constraints:**\n- The subscription cannot be on a free plan (unitPrice must be > 0 for at least one item)\n- The subscription cannot have the `doNotCharge` flag set to true\n- The subscription cannot have a pending scheduled adjustment (scheduledAdjustmentAt must be null)\n- The subscription cannot have a pending cancellation (status cannot be `cancellation_scheduled`)",
       tags: ['Subscriptions'],
       protect: true,
     },

@@ -12,9 +12,14 @@ import { addFeatureToSubscriptionItem } from '@/subscriptions/subscriptionItemFe
 const addFeatureToSubscriptionOutputSchema = z
   .object({
     subscriptionItemFeature:
-      subscriptionItemFeaturesClientSelectSchema,
+      subscriptionItemFeaturesClientSelectSchema.describe(
+        'The created or updated subscription item feature. For toggle features, returns the existing feature if already attached (idempotent). For usage credit features, the amount field reflects the accumulated credits. Includes feature metadata (name, slug) and type-specific fields like usageMeterId for credit grants.'
+      ),
   })
   .meta({ id: 'AddFeatureToSubscriptionOutput' })
+  .describe(
+    'Response containing the subscription item feature that was added or updated.'
+  )
 
 export const addFeatureToSubscription = protectedProcedure
   .meta({
