@@ -120,7 +120,10 @@ export function PricingCardsGrid() {
   }
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
-    if (!currentSubscriptions || currentSubscriptions.length === 0) {
+    if (
+      !Array.isArray(currentSubscriptions) ||
+      currentSubscriptions.length === 0
+    ) {
       return false
     }
     const priceSlug = plan.slug

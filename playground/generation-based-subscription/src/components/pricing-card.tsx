@@ -59,12 +59,21 @@ export function PricingCard({
 
     setIsLoading(true)
     try {
-      await createCheckoutSession({
+      const result = await createCheckoutSession({
         priceSlug: priceSlug,
         successUrl: `${window.location.origin}/`,
         cancelUrl: window.location.href,
-        autoRedirect: true,
       })
+      if ('error' in result) {
+        throw new Error(
+          typeof result.error.json?.message === 'string'
+            ? result.error.json.message
+            : result.error.code
+        )
+      }
+      if (result.url) {
+        window.location.href = result.url
+      }
     } catch (error) {
       const errorMsg =
         error instanceof Error

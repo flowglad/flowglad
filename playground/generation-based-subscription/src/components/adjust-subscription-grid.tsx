@@ -49,7 +49,7 @@ export function AdjustSubscriptionGrid({
   // Get current subscription price for comparison
   const currentPlanPrice = useMemo(() => {
     if (
-      !currentSubscriptions ||
+      !Array.isArray(currentSubscriptions) ||
       currentSubscriptions.length === 0 ||
       !pricingModel
     ) {
@@ -157,7 +157,10 @@ export function AdjustSubscriptionGrid({
   }
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
-    if (!currentSubscriptions || currentSubscriptions.length === 0) {
+    if (
+      !Array.isArray(currentSubscriptions) ||
+      currentSubscriptions.length === 0
+    ) {
       return false
     }
     const priceSlug = plan.slug

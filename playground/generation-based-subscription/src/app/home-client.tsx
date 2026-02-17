@@ -139,7 +139,7 @@ export function HomeClient() {
 
     // Check if user has at least one non-free plan subscription
     const hasNonFreePlan =
-      currentSubscriptions &&
+      Array.isArray(currentSubscriptions) &&
       currentSubscriptions.length > 0 &&
       currentSubscriptions.some((sub) => !sub.isFreePlan)
 
@@ -377,12 +377,21 @@ export function HomeClient() {
     setTopUpError(null)
 
     try {
-      await createCheckoutSession({
+      const result = await createCheckoutSession({
         priceId: price.id,
         successUrl: window.location.href,
         cancelUrl: window.location.href,
-        autoRedirect: true,
       })
+      if ('error' in result) {
+        throw new Error(
+          typeof result.error.json?.message === 'string'
+            ? result.error.json.message
+            : result.error.code
+        )
+      }
+      if (result.url) {
+        window.location.href = result.url
+      }
     } catch (error) {
       setTopUpError(
         error instanceof Error
@@ -413,12 +422,21 @@ export function HomeClient() {
     setTopUpError(null)
 
     try {
-      await createCheckoutSession({
+      const result = await createCheckoutSession({
         priceId: price.id,
         successUrl: window.location.href,
         cancelUrl: window.location.href,
-        autoRedirect: true,
       })
+      if ('error' in result) {
+        throw new Error(
+          typeof result.error.json?.message === 'string'
+            ? result.error.json.message
+            : result.error.code
+        )
+      }
+      if (result.url) {
+        window.location.href = result.url
+      }
     } catch (error) {
       setTopUpError(
         error instanceof Error
