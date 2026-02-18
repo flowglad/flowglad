@@ -100,6 +100,7 @@ export const createContext = async (
     isApi: false,
     apiKey: undefined,
     focusedPricingModelId,
+    apiKeyPricingModelId: undefined,
     authScope: 'merchant' as const,
   }
 }
@@ -178,6 +179,7 @@ export const createCustomerContext = async (
     organization,
     isApi: false,
     apiKey: undefined,
+    apiKeyPricingModelId: undefined,
     authScope: 'customer' as const,
   }
 }
@@ -185,9 +187,15 @@ export const createCustomerContext = async (
 export const createApiContext = ({
   organizationId,
   environment,
+  pricingModelId,
 }: {
   organizationId: string
   environment: ApiEnvironment
+  /**
+   * Pricing model ID from the API key.
+   * Used for pricing model scoping in API requests.
+   */
+  pricingModelId?: string
 }) => {
   return async (opts: trpcNext.CreateNextContextOptions) => {
     /**
@@ -215,6 +223,12 @@ export const createApiContext = ({
       environment,
       livemode: environment === 'live',
       focusedPricingModelId: undefined,
+      /**
+       * Pricing model ID from the API key.
+       * Used for creating resources (like customers) within the API key's pricing model scope.
+       * This is separate from focusedPricingModelId which is set from dashboard interactions.
+       */
+      apiKeyPricingModelId: pricingModelId,
     }
   }
 }

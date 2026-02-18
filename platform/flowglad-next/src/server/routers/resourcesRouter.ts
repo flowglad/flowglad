@@ -47,7 +47,7 @@ const resourcesPaginatedListSchema = createPaginatedListQuerySchema(
 
 const listProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
-  .input(z.object({ pricingModelId: z.string() }))
+  .input(z.object({}))
   .output(
     z.object({
       resources: z.array(resourcesClientSelectSchema),
@@ -55,11 +55,22 @@ const listProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
+      async ({ ctx, transactionCtx }) => {
         const { transaction } = transactionCtx
+        const pricingModelId = ctx.isApi
+          ? ctx.apiKeyPricingModelId
+          : ctx.focusedPricingModelId
+        if (!pricingModelId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: ctx.isApi
+              ? 'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.'
+              : 'Unable to determine pricing model scope. Please select a pricing model.',
+          })
+        }
         const resources = await selectResources(
           {
-            pricingModelId: input.pricingModelId,
+            pricingModelId,
           },
           transaction
         )
@@ -100,11 +111,23 @@ const createProcedure = protectedProcedure
               'Organization ID is required for this operation.',
           })
         }
+        const pricingModelId = ctx.isApi
+          ? ctx.apiKeyPricingModelId
+          : ctx.focusedPricingModelId
+        if (!pricingModelId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: ctx.isApi
+              ? 'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.'
+              : 'Unable to determine pricing model scope. Please select a pricing model.',
+          })
+        }
         const resource = await insertResource(
           {
             ...input.resource,
             organizationId,
             livemode,
+            pricingModelId,
           },
           transaction
         )
@@ -155,6 +178,7 @@ const getTableRowsProcedure = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
+        // Redundant with restrictive PM RLS policy (migration 0287), kept for dashboard PM switcher UI.
         pricingModelId: z.string().optional(),
         active: z.boolean().optional(),
       })

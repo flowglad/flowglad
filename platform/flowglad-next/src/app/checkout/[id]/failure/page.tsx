@@ -1,4 +1,10 @@
+import type { Metadata } from 'next'
 import FailurePageContainer from '@/components/FailurePageContainer'
+
+export const metadata: Metadata = {
+  title: 'Payment Failed',
+  description: 'There was an issue processing your payment',
+}
 
 const CheckoutFailurePage = () => {
   return (

@@ -43,6 +43,7 @@ import {
   constructIntegrationGuide,
   constructIntegrationGuideStream,
 } from '@/utils/pricingModels/integration-guides/constructIntegrationGuide'
+import { makeLivePricingModelTransaction } from '@/utils/pricingModels/makeLive'
 import { getPricingModelSetupData } from '@/utils/pricingModels/setupHelpers'
 import { setupPricingModelSchema } from '@/utils/pricingModels/setupSchemas'
 import { setupPricingModelTransaction } from '@/utils/pricingModels/setupTransaction'
@@ -666,6 +667,29 @@ const getIntegrationGuideProcedure = protectedProcedure
     })
   })
 
+const makeLiveProcedure = protectedProcedure
+  .input(z.object({ testPricingModelId: z.string() }))
+  .output(z.object({ pricingModel: pricingModelsClientSelectSchema }))
+  .mutation(async ({ input, ctx }) => {
+    // Use adminTransaction to allow cross-environment operations
+    // (reading testmode PM, writing to livemode PM).
+    // Authorization is handled by makeLivePricingModelTransaction which validates
+    // that the test PM belongs to the user's organization.
+    const result = (
+      await adminTransaction(async (transactionCtx) => {
+        return makeLivePricingModelTransaction(
+          {
+            testPricingModelId: input.testPricingModelId,
+            organizationId: ctx.organizationId!,
+          },
+          transactionCtx
+        )
+      })
+    ).unwrap()
+
+    return { pricingModel: result.pricingModel }
+  })
+
 export const pricingModelsRouter = router({
   list: listPricingModelsProcedure,
   setup: setupPricingModelProcedure,
@@ -674,6 +698,7 @@ export const pricingModelsRouter = router({
   create: createPricingModelProcedure,
   update: updatePricingModelProcedure,
   clone: clonePricingModelProcedure,
+  makeLive: makeLiveProcedure,
   getTableRows: getTableRowsProcedure,
   getAllForSwitcher: getAllForSwitcherProcedure,
   export: exportPricingModelProcedure,

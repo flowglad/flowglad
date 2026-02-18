@@ -53,6 +53,8 @@ export const apiKeys = pgTable(
     ),
     hashText: text('hash_text'),
   },
+  // NOTE: This table also has a restrictive pricing model RLS policy applied
+  // via migration 0287_lovely_anita_blake.sql (current_pricing_model_id() function).
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),

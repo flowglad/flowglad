@@ -60,6 +60,8 @@ const columns = {
 export const customers = pgTable(
   TABLE_NAME,
   columns,
+  // NOTE: This table also has a restrictive pricing model RLS policy applied
+  // via migration 0287_lovely_anita_blake.sql (current_pricing_model_id() function).
   livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
     livemodeIndex([table.organizationId]),
     constructIndex(TABLE_NAME, [table.email]),
@@ -239,6 +241,7 @@ export const customersPaginatedTableRowInputSchema =
     z.object({
       archived: z.boolean().optional(),
       organizationId: z.string().optional(),
+      // Redundant with restrictive PM RLS policy (migration 0287), kept for dashboard PM switcher UI.
       pricingModelId: z.string().optional(),
       livemode: z.boolean().optional(),
     })

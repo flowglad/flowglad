@@ -43,11 +43,7 @@ import {
 } from '@/db/tableMethods/usageMeterMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import {
-  computeUpdateObject,
-  diffPricingModel,
-  diffSluggedResources,
-} from './diffing'
+import { computeUpdateObject, diffPricingModel } from './diffing'
 import { protectDefaultProduct } from './protectDefaultProduct'
 import {
   createProductPriceInsert,
@@ -530,25 +526,8 @@ export const updatePricingModelTransaction = async (
      * Creates new resources, updates existing ones, and deactivates removed ones.
      * Resources must be processed before features because Resource features
      * need to resolve resourceSlug → resourceId.
-     *
-     * Note: Resources are optional in the input schema until Patch 1 (setupSchemas)
-     * adds them to the discriminated union, so we default to empty arrays.
      */
-    type ResourceInput = {
-      slug: string
-      name: string
-      active?: boolean
-    }
-    const existingResources: ResourceInput[] =
-      (existingInput as { resources?: ResourceInput[] }).resources ??
-      []
-    const proposedResources: ResourceInput[] =
-      (proposedInput as { resources?: ResourceInput[] }).resources ??
-      []
-    const resourceDiff = diffSluggedResources(
-      existingResources,
-      proposedResources
-    )
+    const resourceDiff = diff.resources
 
     // Batch create new resources
     if (resourceDiff.toCreate.length > 0) {
