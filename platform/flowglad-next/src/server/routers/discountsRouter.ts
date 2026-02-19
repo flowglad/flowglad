@@ -14,6 +14,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@db-core/tableUtils'
+import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
@@ -32,7 +33,6 @@ import {
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { protectedProcedure } from '@/server/trpc'
-import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { router } from '../trpc'
@@ -49,27 +49,27 @@ export const createDiscount = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const organizationId = ctx.organizationId
     if (!organizationId) {
-      throw new Error('organizationId is required')
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+
+    const pricingModelId = ctx.isApi
+      ? ctx.apiKeyPricingModelId
+      : ctx.focusedPricingModelId
+    if (!pricingModelId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: ctx.isApi
+          ? 'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.'
+          : 'Unable to determine pricing model scope. Ensure you have a focused pricing model selected.',
+      })
     }
 
     const discount = unwrapOrThrow(
       await authenticatedTransaction(
         async ({ transaction, livemode }) => {
-          // Validate and resolve pricingModelId
-          // For API calls, use the API key's pricing model to ensure
-          // RLS policies are satisfied and the discount is created
-          // in the correct pricing model scope.
-          // For dashboard calls, use the input pricingModelId or fall back to default.
-          const pricingModelId =
-            await validateAndResolvePricingModelId({
-              pricingModelId: ctx.isApi
-                ? ctx.apiKeyPricingModelId
-                : input.discount.pricingModelId,
-              organizationId,
-              livemode,
-              transaction,
-            })
-
           return Result.ok(
             await insertDiscount(
               {

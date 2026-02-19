@@ -1,45 +1,49 @@
 import { createDiscountInputSchema } from '@db-core/schema/discounts'
+import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { protectedProcedure } from '@/server/trpc'
-import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 
 export const createDiscount = protectedProcedure
   .input(createDiscountInputSchema)
   .mutation(async ({ input, ctx }) => {
+    const pricingModelId = ctx.isApi
+      ? ctx.apiKeyPricingModelId
+      : ctx.focusedPricingModelId
+    if (!pricingModelId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: ctx.isApi
+          ? 'Unable to determine pricing model scope. Ensure your API key is associated with a pricing model.'
+          : 'Unable to determine pricing model scope. Ensure you have a focused pricing model selected.',
+      })
+    }
+
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+
     const discount = (
       await authenticatedTransaction(
-        async ({ transaction, userId, livemode }) => {
-          const [{ organization }] =
-            await selectMembershipAndOrganizations(
-              {
-                userId,
-                focused: true,
-              },
-              transaction
-            )
-
-          // Validate and resolve pricingModelId (uses default if not provided)
-          const pricingModelId =
-            await validateAndResolvePricingModelId({
-              pricingModelId: input.discount.pricingModelId,
-              organizationId: organization.id,
-              livemode,
-              transaction,
-            })
-
+        async ({ transaction, livemode }) => {
           const discount = await insertDiscount(
             {
               ...input.discount,
               pricingModelId,
-              organizationId: organization.id,
+              organizationId,
               livemode,
             },
             transaction
           )
           return Result.ok(discount)
+        },
+        {
+          apiKey: ctx.apiKey,
         }
       )
     ).unwrap()
