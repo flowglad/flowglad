@@ -67,7 +67,9 @@ jobs:
             echo "No baseline changes to commit"
           else
             # Skip pre-commit hooks - baseline updates are already validated by the ratchet check
-            git commit --no-verify -m "chore: update lint ratchet baseline [skip ci]"
+            # Note: We don't use [skip ci] because that would leave the branch unmergeable
+            # (required status checks wouldn't pass on the latest commit)
+            git commit --no-verify -m "chore: update lint ratchet baseline"
             git push
           fi
 
