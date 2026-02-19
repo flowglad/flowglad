@@ -3869,24 +3869,7 @@
                       "properties": {
                         "usageMeter": {
                           "description": "The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.",
-                          "type": "object",
-                          "properties": {
-                            "name": {
-                              "type": "string"
-                            },
-                            "slug": {
-                              "type": "string"
-                            },
-                            "aggregationType": {
-                              "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
-                              "type": "string",
-                              "enum": [
-                                "sum",
-                                "count_distinct_properties"
-                              ]
-                            }
-                          },
-                          "required": ["name", "slug"]
+                          "$ref": "#/components/schemas/UsageMeterClientInsertSchema"
                         },
                         "prices": {
                           "description": "The prices for this usage meter. Each price defines how usage on this meter is billed.",
@@ -4591,24 +4574,7 @@
                           "properties": {
                             "usageMeter": {
                               "description": "The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.",
-                              "type": "object",
-                              "properties": {
-                                "name": {
-                                  "type": "string"
-                                },
-                                "slug": {
-                                  "type": "string"
-                                },
-                                "aggregationType": {
-                                  "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
-                                  "type": "string",
-                                  "enum": [
-                                    "sum",
-                                    "count_distinct_properties"
-                                  ]
-                                }
-                              },
-                              "required": ["name", "slug"]
+                              "$ref": "#/components/schemas/UsageMeterClientInsertSchema"
                             },
                             "prices": {
                               "description": "The prices for this usage meter. Each price defines how usage on this meter is billed.",
@@ -5434,25 +5400,7 @@
                             "properties": {
                               "usageMeter": {
                                 "description": "The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.",
-                                "type": "object",
-                                "properties": {
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "slug": {
-                                    "type": "string"
-                                  },
-                                  "aggregationType": {
-                                    "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
-                                    "type": "string",
-                                    "enum": [
-                                      "sum",
-                                      "count_distinct_properties"
-                                    ]
-                                  }
-                                },
-                                "required": ["name", "slug"],
-                                "additionalProperties": false
+                                "$ref": "#/components/schemas/UsageMeterClientInsertSchemaOutput"
                               },
                               "prices": {
                                 "description": "The prices for this usage meter. Each price defines how usage on this meter is billed.",
@@ -12017,6 +11965,23 @@
           "ZMW"
         ]
       },
+      "UsageMeterClientInsertSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "aggregationType": {
+            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+            "type": "string",
+            "enum": ["sum", "count_distinct_properties"]
+          }
+        },
+        "required": ["name", "slug"]
+      },
       "AdjustSubscriptionImmediatelyInput": {
         "type": "object",
         "properties": {
@@ -12545,26 +12510,6 @@
           }
         },
         "required": ["id"]
-      },
-      "UsageMeterClientInsertSchema": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "pricingModelId": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "aggregationType": {
-            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
-            "type": "string",
-            "enum": ["sum", "count_distinct_properties"]
-          }
-        },
-        "required": ["name", "pricingModelId", "slug"]
       },
       "FeatureUpdate": {
         "oneOf": [
@@ -21664,6 +21609,24 @@
           "manuallyCreated",
           "pricingModelId"
         ],
+        "additionalProperties": false
+      },
+      "UsageMeterClientInsertSchemaOutput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "aggregationType": {
+            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+            "type": "string",
+            "enum": ["sum", "count_distinct_properties"]
+          }
+        },
+        "required": ["name", "slug"],
         "additionalProperties": false
       }
     },

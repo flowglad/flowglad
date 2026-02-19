@@ -32,7 +32,7 @@ type UsageMeterPriceFields = {
  */
 export const createUsageMeterTransaction = async (
   payload: {
-    usageMeter: UsageMeter.ClientInsert
+    usageMeter: UsageMeter.ClientInsert & { pricingModelId: string }
     price?: UsageMeterPriceFields
   },
   {
