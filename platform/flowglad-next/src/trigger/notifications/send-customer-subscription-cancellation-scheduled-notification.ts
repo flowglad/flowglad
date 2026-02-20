@@ -14,11 +14,7 @@ import { CustomerSubscriptionCancellationScheduledEmail } from '@/email-template
 import { ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { formatDate } from '@/utils/core'
-import {
-  formatEmailSubject,
-  getBccForLivemode,
-  safeSend,
-} from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 import { getFromAddress } from '@/utils/email/fromAddress'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 
@@ -147,7 +143,6 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
         recipientType: 'customer',
         organizationName: organization.name,
       }),
-      bcc: getBccForLivemode(subscription.livemode),
       to: customer.email,
       subject: formatEmailSubject(
         `Cancellation Scheduled: Your ${subscriptionName} subscription will be canceled on ${formatDate(cancellationDate)}`,

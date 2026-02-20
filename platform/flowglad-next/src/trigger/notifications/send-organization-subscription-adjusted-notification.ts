@@ -17,11 +17,7 @@ import {
 import { ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
-import {
-  formatEmailSubject,
-  getBccForLivemode,
-  safeSend,
-} from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
@@ -171,7 +167,6 @@ export const runSendOrganizationSubscriptionAdjustedNotification =
     // per Apple-inspired patterns in subscription-email-improvements.md
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
-      bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
         `Subscription Updated - ${customer.name || customer.email}`,

@@ -1,11 +1,7 @@
 import type { CreateEmailResponse } from 'resend'
 import { panic } from '@/errors'
 import core from '@/utils/core'
-import {
-  formatEmailSubject,
-  getBccForLivemode,
-  safeSend,
-} from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 import { getFromAddress } from './fromAddress'
 import {
   EMAIL_REGISTRY,
@@ -139,7 +135,6 @@ export const sendEmail = async <T extends EmailType>({
         organizationName,
       }),
       to: to.map(safeTo),
-      bcc: getBccForLivemode(livemode),
       subject: formatEmailSubject(baseSubject, livemode),
       replyTo,
       react: renderedTemplate,
