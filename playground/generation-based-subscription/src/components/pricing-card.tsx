@@ -73,6 +73,8 @@ export function PricingCard({
       }
       if (result.url) {
         window.location.href = result.url
+      } else {
+        throw new Error('Checkout URL not returned')
       }
     } catch (error) {
       const errorMsg =

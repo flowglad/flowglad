@@ -52,7 +52,7 @@ export function AdjustSubscriptionCard({
   // Get the price for this plan to compare with current plan
   let price: { unitPrice: number } | null = null
   for (const product of pricingModel.products) {
-    const found = product.prices.find((p) => p.slug === priceSlug)
+    const found = product.prices?.find((p) => p.slug === priceSlug)
     if (found) {
       price = found
       break

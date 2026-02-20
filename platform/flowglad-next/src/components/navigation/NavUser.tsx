@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  Check,
-  CheckCircle2,
-  Circle,
-  DollarSign,
-  Loader2,
-  Plus,
-} from 'lucide-react'
+import { Check, DollarSign, Loader2, Plus } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -150,23 +143,10 @@ export const NavUser: React.FC<NavUserProps> = ({
                   {organization.name}
                 </span>
                 <span
-                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+                  className="truncate text-xs font-medium text-muted-foreground"
                   data-testid="nav-user-org"
                 >
-                  <span className="truncate">
-                    {pricingModel?.name ?? 'No pricing model'}
-                  </span>
-                  {pricingModel && (
-                    <span
-                      className={cn(
-                        'h-2 w-2 shrink-0 rounded-full',
-                        pricingModel.livemode
-                          ? 'bg-jade-muted-foreground'
-                          : 'bg-amber-400'
-                      )}
-                      data-testid="nav-user-mode-indicator"
-                    />
-                  )}
+                  {pricingModel?.name ?? 'No pricing model'}
                 </span>
               </div>
             )}
@@ -278,30 +258,9 @@ export const NavUser: React.FC<NavUserProps> = ({
                             handleSwitchPricingModel(pm.id)
                           }
                         >
-                          {pm.livemode ? (
-                            <CheckCircle2 className="h-5 w-5 shrink-0 text-jade-muted-foreground fill-jade-muted-foreground" />
-                          ) : (
-                            <Circle className="h-5 w-5 shrink-0 text-amber-400" />
-                          )}
                           <span className="truncate flex-1">
                             {pm.name}
                           </span>
-                          {pm.livemode ? (
-                            <span className="inline-flex items-center rounded px-1 py-0.5 text-xs font-medium shrink-0 bg-jade-muted-foreground text-primary-foreground">
-                              Live
-                            </span>
-                          ) : (
-                            <span
-                              className={cn(
-                                'inline-flex items-center rounded px-1 py-0.5 text-xs font-medium shrink-0 border-[1.5px] border-amber-400 text-amber-500 bg-transparent transition-opacity',
-                                isSelected
-                                  ? 'opacity-100'
-                                  : 'opacity-0 group-hover:opacity-100'
-                              )}
-                            >
-                              Test
-                            </span>
-                          )}
                         </DropdownMenuItem>
                       )
                     })}

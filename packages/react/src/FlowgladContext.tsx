@@ -713,7 +713,6 @@ export const fetchPricingModel = async ({
     }
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('response', response)
       console.error('Flowglad: Error fetching pricing model:', error)
     }
     return {
