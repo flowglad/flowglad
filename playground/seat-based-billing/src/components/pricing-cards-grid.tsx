@@ -1,6 +1,6 @@
 'use client'
 
-import { useBilling } from '@flowglad/nextjs'
+import { usePricingModel, useSubscriptions } from '@flowglad/nextjs'
 import Autoplay from 'embla-carousel-autoplay'
 import { useMemo, useRef } from 'react'
 import type { PricingPlan } from '@/components/pricing-card'
@@ -33,53 +33,26 @@ export function PricingCardsGrid() {
       stopOnInteraction: true,
     })
   )
-  const billing = useBilling()
+  const pricingModel = usePricingModel()
+  const { currentSubscriptions } = useSubscriptions()
 
   // Build plans from pricingModel using shared utility
   const plans = useMemo<PricingPlan[]>(() => {
-    // Early return if billing isn't ready or has no pricing model
-    if (!billing.loaded || billing.errors || !billing.pricingModel) {
+    if (!pricingModel) {
       return []
     }
 
-    return transformProductsToPricingPlans(billing.pricingModel)
-  }, [billing])
+    return transformProductsToPricingPlans(pricingModel)
+  }, [pricingModel])
 
-  // Early returns after all hooks to prevent type issues in the rest of the component
-  if (!billing.loaded || billing.errors || !billing.pricingModel) {
-    return null // or loading skeleton
-  }
+  const isLoading =
+    pricingModel === null || pricingModel === undefined
 
-  const isPlanCurrent = (plan: PricingPlan): boolean => {
-    if (
-      !billing.currentSubscriptions ||
-      billing.currentSubscriptions.length === 0
-    ) {
-      return false
-    }
-    if (!billing.getPrice) {
-      return false
-    }
-    const priceSlug = plan.slug
-    const price = billing.getPrice(priceSlug)
-    if (!price) return false
-    const currentPriceIds = new Set(
-      billing.currentSubscriptions
-        .map((sub) => sub.priceId)
-        .filter(
-          (id): id is string =>
-            typeof id === 'string' && id.length > 0
-        )
-    )
-    return currentPriceIds.has(price.id)
-  }
-
-  return (
-    <div className="w-full space-y-8">
-      {/* Pricing Cards - Carousel on Mobile, Grid on Desktop */}
-      {plans.length === 0 ? (
-        // Show skeleton cards when plans are loading
-        isMobile ? (
+  // Show loading skeleton when pricing model is still loading
+  if (isLoading) {
+    return (
+      <div className="w-full space-y-8">
+        {isMobile ? (
           <div className="px-4">
             <Carousel
               plugins={[autoplayPlugin.current]}
@@ -143,8 +116,52 @@ export function PricingCardsGrid() {
               </Card>
             ))}
           </div>
+        )}
+      </div>
+    )
+  }
+
+  const isPlanCurrent = (plan: PricingPlan): boolean => {
+    if (!currentSubscriptions || currentSubscriptions.length === 0) {
+      return false
+    }
+    const priceSlug = plan.slug
+    // Look up price by slug in pricingModel
+    let priceId: string | null = null
+    for (const product of pricingModel.products) {
+      const found = product.prices?.find((p) => p.slug === priceSlug)
+      if (found) {
+        priceId = found.id
+        break
+      }
+    }
+    if (!priceId) return false
+    const currentPriceIds = new Set(
+      currentSubscriptions
+        .map((sub) => sub.priceId)
+        .filter(
+          (id): id is string =>
+            typeof id === 'string' && id.length > 0
         )
-      ) : isMobile ? (
+    )
+    return currentPriceIds.has(priceId)
+  }
+
+  // Empty state: pricing model loaded but no plans
+  if (plans.length === 0) {
+    return (
+      <div className="w-full space-y-8">
+        <p className="text-center text-sm text-muted-foreground">
+          No pricing plans available.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full space-y-8">
+      {/* Pricing Cards - Carousel on Mobile, Grid on Desktop */}
+      {isMobile ? (
         <div className="px-4">
           <Carousel
             plugins={[autoplayPlugin.current]}
