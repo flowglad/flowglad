@@ -9,11 +9,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { CustomerSubscriptionAdjustedEmail } from '@/email-templates/customer-subscription-adjusted'
 import { PaymentError, ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
-import {
-  formatEmailSubject,
-  getBccForLivemode,
-  safeSend,
-} from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 import { getFromAddress } from '@/utils/email/fromAddress'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 
@@ -140,7 +136,6 @@ export const runSendCustomerSubscriptionAdjustedNotification = async (
       recipientType: 'customer',
       organizationName: organization.name,
     }),
-    bcc: getBccForLivemode(subscription.livemode),
     to: [customer.email],
     subject: formatEmailSubject(
       'Your Subscription has been Updated',
