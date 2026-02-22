@@ -1,5 +1,11 @@
 # flowglad
 
+## 0.18.1
+
+### Patch Changes
+
+- 45c25d7: Add @clack/prompts dependency and project-level configuration helper for CLI link/pull/push commands
+
 ## 0.18.0
 
 ### Minor Changes
