@@ -1105,6 +1105,8 @@ export const createSupabaseWebhookSchema = <T extends PgTableWithId>({
   }
 }
 
+const BULK_INSERT_BATCH_SIZE = 500
+
 export const createBulkInsertFunction = <
   T extends PgTableWithId,
   S extends ZodTableUnionOrType<InferSelectModel<T>>,
@@ -1127,11 +1129,20 @@ export const createBulkInsertFunction = <
       if (dataArray.length === 0) {
         return []
       }
-      const result = await transaction
-        .insert(table)
-        .values(parsedData)
-        .returning()
-      return result.map((data) => config.selectSchema.parse(data))
+      const allResults = []
+      for (
+        let i = 0;
+        i < parsedData.length;
+        i += BULK_INSERT_BATCH_SIZE
+      ) {
+        const batch = parsedData.slice(i, i + BULK_INSERT_BATCH_SIZE)
+        const batchResult = await transaction
+          .insert(table)
+          .values(batch)
+          .returning()
+        allResults.push(...batchResult)
+      }
+      return allResults.map((data) => config.selectSchema.parse(data))
     } catch (error) {
       console.error(
         `[createBulkInsertFunction] Error bulk inserting into ${config.tableName}:`,
@@ -1171,14 +1182,23 @@ export const createBulkInsertOrDoNothingFunction = <
       if (parsedData.length === 0) {
         return []
       }
-      const result = await transaction
-        .insert(table)
-        .values(parsedData)
-        .onConflictDoNothing({
-          target,
-        })
-        .returning()
-      return result.map((data) => config.selectSchema.parse(data))
+      const allResults = []
+      for (
+        let i = 0;
+        i < parsedData.length;
+        i += BULK_INSERT_BATCH_SIZE
+      ) {
+        const batch = parsedData.slice(i, i + BULK_INSERT_BATCH_SIZE)
+        const batchResult = await transaction
+          .insert(table)
+          .values(batch)
+          .onConflictDoNothing({
+            target,
+          })
+          .returning()
+        allResults.push(...batchResult)
+      }
+      return allResults.map((data) => config.selectSchema.parse(data))
     } catch (error) {
       if (!IS_TEST) {
         console.error(
@@ -1221,18 +1241,27 @@ export const createBulkUpsertFunction = <
       const parsedData = dataArray.map((data) =>
         config.insertSchema.parse(data)
       ) as InferInsertModel<T>[]
-      const result = await transaction
-        .insert(table)
-        .values(parsedData)
-        .onConflictDoUpdate({
-          target,
-          set: onConflictDoUpdateSetValues(table, [
-            'id',
-            'created_at',
-          ]),
-        })
-        .returning()
-      return result.map((data) => config.selectSchema.parse(data))
+      const allResults = []
+      for (
+        let i = 0;
+        i < parsedData.length;
+        i += BULK_INSERT_BATCH_SIZE
+      ) {
+        const batch = parsedData.slice(i, i + BULK_INSERT_BATCH_SIZE)
+        const batchResult = await transaction
+          .insert(table)
+          .values(batch)
+          .onConflictDoUpdate({
+            target,
+            set: onConflictDoUpdateSetValues(table, [
+              'id',
+              'created_at',
+            ]),
+          })
+          .returning()
+        allResults.push(...batchResult)
+      }
+      return allResults.map((data) => config.selectSchema.parse(data))
     } catch (error) {
       if (!IS_TEST) {
         console.error(
