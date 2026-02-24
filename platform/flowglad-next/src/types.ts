@@ -215,6 +215,7 @@ export enum FeatureFlag {
   Usage = 'usage',
   ImmediateSubscriptionAdjustments = 'immediate_subscription_adjustments',
   SubscriptionWithUsage = 'subscription_with_usage',
+  ExtendTrial = 'extend_trial',
 }
 
 export enum LedgerTransactionInitiatingSourceType {

@@ -35,12 +35,14 @@ import {
 import { useAuthContext } from '@/contexts/authContext'
 import { getSubscriptionDateInfo } from '@/lib/subscription-utils'
 import type { RichSubscription } from '@/subscriptions/schemas'
+import { FeatureFlag } from '@/types'
 import core from '@/utils/core'
 import { formatBillingPeriod, getCurrencyParts } from '@/utils/stripe'
 import { AddSubscriptionFeatureModal } from './AddSubscriptionFeatureModal'
 import { AdjustSubscriptionModal } from './AdjustSubscriptionModal'
 import { BillingHistorySection } from './BillingHistorySection'
 import { EditSubscriptionPaymentMethodModal } from './EditSubscriptionPaymentMethodModal'
+import { ExtendTrialButton } from './ExtendTrialButton'
 import { ScheduledChangesSection } from './ScheduledChangesSection'
 
 /**
@@ -290,6 +292,15 @@ const InnerSubscriptionPage = ({
                   />
                 )
               })}
+              {organization?.featureFlags?.[
+                FeatureFlag.ExtendTrial
+              ] &&
+                subscription.trialEnd &&
+                subscription.trialEnd > Date.now() && (
+                  <ExtendTrialButton
+                    subscriptionId={subscription.id}
+                  />
+                )}
             </div>
           ) : (
             <div className="text-center py-8 px-4 text-muted-foreground">
