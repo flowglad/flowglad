@@ -2,11 +2,13 @@
 import type { PricingModel } from '@db-core/schema/pricingModels'
 import type { Resource } from '@db-core/schema/resources'
 import {
+  ArrowUpFromLine,
   Check,
   Circle,
   CopyPlus,
   Download,
   Pencil,
+  RefreshCw,
   Sparkles,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -22,7 +24,9 @@ import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
 import CreateFeatureModal from '@/components/forms/CreateFeatureModal'
 import CreateProductModal from '@/components/forms/CreateProductModal'
 import EditPricingModelModal from '@/components/forms/EditPricingModelModal'
+import MakeLivePricingModelModal from '@/components/forms/MakeLivePricingModelModal'
 import { PricingModelIntegrationGuideModal } from '@/components/forms/PricingModelIntegrationGuideModal'
+import ReplaceLivePricingModelModal from '@/components/forms/ReplaceLivePricingModelModal'
 import { MoreIcon } from '@/components/icons/MoreIcon'
 import PageContainer from '@/components/PageContainer'
 import PopoverMenu, {
@@ -30,6 +34,7 @@ import PopoverMenu, {
 } from '@/components/PopoverMenu'
 import { ProductsGridSection } from '@/components/ProductsGridSection'
 import { ResourcesDataTable } from '@/components/resources/data-table'
+import { Button } from '@/components/ui/button'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
@@ -48,6 +53,8 @@ function InnerPricingModelDetailsPage({
 }: InnerPricingModelDetailsPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isCloneOpen, setIsCloneOpen] = useState(false)
+  const [isMakeLiveOpen, setIsMakeLiveOpen] = useState(false)
+  const [isReplaceOpen, setIsReplaceOpen] = useState(false)
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isCreateProductModalOpen, setIsCreateProductModalOpen] =
     useState(false)
@@ -243,6 +250,36 @@ function InnerPricingModelDetailsPage({
                   <PopoverMenu items={moreMenuItems} />
                 </PopoverContent>
               </Popover>
+              {!pricingModel.livemode && (
+                <>
+                  <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-7 gap-1.5"
+                    onClick={() => setIsMakeLiveOpen(true)}
+                    title="Replace your livemode pricing model setup with this test model's configuration"
+                  >
+                    <ArrowUpFromLine className="h-3.5 w-3.5" />
+                    Make Live
+                  </Button>
+                </>
+              )}
+              {pricingModel.livemode && (
+                <>
+                  <div className="h-[22px] w-px bg-muted-foreground opacity-10" />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-7 gap-1.5"
+                    onClick={() => setIsReplaceOpen(true)}
+                    title="Replace this livemode setup with a test pricing model's configuration"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Replace
+                  </Button>
+                </>
+              )}
             </div>
           }
         />
@@ -353,6 +390,20 @@ function InnerPricingModelDetailsPage({
         setIsOpen={setIsCloneOpen}
         pricingModel={pricingModel}
       />
+      {!pricingModel.livemode && (
+        <MakeLivePricingModelModal
+          isOpen={isMakeLiveOpen}
+          setIsOpen={setIsMakeLiveOpen}
+          pricingModel={pricingModel}
+        />
+      )}
+      {pricingModel.livemode && (
+        <ReplaceLivePricingModelModal
+          isOpen={isReplaceOpen}
+          setIsOpen={setIsReplaceOpen}
+          pricingModel={pricingModel}
+        />
+      )}
     </PageContainer>
   )
 }

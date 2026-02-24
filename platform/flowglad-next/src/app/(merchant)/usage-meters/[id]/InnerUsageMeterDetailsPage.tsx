@@ -180,7 +180,6 @@ function InnerUsageMeterDetailsPage({
             setIsOpen={handleEditModalClose}
             price={selectedPriceData.price as Price.ClientUsageRecord}
             usageMeterId={usageMeter.id}
-            pricingModelId={usageMeter.pricingModelId}
           />
         )}
     </PageContainer>

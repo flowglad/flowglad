@@ -21,6 +21,7 @@ import {
   usagePriceClientUpdateSchema,
 } from '@db-core/schema/prices'
 import { productsClientUpdateSchema } from '@db-core/schema/products'
+import { resourcesClientUpdateSchema } from '@db-core/schema/resources'
 import { usageMetersClientUpdateSchema } from '@db-core/schema/usageMeters'
 import { Result } from 'better-result'
 import * as R from 'ramda'
@@ -56,6 +57,13 @@ export type UsageMeterDiffInput =
  * Products are complex objects with nested product, price, and features.
  */
 export type ProductDiffInput = SetupPricingModelProductInput
+
+/**
+ * Input type for resource diffing - extracted from SetupPricingModelInput.
+ */
+export type ResourceDiffInput = NonNullable<
+  SetupPricingModelInput['resources']
+>[number]
 
 /**
  * Result of diffing two arrays of slugged resources.
@@ -178,6 +186,23 @@ export const diffFeatures = (
   existing: FeatureDiffInput[],
   proposed: FeatureDiffInput[]
 ): DiffResult<FeatureDiffInput> => {
+  return diffSluggedResources(existing, proposed)
+}
+
+/**
+ * Diffs resource arrays to identify which resources need to be removed, created, or updated.
+ *
+ * Resources are compared by their slug field. The function uses the generic
+ * `diffSluggedResources` utility to perform the comparison.
+ *
+ * @param existing - Array of existing resources
+ * @param proposed - Array of proposed resources
+ * @returns A DiffResult containing resources to remove, create, and update
+ */
+export const diffResources = (
+  existing: ResourceDiffInput[],
+  proposed: ResourceDiffInput[]
+): DiffResult<ResourceDiffInput> => {
   return diffSluggedResources(existing, proposed)
 }
 
@@ -1095,6 +1120,47 @@ export const validateProductDiff = (
 }
 
 /**
+ * Validates a resource diff result.
+ *
+ * This function enforces the following rules:
+ * - Updates must only modify mutable fields (name, active) validated via Zod parsing with strict mode
+ *
+ * @param diff - The diff result from diffResources
+ * @returns Result.ok(undefined) if valid, Result.err(ValidationError) if invalid
+ */
+export const validateResourceDiff = (
+  diff: DiffResult<ResourceDiffInput>
+): Result<void, ValidationError> => {
+  return Result.gen(function* () {
+    for (const { existing, proposed } of diff.toUpdate) {
+      const updateObject = computeUpdateObject(existing, proposed)
+
+      // Skip if nothing changed
+      if (Object.keys(updateObject).length === 0) {
+        continue
+      }
+
+      // Try to parse with strict mode - this will fail if any read-only or create-only fields are present
+      const result = resourcesClientUpdateSchema
+        .partial()
+        .strict()
+        .safeParse(updateObject)
+
+      if (!result.success) {
+        return yield* Result.err(
+          new ValidationError(
+            `resource.${existing.slug}`,
+            `Invalid resource update for slug '${existing.slug}': ${result.error.message}`
+          )
+        )
+      }
+    }
+
+    return Result.ok(undefined)
+  })
+}
+
+/**
  * Result of diffing two pricing models.
  *
  * Contains the diff results for all resource types (features, products, usage meters).
@@ -1112,6 +1178,10 @@ export type PricingModelDiffResult = {
    * Diff result for usage meters, including usage price comparison.
    */
   usageMeters: UsageMeterDiffResult
+  /**
+   * Diff result for resources.
+   */
+  resources: DiffResult<ResourceDiffInput>
 }
 
 /**
@@ -1176,15 +1246,21 @@ export const diffPricingModel = (
       existing.usageMeters,
       proposed.usageMeters
     )
+    const resourcesDiff = diffResources(
+      existing.resources ?? [],
+      proposed.resources ?? []
+    )
 
     yield* validateFeatureDiff(featuresDiff)
     yield* validateProductDiff(productsDiff)
     yield* validateUsageMeterDiff(usageMetersDiff)
+    yield* validateResourceDiff(resourcesDiff)
 
     return Result.ok({
       features: featuresDiff,
       products: productsDiff,
       usageMeters: usageMetersDiff,
+      resources: resourcesDiff,
     })
   })
 }

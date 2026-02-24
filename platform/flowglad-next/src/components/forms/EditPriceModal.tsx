@@ -77,7 +77,6 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
   )
   const isDefaultProduct = productQuery.data?.default === true
   const isDefaultPrice = price.isDefault === true
-  const pricingModelId = productQuery.data?.pricingModelId
   return (
     <FormModal
       isOpen={isOpen}
@@ -103,7 +102,6 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
         productId={hasProductId ? price.productId : undefined}
         isDefaultProductOverride={isDefaultProduct}
         isDefaultPriceOverride={isDefaultPrice}
-        pricingModelId={pricingModelId}
       />
     </FormModal>
   )

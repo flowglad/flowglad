@@ -311,17 +311,8 @@ export const cancelSubscriptionImmediately = async (
   const earliestBillingPeriod = billingPeriodsForSubscription.sort(
     (a, b) => a.startDate - b.startDate
   )[0]
-  if (
-    earliestBillingPeriod &&
-    endDate < earliestBillingPeriod.startDate
-  ) {
-    return Result.err(
-      new ValidationError(
-        'endDate',
-        `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
-      )
-    )
-  }
+  const subscriptionNotYetStarted =
+    earliestBillingPeriod && endDate < earliestBillingPeriod.startDate
 
   let updatedSubscription = await updateSubscription(
     {
@@ -340,10 +331,22 @@ export const cancelSubscriptionImmediately = async (
     status,
     transaction
   )
-  /**
-   * Mark all billing periods that have not started yet as canceled
-   */
+
   for (const billingPeriod of billingPeriodsForSubscription) {
+    /**
+     * If the subscription hasn't started yet, cancel all billing periods
+     */
+    if (subscriptionNotYetStarted) {
+      await safelyUpdateBillingPeriodStatus(
+        billingPeriod,
+        BillingPeriodStatus.Canceled,
+        transaction
+      )
+      continue
+    }
+    /**
+     * Mark all billing periods that have not started yet as canceled
+     */
     if (billingPeriod.startDate > endDate) {
       await safelyUpdateBillingPeriodStatus(
         billingPeriod,
@@ -548,17 +551,8 @@ export const scheduleSubscriptionCancellation = async (
   const earliestBillingPeriod = billingPeriodsForSubscription.sort(
     (a, b) => a.startDate - b.startDate
   )[0]
-  if (
-    earliestBillingPeriod &&
-    endDate < earliestBillingPeriod.startDate
-  ) {
-    return Result.err(
-      new ValidationError(
-        'endDate',
-        `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
-      )
-    )
-  }
+  const subscriptionNotYetStarted =
+    earliestBillingPeriod && endDate < earliestBillingPeriod.startDate
   const cancelScheduledAt = endDate
   if (!subscription.renews) {
     return Result.err(
@@ -579,10 +573,14 @@ export const scheduleSubscriptionCancellation = async (
   )
 
   /**
-   * Mark all billing periods that have not started yet as scheduled to cancel
+   * Mark all billing periods that have not started yet as scheduled to cancel.
+   * If the subscription hasn't started yet, all billing periods are in the future.
    */
   for (const billingPeriod of billingPeriodsForSubscription) {
-    if (billingPeriod.startDate > endDate) {
+    if (
+      subscriptionNotYetStarted ||
+      billingPeriod.startDate > endDate
+    ) {
       await safelyUpdateBillingPeriodStatus(
         billingPeriod,
         BillingPeriodStatus.ScheduledToCancel,

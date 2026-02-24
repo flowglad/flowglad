@@ -1712,7 +1712,10 @@ describeIfRedisKey(
   'evalWithShaFallback behavior (via trackAndEvictLRU)',
   () => {
     afterEach(() => {
-      _setTestRedisClient(null)
+      // Restore a real Redis client instead of null.
+      // Setting null causes redis() to return the no-op stub for all
+      // subsequent test files in this process, breaking them.
+      _setTestRedisClient(getRedisTestClient())
     })
 
     it('falls back to EVAL when EVALSHA returns NOSCRIPT error', async () => {

@@ -4,7 +4,7 @@ import {
   HTTPMethod,
 } from '@flowglad/shared'
 import type { FlowgladServer } from '../FlowgladServer'
-import { parseErrorStringToErrorObject } from '../serverUtils'
+import { mapCaughtErrorToStatusAndPayload } from '../serverUtils'
 import type {
   SubRouteHandler,
   SubRouteHandlerResultData,
@@ -46,7 +46,10 @@ export const getInvoices: SubRouteHandler<
       status: 400,
       error: {
         code: 'Validation error',
-        json: { issues: parsed.error.issues },
+        json: {
+          message: 'Validation error',
+          issues: parsed.error.issues,
+        },
       },
     }
   }
@@ -57,15 +60,9 @@ export const getInvoices: SubRouteHandler<
     data = result
     status = 200
   } catch (e) {
-    if (e instanceof Error) {
-      error = parseErrorStringToErrorObject(e.message)
-    } else {
-      error = {
-        code: 'Unknown error',
-        json: {},
-      }
-    }
-    status = 500
+    const mapped = mapCaughtErrorToStatusAndPayload(e)
+    error = mapped.error
+    status = mapped.status
   }
 
   return {

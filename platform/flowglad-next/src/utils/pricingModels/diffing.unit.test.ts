@@ -14,12 +14,14 @@ import {
   diffFeatures,
   diffPricingModel,
   diffProducts,
+  diffResources,
   diffSluggedResources,
   diffUsageMeterPrices,
   diffUsageMeters,
   type FeatureDiffInput,
   type ProductDiffInput,
   type ProductDiffResult,
+  type ResourceDiffInput,
   type SluggedResource,
   type UsageMeterDiffInput,
   type UsageMeterDiffResult,
@@ -27,6 +29,7 @@ import {
   validateFeatureDiff,
   validatePriceChange,
   validateProductDiff,
+  validateResourceDiff,
   validateUsageMeterDiff,
   validateUsagePriceChange,
 } from './diffing'
@@ -2442,6 +2445,152 @@ describe('validateProductDiff', () => {
   })
 })
 
+describe('diffResources', () => {
+  it('should identify resources to remove when slug exists only in existing', () => {
+    const existing: ResourceDiffInput[] = [
+      { slug: 'res-a', name: 'Resource A', active: true },
+      { slug: 'res-b', name: 'Resource B', active: true },
+    ]
+    const proposed: ResourceDiffInput[] = [
+      { slug: 'res-b', name: 'Resource B', active: true },
+    ]
+
+    const result = diffResources(existing, proposed)
+
+    expect(result.toRemove).toHaveLength(1)
+    expect(result.toRemove[0].slug).toBe('res-a')
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.slug).toBe('res-b')
+  })
+
+  it('should identify resources to create when slug exists only in proposed', () => {
+    const existing: ResourceDiffInput[] = [
+      { slug: 'res-a', name: 'Resource A', active: true },
+    ]
+    const proposed: ResourceDiffInput[] = [
+      { slug: 'res-a', name: 'Resource A', active: true },
+      { slug: 'res-b', name: 'Resource B', active: true },
+    ]
+
+    const result = diffResources(existing, proposed)
+
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toHaveLength(1)
+    expect(result.toCreate[0].slug).toBe('res-b')
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.slug).toBe('res-a')
+  })
+
+  it('should identify resources to update when slug exists in both', () => {
+    const existing: ResourceDiffInput[] = [
+      { slug: 'res-a', name: 'Old Name', active: true },
+    ]
+    const proposed: ResourceDiffInput[] = [
+      { slug: 'res-a', name: 'New Name', active: true },
+    ]
+
+    const result = diffResources(existing, proposed)
+
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toHaveLength(1)
+    expect(result.toUpdate[0].existing.name).toBe('Old Name')
+    expect(result.toUpdate[0].proposed.name).toBe('New Name')
+  })
+
+  it('should handle empty arrays', () => {
+    const result = diffResources([], [])
+
+    expect(result.toRemove).toEqual([])
+    expect(result.toCreate).toEqual([])
+    expect(result.toUpdate).toEqual([])
+  })
+})
+
+describe('validateResourceDiff', () => {
+  it('should pass for valid mutable field changes (name, active)', () => {
+    const diff: DiffResult<ResourceDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: { slug: 'res-a', name: 'Old Name', active: true },
+          proposed: {
+            slug: 'res-a',
+            name: 'New Name',
+            active: false,
+          },
+        },
+      ],
+    }
+
+    expect(Result.isOk(validateResourceDiff(diff))).toBe(true)
+  })
+
+  it('should fail for read-only field changes (organizationId, livemode)', () => {
+    const diff: DiffResult<ResourceDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'res-a',
+            name: 'Resource A',
+            active: true,
+            organizationId: 'org-1',
+          } as ResourceDiffInput,
+          proposed: {
+            slug: 'res-a',
+            name: 'Resource A',
+            active: true,
+            organizationId: 'org-2',
+          } as ResourceDiffInput,
+        },
+      ],
+    }
+
+    const result = validateResourceDiff(diff)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Invalid resource update'
+      )
+    }
+  })
+
+  it('should fail for create-only field changes (pricingModelId)', () => {
+    const diff: DiffResult<ResourceDiffInput> = {
+      toRemove: [],
+      toCreate: [],
+      toUpdate: [
+        {
+          existing: {
+            slug: 'res-a',
+            name: 'Resource A',
+            active: true,
+            pricingModelId: 'pm-1',
+          } as ResourceDiffInput,
+          proposed: {
+            slug: 'res-a',
+            name: 'Resource A',
+            active: true,
+            pricingModelId: 'pm-2',
+          } as ResourceDiffInput,
+        },
+      ],
+    }
+
+    const result = validateResourceDiff(diff)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Invalid resource update'
+      )
+    }
+  })
+})
+
 describe('diffPricingModel', () => {
   /**
    * Helper function to create a minimal SetupPricingModelInput for testing.
@@ -2455,6 +2604,7 @@ describe('diffPricingModel', () => {
       features: overrides.features ?? [],
       products: overrides.products ?? [],
       usageMeters: overrides.usageMeters ?? [],
+      resources: overrides.resources ?? [],
     }
   }
 
@@ -3209,5 +3359,36 @@ describe('diffPricingModel', () => {
     expect(result.usageMeters.toRemove).toEqual([])
     expect(result.usageMeters.toCreate).toEqual([])
     expect(result.usageMeters.toUpdate).toHaveLength(1)
+  })
+
+  it('should include resources in diff result', () => {
+    const existing = createPricingModelInput({
+      resources: [
+        { slug: 'res-remove', name: 'Remove Resource', active: true },
+        { slug: 'res-update', name: 'Old Name', active: true },
+      ],
+    })
+
+    const proposed = createPricingModelInput({
+      resources: [
+        { slug: 'res-update', name: 'New Name', active: true },
+        { slug: 'res-create', name: 'New Resource', active: true },
+      ],
+    })
+
+    const result = diffPricingModel(existing, proposed).unwrap()
+
+    expect(result).toHaveProperty('resources')
+    expect(result.resources.toRemove).toHaveLength(1)
+    expect(result.resources.toRemove[0].slug).toBe('res-remove')
+    expect(result.resources.toCreate).toHaveLength(1)
+    expect(result.resources.toCreate[0].slug).toBe('res-create')
+    expect(result.resources.toUpdate).toHaveLength(1)
+    expect(result.resources.toUpdate[0].existing.name).toBe(
+      'Old Name'
+    )
+    expect(result.resources.toUpdate[0].proposed.name).toBe(
+      'New Name'
+    )
   })
 })

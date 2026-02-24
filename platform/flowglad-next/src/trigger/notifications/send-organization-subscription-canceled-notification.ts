@@ -15,11 +15,7 @@ import { OrganizationSubscriptionCanceledNotificationEmail } from '@/email-templ
 import { ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
-import {
-  formatEmailSubject,
-  getBccForLivemode,
-  safeSend,
-} from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
@@ -173,7 +169,6 @@ export const runSendOrganizationSubscriptionCanceledNotification =
 
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
-      bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
         `Subscription Canceled: ${customer.name} canceled ${subscriptionName}`,

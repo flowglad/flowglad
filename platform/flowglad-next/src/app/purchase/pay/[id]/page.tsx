@@ -1,6 +1,13 @@
 import { CheckoutSessionType } from '@db-core/enums'
 import { Result } from 'better-result'
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+
+export const metadata: Metadata = {
+  title: 'Complete Payment',
+  description: 'Complete your purchase',
+}
+
 import CheckoutPage from '@/components/CheckoutPage'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
 import { adminTransaction } from '@/db/adminTransaction'

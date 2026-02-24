@@ -126,6 +126,8 @@ const columns = {
 export const subscriptions = pgTable(
   TABLE_NAME,
   columns,
+  // NOTE: This table also has a restrictive pricing model RLS policy applied
+  // via migration 0287_lovely_anita_blake.sql (current_pricing_model_id() function).
   livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
     livemodeIndex([table.customerId]),
     constructIndex(TABLE_NAME, [table.priceId]),

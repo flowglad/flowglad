@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 interface ExpandSectionProps {
   /** Section title displayed in the header */
-  title: string
+  title: ReactNode
   /** Content to display when expanded */
   children: ReactNode
   /** Whether the section is expanded by default */

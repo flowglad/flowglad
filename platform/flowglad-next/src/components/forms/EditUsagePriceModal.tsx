@@ -48,7 +48,6 @@ interface EditUsagePriceModalProps {
   setIsOpen: (isOpen: boolean) => void
   price: Price.ClientUsageRecord
   usageMeterId: string
-  pricingModelId?: string
 }
 
 /**
@@ -70,10 +69,6 @@ type EditUsagePriceFormSchema = z.infer<
   typeof editUsagePriceFormSchema
 >
 
-interface UsagePriceFormFieldsProps {
-  pricingModelId?: string
-}
-
 /**
  * Form fields for editing a usage price.
  * Name, slug, status, amount, and usage events per unit are all editable.
@@ -82,9 +77,7 @@ interface UsagePriceFormFieldsProps {
  * When amount or usage events per unit change, the form submission will
  * create a new price and inactivate the old one (immutable price pattern).
  */
-const UsagePriceFormFields = ({
-  pricingModelId,
-}: UsagePriceFormFieldsProps) => {
+const UsagePriceFormFields = () => {
   const form = useFormContext<EditUsagePriceFormSchema>()
   const { organization } = useAuthenticatedContext()
 
@@ -314,7 +307,6 @@ const UsagePriceFormFields = ({
               name="price.usageMeterId"
               control={form.control}
               disabled={true}
-              pricingModelId={pricingModelId}
             />
           </div>
         </div>
@@ -345,7 +337,6 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
   setIsOpen,
   price,
   usageMeterId,
-  pricingModelId,
 }) => {
   const utils = trpc.useUtils()
   const updatePrice = trpc.prices.update.useMutation()
@@ -428,7 +419,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
       key={price.id}
       mode="drawer"
     >
-      <UsagePriceFormFields pricingModelId={pricingModelId} />
+      <UsagePriceFormFields />
     </FormModal>
   )
 }

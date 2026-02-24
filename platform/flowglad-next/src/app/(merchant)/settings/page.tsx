@@ -1,7 +1,7 @@
 'use client'
 import { FlowgladApiKeyType } from '@db-core/enums'
 import { DEFAULT_NOTIFICATION_PREFERENCES } from '@db-core/schema/memberships'
-import { Copy } from 'lucide-react'
+import { Copy, Info } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
@@ -23,6 +23,11 @@ import { Label } from '@/components/ui/label'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
 import { cursorDeepLink } from '@/utils/cursor'

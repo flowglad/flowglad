@@ -11,11 +11,7 @@ import { OrganizationPaymentFailedNotificationEmail } from '@/email-templates/or
 import { ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
-import {
-  formatEmailSubject,
-  getBccForLivemode,
-  safeSend,
-} from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
@@ -116,7 +112,6 @@ export const runSendOrganizationPaymentFailedNotification = async (
 
   await safeSend({
     from: 'Flowglad <notifications@flowglad.com>',
-    bcc: getBccForLivemode(paymentData.livemode),
     to: recipientEmails,
     subject: formatEmailSubject(
       `Payment Failed from ${customer.name}`,

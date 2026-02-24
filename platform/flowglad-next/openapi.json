@@ -9784,16 +9784,7 @@
             "ApiKeyAuth": []
           }
         ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "pricingModelId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -13542,9 +13533,6 @@
       "ResourceClientInsertSchema": {
         "type": "object",
         "properties": {
-          "pricingModelId": {
-            "type": "string"
-          },
           "slug": {
             "type": "string"
           },
@@ -13555,7 +13543,7 @@
             "type": "boolean"
           }
         },
-        "required": ["pricingModelId", "slug", "name"]
+        "required": ["slug", "name"]
       },
       "PaymentClientSelectSchema": {
         "type": "object",

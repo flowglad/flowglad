@@ -1,6 +1,13 @@
 'use client'
 
-import { useBilling } from '@flowglad/nextjs'
+import {
+  useCustomerDetails,
+  useFeatures,
+  usePricingModel,
+  usePurchases,
+  useSubscriptions,
+  useUsageMeters,
+} from '@flowglad/nextjs'
 import {
   Card,
   CardContent,
@@ -11,7 +18,45 @@ import { authClient } from '@/lib/auth-client'
 
 export function DebugClient() {
   const { data: session } = authClient.useSession()
-  const billing = useBilling()
+  const {
+    customer,
+    isLoading: isLoadingCustomer,
+    error: customerError,
+  } = useCustomerDetails()
+  const {
+    currentSubscriptions,
+    isLoading: isLoadingSubscriptions,
+    error: subscriptionsError,
+  } = useSubscriptions()
+  const {
+    features,
+    isLoading: isLoadingFeatures,
+    error: featuresError,
+  } = useFeatures()
+  const {
+    usageMeters,
+    isLoading: isLoadingUsageMeters,
+    error: usageMetersError,
+  } = useUsageMeters()
+  const {
+    purchases,
+    isLoading: isLoadingPurchases,
+    error: purchasesError,
+  } = usePurchases()
+  const pricingModel = usePricingModel()
+
+  const isLoading =
+    isLoadingCustomer ||
+    isLoadingSubscriptions ||
+    isLoadingFeatures ||
+    isLoadingUsageMeters ||
+    isLoadingPurchases
+  const error =
+    customerError ||
+    subscriptionsError ||
+    featuresError ||
+    usageMetersError ||
+    purchasesError
 
   const userId = session?.user?.id ?? 'Not available'
   const activeOrganizationId =
@@ -20,9 +65,19 @@ export function DebugClient() {
         | { activeOrganizationId?: string }
         | undefined
     )?.activeOrganizationId ?? 'Not available'
-  const customerExternalId =
-    billing.customer?.externalId ?? 'Not available'
-  const billingJson = JSON.stringify(billing, null, 2)
+  const customerExternalId = customer?.externalId ?? 'Not available'
+
+  const debugData = {
+    isLoading,
+    error: error?.message ?? null,
+    customer,
+    currentSubscriptions,
+    features,
+    usageMeters,
+    purchases,
+    pricingModel,
+  }
+  const billingJson = JSON.stringify(debugData, null, 2)
 
   return (
     <div className="container mx-auto p-8 max-w-4xl">
@@ -72,7 +127,7 @@ export function DebugClient() {
               <div>
                 <strong>loaded:</strong>{' '}
                 <code className="bg-gray-100 px-2 py-1 rounded">
-                  {String(billing.loaded)}
+                  {String(!isLoading)}
                 </code>
               </div>
             </div>

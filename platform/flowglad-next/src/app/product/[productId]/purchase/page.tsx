@@ -32,10 +32,12 @@ export async function generateMetadata({
 
     return {
       title: `${organization.name} | ${product.name}`,
+      description: `Purchase ${product.name} from ${organization.name}`,
     }
   } catch (error) {
     return {
       title: 'Checkout',
+      description: 'Complete your purchase',
     }
   }
 }

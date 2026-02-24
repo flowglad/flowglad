@@ -255,7 +255,6 @@ export const CreateUsagePriceModal = ({
       <NameAndSlugFields />
       <PriceFormFields
         priceOnly={true}
-        pricingModelId={usageMeter.pricingModelId}
         hideUsageMeter={true}
         disablePriceType={true}
         hidePriceName={true}

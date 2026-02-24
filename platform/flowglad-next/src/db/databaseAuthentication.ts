@@ -32,8 +32,11 @@ export interface JWTClaim extends JwtPayload {
   auth_type: 'api_key' | 'webapp'
   /**
    * Pricing model ID for PM-scoped access.
-   * Required for API key auth (extracted from Unkey metadata).
-   * Undefined for webapp/CLI auth (falls back to org+livemode isolation via RLS).
+   * Set for both auth types:
+   * - API key auth: extracted from Unkey metadata (required).
+   * - Webapp auth: derived from the user's focusedPricingModelId on their membership.
+   * Used by the restrictive RLS policy in migration 0287_lovely_anita_blake.sql
+   * via the current_pricing_model_id() SQL function.
    */
   pricing_model_id?: string
 }

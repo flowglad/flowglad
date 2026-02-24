@@ -13,11 +13,7 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-subscription-canceled'
 import { ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
-import {
-  formatEmailSubject,
-  getBccForLivemode,
-  safeSend,
-} from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 import { getFromAddress } from '@/utils/email/fromAddress'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 
@@ -181,7 +177,6 @@ export const runSendCustomerSubscriptionCanceledNotification =
         recipientType: 'customer',
         organizationName: organization.name,
       }),
-      bcc: getBccForLivemode(subscription.livemode),
       to: customer.email,
       subject: formatEmailSubject(
         `Subscription Canceled: Your ${subscriptionName} subscription has been canceled`,

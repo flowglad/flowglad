@@ -90,7 +90,6 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
           </h3>
           <PriceFormFields
             priceOnly
-            pricingModelId={defaultPricingModelId}
             hideUsageMeter={true}
             hidePriceName={true}
             hidePriceType={true}

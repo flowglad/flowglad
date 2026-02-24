@@ -21,17 +21,15 @@ interface UsageMetersSelectProps {
   name: string
   control: Control<any>
   disabled?: boolean
-  pricingModelId?: string
 }
 
 const UsageMetersSelect = ({
   name,
   control,
   disabled,
-  pricingModelId,
 }: UsageMetersSelectProps) => {
   const { data: usageMeters, isLoading: isLoadingUsageMeters } =
-    useListUsageMetersQuery(pricingModelId)
+    useListUsageMetersQuery()
   const form = useFormContext()
   const { watch, setValue } = form
   const usageMeterId = watch(name)

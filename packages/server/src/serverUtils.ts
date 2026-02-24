@@ -196,3 +196,34 @@ export const parseErrorStringToErrorObject = (
     json: errorJson,
   }
 }
+
+/**
+ * Maps a caught exception to an error payload and HTTP status code.
+ * Shared by subroute handlers to ensure consistent error responses.
+ */
+export const mapCaughtErrorToStatusAndPayload = (
+  e: unknown
+): {
+  status: number
+  error: { code: string; json: Record<string, unknown> }
+} => {
+  if (e instanceof Error) {
+    const error = parseErrorStringToErrorObject(e.message)
+    let status: number
+    if (e.message === 'User not authenticated') {
+      status = 401
+    } else if (e.message === 'Customer not found') {
+      status = 404
+    } else {
+      status = 500
+    }
+    return { status, error }
+  }
+  return {
+    status: 500,
+    error: {
+      code: 'Unknown error',
+      json: { message: 'Unknown error' },
+    },
+  }
+}

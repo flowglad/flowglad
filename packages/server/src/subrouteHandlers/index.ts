@@ -15,8 +15,10 @@ import {
   updateCustomer,
 } from './customerHandlers'
 import { getFeatureAccessItems } from './featureHandlers'
+import { getInvoices } from './invoiceHandlers'
 import { getPaymentMethods } from './paymentMethodHandlers'
 import { getPricingModel } from './pricingModelHandlers'
+import { getPurchases } from './purchaseHandlers'
 import {
   claimResource,
   getResources,
@@ -69,26 +71,8 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.GetFeatureAccess]: getFeatureAccessItems,
   [FlowgladActionKey.GetPaymentMethods]: getPaymentMethods,
   [FlowgladActionKey.GetCustomerDetails]: getCustomerDetails,
-  [FlowgladActionKey.GetInvoices]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: {},
-      },
-    }
-  },
-  [FlowgladActionKey.GetPurchases]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: {},
-      },
-    }
-  },
+  [FlowgladActionKey.GetInvoices]: getInvoices,
+  [FlowgladActionKey.GetPurchases]: getPurchases,
 }
 
 export const hybridRouteToHandlerMap: {

@@ -13,11 +13,7 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerTrialExpiredNoPaymentEmail } from '@/email-templates/customer-trial-expired-no-payment'
 import { PaymentError, ValidationError } from '@/errors'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
-import {
-  formatEmailSubject,
-  getBccForLivemode,
-  safeSend,
-} from '@/utils/email'
+import { formatEmailSubject, safeSend } from '@/utils/email'
 import { getFromAddress } from '@/utils/email/fromAddress'
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 
@@ -136,7 +132,6 @@ export const runSendCustomerTrialExpiredNotification =
         recipientType: 'customer',
         organizationName: organization.name,
       }),
-      bcc: getBccForLivemode(subscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(
         'Action Required: Update Your Payment Method',

@@ -201,8 +201,13 @@ export const usePaymentMethods = (): UsePaymentMethodsResult => {
 
       const json: unknown = await response.json()
       if (!isPaymentMethodsRouteResponse(json)) {
+        //to avoid logging the entire json object
+        const summary =
+          json !== null && typeof json === 'object'
+            ? `type=object, keys=[${Object.keys(json).join(', ')}]`
+            : `type=${typeof json}`
         throw new Error(
-          `Invalid payment methods response format: ${JSON.stringify(json)}`
+          `Invalid payment methods response format: ${summary}`
         )
       }
       return json
