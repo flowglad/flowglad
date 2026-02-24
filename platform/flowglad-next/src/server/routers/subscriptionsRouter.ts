@@ -1180,38 +1180,45 @@ const listDistinctSubscriptionProductNamesProcedure =
 
 /**
  * Converts a date string (YYYY-MM-DD) to 11:59:59 PM Eastern Time.
- * Handles both EST and EDT automatically based on the date.
+ * Uses Intl API for reliable timezone handling on cloud servers.
  */
 const convertToEndOfDayET = (dateString: string): number => {
   // Parse the date components
   const [year, month, day] = dateString.split('-').map(Number)
 
-  // Create a date at 23:59:59 in the local context first
-  // Then we'll adjust for Eastern Time
-  const date = new Date(Date.UTC(year, month - 1, day, 23, 59, 59))
+  // Use Intl to get the correct UTC offset for America/New_York on this date
+  // This handles EST/EDT transitions correctly regardless of server timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'shortOffset',
+  })
 
-  // Eastern Time offset: EST is UTC-5, EDT is UTC-4
-  // DST in US: Second Sunday of March to First Sunday of November
-  const isDST = (d: Date): boolean => {
-    const jan = new Date(d.getFullYear(), 0, 1)
-    const jul = new Date(d.getFullYear(), 6, 1)
-    const stdOffset = Math.max(
-      jan.getTimezoneOffset(),
-      jul.getTimezoneOffset()
-    )
-    return d.getTimezoneOffset() < stdOffset
-  }
+  // Create a reference date in the target timezone to extract the offset
+  // We use noon to avoid any edge cases around midnight
+  const refDate = new Date(Date.UTC(year, month - 1, day, 17, 0, 0)) // 17:00 UTC = ~noon ET
+  const parts = formatter.formatToParts(refDate)
+  const offsetPart =
+    parts.find((p) => p.type === 'timeZoneName')?.value ?? ''
 
-  // Check if the target date is in DST
-  const targetDate = new Date(year, month - 1, day)
-  const offset = isDST(targetDate) ? 4 : 5 // EDT = UTC-4, EST = UTC-5
+  // Parse offset like "GMT-5" or "GMT-4" to get hours
+  const offsetMatch = offsetPart.match(/GMT([+-]\d+)/)
+  const offsetHours = offsetMatch ? parseInt(offsetMatch[1], 10) : -5 // Default to EST
 
-  // Set to 23:59:59 ET by adding the offset hours to get UTC
+  // Calculate UTC timestamp for 23:59:59 ET
+  // If ET is UTC-5, then 23:59:59 ET = 04:59:59 UTC next day
+  // If ET is UTC-4, then 23:59:59 ET = 03:59:59 UTC next day
   const utcTimestamp = Date.UTC(
     year,
     month - 1,
     day,
-    23 + offset,
+    23 - offsetHours, // Subtract negative offset (e.g., 23 - (-5) = 28 = 04:00 next day)
     59,
     59
   )
