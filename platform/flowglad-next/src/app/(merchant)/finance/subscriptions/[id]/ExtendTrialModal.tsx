@@ -76,6 +76,18 @@ export const ExtendTrialModal = ({
     ? new Date(currentTrialEnd)
     : undefined
 
+  const formatInET = (date: Date) => {
+    return date.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+  }
+
   const minDate = currentTrialEndDate
     ? startOfDay(
         new Date(currentTrialEndDate.getTime() + 24 * 60 * 60 * 1000)
@@ -98,7 +110,7 @@ export const ExtendTrialModal = ({
             <div className="text-sm text-muted-foreground">
               Current trial ends:{' '}
               <span className="font-medium text-foreground">
-                {format(currentTrialEndDate, 'MMM d, yyyy h:mm a')}
+                {formatInET(currentTrialEndDate)} ET
               </span>
             </div>
           )}
