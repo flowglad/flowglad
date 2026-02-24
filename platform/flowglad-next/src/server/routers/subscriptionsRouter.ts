@@ -38,7 +38,11 @@ import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
-import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
+import {
+  selectBillingPeriodById,
+  selectBillingPeriods,
+  updateBillingPeriod,
+} from '@/db/tableMethods/billingPeriodMethods'
 import {
   assertCustomerNotArchived,
   selectCustomerByExternalIdAndOrganizationId,
@@ -48,12 +52,18 @@ import {
   selectPaymentMethodById,
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
 import {
   selectPriceById,
   selectPriceBySlugAndCustomerId,
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
+import { selectSubscriptionItemFeaturesBySubscriptionItemIds } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import {
+  selectCurrentlyActiveSubscriptionItems,
+  selectSubscriptionItems,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import {
   assertSubscriptionNotTerminal,
   isSubscriptionCurrent,
@@ -87,11 +97,15 @@ import {
   scheduleSubscriptionCancellationSchema,
   uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
-import { SubscriptionAdjustmentTiming } from '@/types'
+import { FeatureFlag, SubscriptionAdjustmentTiming } from '@/types'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { unwrapOrThrow } from '@/utils/resultHelpers'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
-import { protectedProcedure, router } from '../trpc'
+import {
+  featureFlaggedProcedure,
+  protectedProcedure,
+  router,
+} from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   resource: 'subscription',
@@ -1164,6 +1178,281 @@ const listDistinctSubscriptionProductNamesProcedure =
       ).unwrap()
     })
 
+/**
+ * Converts a date string (YYYY-MM-DD) to 11:59:59 PM Eastern Time.
+ * Handles both EST and EDT automatically based on the date.
+ */
+const convertToEndOfDayET = (dateString: string): number => {
+  // Parse the date components
+  const [year, month, day] = dateString.split('-').map(Number)
+
+  // Create a date at 23:59:59 in the local context first
+  // Then we'll adjust for Eastern Time
+  const date = new Date(Date.UTC(year, month - 1, day, 23, 59, 59))
+
+  // Eastern Time offset: EST is UTC-5, EDT is UTC-4
+  // DST in US: Second Sunday of March to First Sunday of November
+  const isDST = (d: Date): boolean => {
+    const jan = new Date(d.getFullYear(), 0, 1)
+    const jul = new Date(d.getFullYear(), 6, 1)
+    const stdOffset = Math.max(
+      jan.getTimezoneOffset(),
+      jul.getTimezoneOffset()
+    )
+    return d.getTimezoneOffset() < stdOffset
+  }
+
+  // Check if the target date is in DST
+  const targetDate = new Date(year, month - 1, day)
+  const offset = isDST(targetDate) ? 4 : 5 // EDT = UTC-4, EST = UTC-5
+
+  // Set to 23:59:59 ET by adding the offset hours to get UTC
+  const utcTimestamp = Date.UTC(
+    year,
+    month - 1,
+    day,
+    23 + offset,
+    59,
+    59
+  )
+
+  return utcTimestamp
+}
+
+/**
+ * Checks whether a trial extension is safe for the given subscription.
+ * Returns canExtend: true if all safety conditions are met.
+ */
+const checkTrialExtensionSafety = async (
+  subscriptionId: string,
+  transaction: DbTransaction
+): Promise<{ canExtend: boolean; reason?: string }> => {
+  // Fetch subscription with all fields including externalId
+  const subscriptionResult = await selectSubscriptionById(
+    subscriptionId,
+    transaction
+  )
+  if (Result.isError(subscriptionResult)) {
+    return { canExtend: false, reason: 'Subscription not found' }
+  }
+  const subscription = subscriptionResult.value
+
+  // Check 1: Status must be trialing
+  if (subscription.status !== SubscriptionStatus.Trialing) {
+    return {
+      canExtend: false,
+      reason: `Subscription is in ${subscription.status} status, not trialing`,
+    }
+  }
+
+  // Check 2: Must have future trial end
+  if (!subscription.trialEnd || subscription.trialEnd < Date.now()) {
+    return { canExtend: false, reason: 'Trial has already ended' }
+  }
+
+  // Check 3: No external Stripe subscription (externalId is used for Stripe sync)
+  if (subscription.externalId) {
+    return {
+      canExtend: false,
+      reason: 'Subscription is synced with external system',
+    }
+  }
+
+  // Check 4: No payments exist for this subscription
+  const payments = await selectPayments(
+    { subscriptionId: subscription.id },
+    transaction
+  )
+  if (payments.length > 0) {
+    return {
+      canExtend: false,
+      reason: 'Payments exist for this subscription',
+    }
+  }
+
+  // Check 5: No subscription_item_features with expired_at set
+  const subscriptionItems = await selectSubscriptionItems(
+    { subscriptionId: subscription.id },
+    transaction
+  )
+  if (subscriptionItems.length > 0) {
+    const subscriptionItemIds = subscriptionItems.map(
+      (item) => item.id
+    )
+    const features =
+      await selectSubscriptionItemFeaturesBySubscriptionItemIds(
+        subscriptionItemIds,
+        transaction
+      )
+    if (features.some((f) => f.expiredAt !== null)) {
+      return {
+        canExtend: false,
+        reason: 'Features have expiration dates set',
+      }
+    }
+  }
+
+  // Check 6: No resource_claims with expired_at set
+  const resourceClaims = await selectResourceClaims(
+    { subscriptionId: subscription.id },
+    transaction
+  )
+  if (resourceClaims.some((c) => c.expiredAt !== null)) {
+    return {
+      canExtend: false,
+      reason: 'Resource claims have expiration dates set',
+    }
+  }
+
+  return { canExtend: true }
+}
+
+const canExtendTrialOutputSchema = z.object({
+  canExtend: z.boolean(),
+  reason: z.string().optional(),
+  currentTrialEnd: z.number().optional(),
+})
+
+const canExtendTrialProcedure = featureFlaggedProcedure(
+  FeatureFlag.ExtendTrial
+)
+  .input(idInputSchema)
+  .output(canExtendTrialOutputSchema)
+  .query(async ({ input, ctx }) => {
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const safetyCheck = await checkTrialExtensionSafety(
+            input.id,
+            transaction
+          )
+
+          // Also fetch current trial end for the UI
+          let currentTrialEnd: number | undefined
+          if (safetyCheck.canExtend) {
+            const subscription = (
+              await selectSubscriptionById(input.id, transaction)
+            ).unwrap()
+            currentTrialEnd = subscription.trialEnd ?? undefined
+          }
+
+          return Result.ok({
+            ...safetyCheck,
+            currentTrialEnd,
+          })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+  })
+
+const extendTrialInputSchema = z.object({
+  id: z.string().describe('The subscription ID'),
+  newTrialEndDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .describe('The new trial end date in YYYY-MM-DD format'),
+})
+
+const extendTrialOutputSchema = z.object({
+  subscription: subscriptionClientSelectSchema,
+})
+
+const extendTrialProcedure = featureFlaggedProcedure(
+  FeatureFlag.ExtendTrial
+)
+  .input(extendTrialInputSchema)
+  .output(extendTrialOutputSchema)
+  .mutation(
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+
+        // Re-validate safety conditions
+        const safetyCheck = await checkTrialExtensionSafety(
+          input.id,
+          transaction
+        )
+        if (!safetyCheck.canExtend) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              safetyCheck.reason ??
+              'Trial extension is not safe for this subscription',
+          })
+        }
+
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
+
+        // Convert date to 11:59:59 PM ET
+        const newTrialEndTimestamp = convertToEndOfDayET(
+          input.newTrialEndDate
+        )
+
+        // Validate new date is after current trial end
+        if (
+          subscription.trialEnd &&
+          newTrialEndTimestamp <= subscription.trialEnd
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'New trial end date must be after the current trial end date',
+          })
+        }
+
+        // Find the trial billing period
+        const billingPeriods = await selectBillingPeriods(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+        const trialBillingPeriod = billingPeriods.find(
+          (bp) => bp.trialPeriod
+        )
+
+        if (!trialBillingPeriod) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Trial billing period not found',
+          })
+        }
+
+        // Update subscription
+        // Trial subscriptions are always renewing (standard) subscriptions
+        const updatedSubscription = await updateSubscription(
+          {
+            id: subscription.id,
+            trialEnd: newTrialEndTimestamp,
+            currentBillingPeriodEnd: newTrialEndTimestamp,
+            renews: true as const,
+          },
+          transaction
+        )
+
+        // Update billing period
+        await updateBillingPeriod(
+          {
+            id: trialBillingPeriod.id,
+            endDate: newTrialEndTimestamp,
+          },
+          transaction
+        )
+
+        return {
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
+          },
+        }
+      }
+    )
+  )
+
 export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
   previewAdjust: previewAdjustSubscriptionProcedure,
@@ -1180,4 +1469,6 @@ export const subscriptionsRouter = router({
   listDistinctSubscriptionProductNames:
     listDistinctSubscriptionProductNamesProcedure,
   addFeatureToSubscription,
+  canExtendTrial: canExtendTrialProcedure,
+  extendTrial: extendTrialProcedure,
 })
