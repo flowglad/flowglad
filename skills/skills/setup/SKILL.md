@@ -9,7 +9,7 @@ metadata:
 
 <!--
 @flowglad/skill
-sources_reviewed: 2026-02-06T12:00:00Z
+sources_reviewed: 2026-02-24T21:27:00Z
 source_files:
   - platform/docs/quickstart.mdx
   - platform/docs/sdks/setup.mdx

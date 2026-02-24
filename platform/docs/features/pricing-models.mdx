@@ -1,84 +1,34 @@
 ---
 title: 'Pricing Models'
-description: 'Easily migrate between different pricing models'
+description: 'Define your product offering with a pricing model'
 ---
 
-Pricing Models are fundamental to managing your product offerings and pricing within Flowglad. They allow you to group products and their associated prices, enabling flexible segmentation and customization for different customer groups.
+A Pricing Model groups together your products, prices, features, usage meters, and resources into a single coherent offering.
 
 ## What is a Pricing Model?
 
-Think of a Pricing Model as a distinct price list or product offering. Key characteristics include:
+A Pricing Model defines everything your customers can buy and access:
 
-*   **Product Grouping:** Each Pricing Model contains a specific set of Products and their Prices.
-*   **Exclusive Association:**
-    *   Every Product must belong to exactly one Pricing Model.
-    *   Every Customer is associated with exactly one Pricing Model (either explicitly assigned or implicitly via the Default Pricing Model).
+*   **Products & Prices:** The items you sell and what they cost.
+*   **Features:** Boolean access flags and usage credit grants that products provide.
+*   **Usage Meters:** Consumption tracking for variable-cost resources.
+*   **Resources:** Claimable capacity like seats, API keys, or project limits.
 
-This structure is the foundation for controlling which customers see which products and at what price points.
-
-## Why Use Pricing Models?
-
-Pricing Models are essential for implementing sophisticated pricing strategies:
-
-*   **Customer Segmentation:** Easily offer different pricing tiers or product bundles to distinct customer segments (e.g., regional pricing, tiered plans).
-*   **Bespoke Deals:** Create unique, customized pricing models for individual high-value customers with specific negotiated rates across multiple products.
-*   **Smooth Price Migrations:** Introduce new pricing structures gradually. New customers can be onboarded onto a new pricing model with updated prices, while existing customers remain grandfathered on their original pricing models.
-
-## Common Use Cases
-
-Here are practical examples of how Pricing Models can be applied:
-
-<CardGroup cols={2}>
-  <Card title="Cohort-Specific Offers">
-    Create a dedicated pricing model with special rates for a particular group, such as startups participating in an accelerator program (e.g., a "YC Discount Pricing Model").
-  </Card>
-  <Card title="Custom Enterprise Pricing">
-    Need to offer a unique deal to a large customer? Duplicate your standard pricing model, adjust the prices as needed for that specific deal, and assign this new, bespoke pricing model directly to that customer.
-  </Card>
-  <Card title="Phased Price Updates">
-    When updating your general pricing, create a new pricing model reflecting the changes. Set this new pricing model as the default. All *new* signups will receive the updated pricing, while existing customers continue uninterrupted on their current pricing models.
-  </Card>
-</CardGroup>
-
-## Managing Pricing Models
-
-You can create and manage your pricing models through the Flowglad dashboard (under `Store > Pricing Models`) or programmatically via the API.
-
-### Creating Pricing Models
-
-You have four options when creating a new pricing model:
-
-1.  **From Scratch:** Start with an empty pricing model and add products and prices as needed.
-2.  **Duplicate an Existing Pricing Model:** Create an exact copy of an existing pricing model, including all its products and prices. This is highly useful for creating variations or bespoke versions (like the enterprise example) without rebuilding everything. The duplicated pricing model is entirely independent, so modifications won't impact the original.
-3.  **Import from pricing.yaml:** Import a pricing model yaml file in the dashboard to instantly recreate a pricing model setup for your organization.
-4.  **Create from Template:** Browse popular pricing models in the dashboard and instantly create a pricing model from a template.
-
-### Default Pricing Models
-
-Every organization designates one pricing model as the **Default Pricing Model**.
+Every Product belongs to exactly one Pricing Model, and every Customer is associated with your Pricing Model.
 
 <Note>
-  When a new Customer is created *without* an explicitly specified `pricingModelId`, they are automatically assigned to the organization's current Default Pricing Model.
+  Each organization has one live mode Pricing Model. When a new Customer is created, they are automatically associated with it.
 </Note>
 
-You can change which pricing model serves as the default at any time. This is the key mechanism for the phased price update use case, ensuring all future customers automatically receive the latest standard pricing.
+## Managing Your Pricing Model
 
-## Assigning Pricing Models to Customers
+You can manage your pricing model through the Flowglad dashboard (under `Store > Pricing Models`) or programmatically via the API.
 
-While new customers often receive the Default pricing model automatically, you can control pricing model assignments precisely:
+### Creating a Pricing Model
 
-*   **At Creation:** Specify a `pricingModelId` when creating a customer to assign them to a non-default pricing model immediately.
-*   **Migrating Existing Customers:** You can migrate a customer to a different pricing model using the dashboard. Use the "Migrate Pricing Model" option in the customer's action menu or details page
+You have four options when creating a pricing model:
 
-### Migration Behavior
-
-When a customer is migrated to a new pricing model:
-
-1. **Subscription Cancellation:** All current subscriptions (free and paid) are canceled immediately
-2. **Billing Period Handling:** Active billing periods are completed, future periods are canceled
-3. **New Subscription:** A default free plan subscription is created on the new pricing model
-4. **Cancellation Reason:** Canceled subscriptions are marked with `pricing_model_migration` reason
-
-<Warning>
-  When you migrate a customer to a new pricing model, ALL their existing subscriptions will be canceled immediately, and a new default free plan subscription will be created on the target pricing model. This action cannot be undone.
-</Warning>
+1.  **From Scratch:** Start with an empty pricing model and add products and prices as needed.
+2.  **Duplicate an Existing Pricing Model:** Create a copy of an existing pricing model, including all its products, prices, features, usage meters, and resources. The duplicate is entirely independent, so modifications won't impact the original.
+3.  **Import from pricing.yaml:** Import a pricing model YAML file in the dashboard to instantly recreate a pricing model setup.
+4.  **Create from Template:** Browse popular pricing models in the dashboard and create from a template.

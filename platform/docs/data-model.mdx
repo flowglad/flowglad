@@ -7,12 +7,11 @@ Flowglad acts as the source of truth for your customers' billing state, includin
 
 ## Pricing Models
 
-Pricing models describe a grouping of products, features, usage meters, resources, and prices. A pricing model can have many:
+Pricing models describe a grouping of products, features, usage meters, resources, and prices. Each organization has one live mode pricing model. A pricing model can have many:
 - usage meters, which measure how much of a resource in your product your customers have consumed
 - resources, which define claimable capacity like seats, API keys, or project limits
 - features, which describe either access to a service or functionality in your product or usage credits for specific usage meters
 - products, which group together features into offers that your customers can buy
-- customers, whose checkout options are restricted to that pricing model
 
 ## Products
 
@@ -22,7 +21,7 @@ Products are a group of features that your customers can buy. All products belon
 
 Free products are a special type of product reserved by Flowglad, created in every pricing model. They exist to describe the billing null state for a customer. The `free` product slug is reserved for them.
 
-If your product offers limited features or grants a usage credits on its free plan, the free product allows you to model this through feature associations. On customer creation, Flowglad will grant them the features on the free product of your default pricing model, or of the pricing model that you specify.
+If your product offers limited features or grants usage credits on its free plan, the free product allows you to model this through feature associations. On customer creation, Flowglad will grant them the features on the free product of your pricing model.
 
 If your product does not offer any features or usage credits on its free plan, simply remove all features attached to your free product. This will make it so that customers will not be granted any features when they are created in Flowglad.
 
@@ -133,8 +132,6 @@ Subscriptions can either `renew` or not. Subscriptions created from a `subscript
 
 ## Invariants
 
-At all times, all customers are on a subscription. If they are not currently paying for your product, they are subscribed to the default product. This allows you to read customers' feature access and usage balances from Flowglad, even if they aren't currently paying for anything.
-
-All customers are associated with a pricing model. This allows you to control at a granular level what prices each customer sees, and make explicit how to migrate customers to new pricing models as you release them.
+At all times, all customers are on a subscription. If they are not currently paying for your product, they are subscribed to the free product. This allows you to read customers' feature access and usage balances from Flowglad, even if they aren't currently paying for anything.
 
 Checkout sessions and subscriptions can only be created from single payment or subscription prices.
