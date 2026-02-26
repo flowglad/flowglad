@@ -99,9 +99,6 @@ const hiddenColumns = {
 const readOnlyColumns = {
   organizationId: true,
   livemode: true,
-} as const
-
-const createOnlyColumns = {
   pricingModelId: true,
 } as const
 
@@ -123,7 +120,6 @@ export const {
   },
   client: {
     hiddenColumns,
-    createOnlyColumns,
     readOnlyColumns,
   },
   entityName: 'UsageMeter',

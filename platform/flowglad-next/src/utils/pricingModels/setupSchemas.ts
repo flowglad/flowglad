@@ -168,13 +168,9 @@ export type SetupUsageMeterPriceInput = z.infer<
  * Usage prices belong directly to usage meters, not products.
  */
 export const setupUsageMeterWithPricesInputSchema = z.object({
-  usageMeter: usageMetersClientInsertSchema
-    .omit({
-      pricingModelId: true,
-    })
-    .describe(
-      'The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.'
-    ),
+  usageMeter: usageMetersClientInsertSchema.describe(
+    'The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.'
+  ),
   prices: z
     .array(setupUsageMeterPriceInputSchema)
     .optional()

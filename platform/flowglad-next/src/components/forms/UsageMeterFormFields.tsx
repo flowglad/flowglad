@@ -21,14 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import core from '@/utils/core'
-import PricingModelSelect from './PricingModelSelect'
 
 export default function UsageMeterFormFields({
   edit,
-  hidePricingModelSelect,
 }: {
   edit?: boolean
-  hidePricingModelSelect?: boolean
 }) {
   const form = useFormContext<CreateUsageMeterInput>()
   if (!core.IS_PROD) {
@@ -50,14 +47,6 @@ export default function UsageMeterFormFields({
           </FormItem>
         )}
       />
-      {!edit && !hidePricingModelSelect && (
-        <div className="w-full relative flex flex-col gap-3">
-          <PricingModelSelect
-            name="usageMeter.pricingModelId"
-            control={form.control}
-          />
-        </div>
-      )}
       <div className="w-full relative flex flex-col gap-3">
         <FormField
           control={form.control}
