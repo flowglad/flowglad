@@ -1,8 +1,6 @@
 'use client'
 import type { Customer } from '@db-core/schema/customers'
 import type { Payment } from '@db-core/schema/payments'
-import type { Price } from '@db-core/schema/prices'
-import type { UsageEvent } from '@db-core/schema/usageEvents'
 import { Archive, Mail, Pencil, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -26,12 +24,15 @@ import { CustomerBillingSubPage } from './CustomerDetailsBillingTab'
 function InternalCustomerDetailsScreen({
   customer,
   payments,
-  usageEvents,
+  usageEventMetrics,
 }: {
   customer: Customer.ClientRecord
   payments: Payment.ClientRecord[]
-  prices: Price.ClientRecord[]
-  usageEvents: UsageEvent.ClientRecord[]
+  usageEventMetrics: {
+    count: number
+    totalAmount: number
+    latestDate: Date | null
+  }
 }) {
   const router = useRouter()
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -153,7 +154,7 @@ function InternalCustomerDetailsScreen({
         <CustomerBillingSubPage
           customer={customer}
           payments={payments}
-          usageEvents={usageEvents}
+          usageEventMetrics={usageEventMetrics}
         />
       </div>
       <EditCustomerModal

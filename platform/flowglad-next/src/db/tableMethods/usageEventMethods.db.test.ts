@@ -1187,23 +1187,64 @@ describe('selectUsageEventMetrics', () => {
     })
   })
 
-  it.skip('returns correct metrics for a customer with multiple usage events', () => {
-    // PENDING: Patch 2
-    // setup: create 5 usage events with known amounts (100, 200, 300, 400, 500) and different usageDates
-    // call selectUsageEventMetrics({ customerId: customer1.id }, transaction)
-    // expectations:
-    //   count === 5
-    //   totalAmount === 1500
-    //   latestDate === the max usageDate among the 5 events
+  it('returns correct metrics for a customer with multiple usage events', async () => {
+    const amounts = [100, 200, 300, 400, 500]
+    const baseDateMs = 1_700_000_000_000
+    const usageDates = amounts.map(
+      (_, i) => baseDateMs + i * 86_400_000
+    ) // each 1 day apart
+    const latestDateMs = usageDates[usageDates.length - 1]
+
+    for (let i = 0; i < amounts.length; i++) {
+      await setupUsageEvent({
+        organizationId: org1Data.organization.id,
+        customerId: customer1.id,
+        subscriptionId: subscription1.id,
+        usageMeterId: usageMeter1.id,
+        priceId: price1.id,
+        billingPeriodId: billingPeriod1.id,
+        amount: amounts[i],
+        transactionId: `txn_metrics_${i}_${Date.now()}`,
+        usageDate: usageDates[i],
+      })
+    }
+
+    const metrics = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectUsageEventMetrics(
+              { customerId: customer1.id },
+              transaction
+            )
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
+
+    expect(metrics.count).toBe(5)
+    expect(metrics.totalAmount).toBe(1500)
+    expect(new Date(metrics.latestDate!).getTime()).toBe(latestDateMs)
   })
 
-  it.skip('returns zeroed metrics when customer has no usage events', () => {
-    // PENDING: Patch 2
-    // setup: use customer1 from beforeEach (no events created)
-    // call selectUsageEventMetrics({ customerId: customer1.id }, transaction)
-    // expectations:
-    //   count === 0
-    //   totalAmount === 0
-    //   latestDate === null
+  it('returns zeroed metrics when customer has no usage events', async () => {
+    const metrics = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return Result.ok(
+            await selectUsageEventMetrics(
+              { customerId: customer1.id },
+              transaction
+            )
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
+
+    expect(metrics.count).toBe(0)
+    expect(metrics.totalAmount).toBe(0)
+    expect(metrics.latestDate).toBeNull()
   })
 })
