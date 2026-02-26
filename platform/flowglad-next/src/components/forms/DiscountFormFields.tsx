@@ -7,7 +7,6 @@ import {
 } from '@db-core/schema/discounts'
 import { Percent } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
-import PricingModelSelect from '@/components/forms/PricingModelSelect'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   FormControl,
@@ -37,13 +36,10 @@ import { isCurrencyZeroDecimal } from '@/utils/stripe'
 
 interface DiscountFormFieldsProps {
   edit?: boolean
-  /** When true, hides the pricing model selector (PM is auto-set from focused membership) */
-  hidePricingModelSelector?: boolean
 }
 
 export default function DiscountFormFields({
   edit = false,
-  hidePricingModelSelector = false,
 }: DiscountFormFieldsProps) {
   const form = useFormContext<CreateDiscountFormSchema>()
   const {
@@ -95,12 +91,6 @@ export default function DiscountFormFields({
           </FormItem>
         )}
       />
-      {!edit && !hidePricingModelSelector && (
-        <PricingModelSelect
-          name="discount.pricingModelId"
-          control={control}
-        />
-      )}
       <div className="flex flex-col md:flex-row gap-4">
         <Controller
           control={control}
