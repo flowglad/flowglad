@@ -1,7 +1,7 @@
-import { readBaseline } from '../baseline'
+import { readAllBaselinesForPackage } from '../baseline'
 import { countViolationsByFile, runBiomeLint } from '../biome'
 import {
-  getBaselinePathForPackage,
+  findRepoRoot,
   getFirstRule,
   loadConfig,
   resolvePackagePaths,
@@ -40,7 +40,8 @@ const formatProgress = (
 const getPackageStatus = async (
   packagePath: string,
   rule: RatchetRule,
-  exclude: string[]
+  exclude: string[],
+  repoRoot: string
 ): Promise<PackageStatus> => {
   // Get current violations
   const diagnostics = await runBiomeLint(
@@ -52,9 +53,11 @@ const getPackageStatus = async (
 
   const currentCounts = countViolationsByFile(diagnostics, rule.name)
 
-  // Get baseline
-  const baselinePath = getBaselinePathForPackage(packagePath)
-  const baselineEntries = readBaseline(baselinePath)
+  // Get baseline from all per-directory baseline files
+  const baselineEntries = readAllBaselinesForPackage(
+    repoRoot,
+    packagePath
+  )
 
   // Calculate baseline total for this rule
   let baselineTotal = 0
@@ -176,6 +179,8 @@ export const statusCommand = async (): Promise<void> => {
     return
   }
 
+  const repoRoot = findRepoRoot()
+
   console.log(`Lint Ratchet Status: ${rule.name}`)
   console.log('─'.repeat(50))
 
@@ -185,7 +190,8 @@ export const statusCommand = async (): Promise<void> => {
     const status = await getPackageStatus(
       pkg.path,
       rule,
-      config.exclude
+      config.exclude,
+      repoRoot
     )
     packageStatuses.push(status)
     printPackageStatus(status)

@@ -1,8 +1,12 @@
 import { createInterface } from 'readline'
-import { readBaseline, writePackageBaselineAt } from '../baseline'
+import {
+  getExistingBaselineDirectories,
+  readAllBaselinesForPackage,
+  writeBaselinesPerDirectory,
+} from '../baseline'
 import { countViolationsByFile, runBiomeLint } from '../biome'
 import {
-  getBaselinePathForPackage as getBaselinePathAbsolute,
+  findRepoRoot,
   loadConfig,
   resolvePackagePaths,
 } from '../config'
@@ -158,10 +162,12 @@ export const initCommand = async (
     }
   }
 
+  const repoRoot = findRepoRoot()
+
   // First pass: collect current counts and new entries per package
   type PackagePlan = {
     packagePath: string
-    absoluteBaselinePath: string
+    existingDirectories: Set<string>
     existingEntries: BaselineEntry[]
     newEntries: BaselineEntry[]
     currentCounts: Map<string, number>
@@ -180,8 +186,14 @@ export const initCommand = async (
       diagnostics,
       rule.name
     )
-    const absoluteBaselinePath = getBaselinePathAbsolute(pkg.path)
-    const existingEntries = readBaseline(absoluteBaselinePath)
+    const existingEntries = readAllBaselinesForPackage(
+      repoRoot,
+      pkg.path
+    )
+    const existingDirectories = getExistingBaselineDirectories(
+      repoRoot,
+      pkg.path
+    )
     const newEntries = computeNewEntries(
       existingEntries,
       rule,
@@ -190,7 +202,7 @@ export const initCommand = async (
 
     plans.push({
       packagePath: pkg.path,
-      absoluteBaselinePath,
+      existingDirectories,
       existingEntries,
       newEntries,
       currentCounts,
@@ -231,7 +243,12 @@ export const initCommand = async (
       (e) => e.ruleName === rule.name
     )
     const hadBaseline = plan.existingEntries.length > 0
-    writePackageBaselineAt(plan.absoluteBaselinePath, plan.newEntries)
+    writeBaselinesPerDirectory(
+      repoRoot,
+      plan.packagePath,
+      plan.newEntries,
+      plan.existingDirectories
+    )
     if (plan.newEntries.length === 0) {
       if (hadBaseline) {
         console.log(
