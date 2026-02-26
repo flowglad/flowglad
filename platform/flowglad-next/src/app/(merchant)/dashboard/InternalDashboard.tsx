@@ -244,17 +244,6 @@ function InternalDashboardPage({
         isOpen={isCreateProductModalOpen}
         setIsOpen={setIsCreateProductModalOpen}
       />
-      {/*
-        TODO: These modals pass focusedPricingModelId directly, which can change after
-        the modal opens if the async query refetches. For consistency with CreateProductModal,
-        consider snapshotting the value at open time:
-        1. Add state: const [snapshotFeaturePricingModelId, setSnapshotFeaturePricingModelId] = useState('')
-        2. In handler: setSnapshotFeaturePricingModelId(focusedPricingModelId)
-        3. Pass snapshot: defaultPricingModelId={snapshotFeaturePricingModelId}
-        
-        Currently low risk because FormModal snapshots defaultValues() at open time,
-        but snapshotting in the handler provides an extra layer of consistency.
-      */}
       <CreateFeatureModal
         isOpen={isCreateFeatureModalOpen}
         setIsOpen={setIsCreateFeatureModalOpen}
