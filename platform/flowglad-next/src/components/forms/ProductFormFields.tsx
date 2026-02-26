@@ -182,10 +182,7 @@ export const ProductFormFields = ({
             )}
           </div>
           <div className="w-full mt-6">
-            <PriceFormFields
-              edit={editProduct}
-              pricingModelId={effectivePricingModelId}
-            />
+            <PriceFormFields edit={editProduct} />
           </div>
           {priceType !== PriceType.Usage && (
             <div className="w-full mt-6">
