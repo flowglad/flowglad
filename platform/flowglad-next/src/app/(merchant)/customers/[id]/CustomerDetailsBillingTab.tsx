@@ -3,7 +3,6 @@
 import { CurrencyCode, PaymentStatus } from '@db-core/enums'
 import type { Customer } from '@db-core/schema/customers'
 import type { Payment } from '@db-core/schema/payments'
-import type { UsageEvent } from '@db-core/schema/usageEvents'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
@@ -23,33 +22,22 @@ import { UsageEventsDataTable } from './usage-events/data-table'
 const CustomerDetailsSection = ({
   customer,
   payments,
-  usageEvents,
+  usageEventMetrics,
   currency,
 }: {
   customer: Customer.ClientRecord
   payments: Payment.ClientRecord[]
-  usageEvents: UsageEvent.ClientRecord[]
+  usageEventMetrics: {
+    count: number
+    totalAmount: number
+    latestDate: Date | null
+  }
   currency: CurrencyCode
 }) => {
   const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
     customerId: customer.id,
   })
-
-  // Calculate usage events metrics
-  const totalUsageEvents = usageEvents.length
-  const totalUsageAmount = usageEvents.reduce(
-    (sum, event) => sum + event.amount,
-    0
-  )
-  const latestUsageEvent =
-    usageEvents.length > 0
-      ? usageEvents.reduce((latest, current) =>
-          new Date(current.usageDate) > new Date(latest.usageDate)
-            ? current
-            : latest
-        )
-      : null
 
   return (
     <div className="w-full min-w-40 flex flex-col gap-4 py-2 px-3">
@@ -130,18 +118,18 @@ const CustomerDetailsSection = ({
           />
           <DetailLabel
             label="Total Usage Events"
-            value={totalUsageEvents.toString()}
+            value={usageEventMetrics.count.toString()}
           />
           <DetailLabel
             label="Total Usage Amount"
-            value={totalUsageAmount.toString()}
+            value={usageEventMetrics.totalAmount.toString()}
           />
           <DetailLabel
             label="Latest Usage"
             value={
-              latestUsageEvent?.usageDate
+              usageEventMetrics.latestDate
                 ? core.formatDate(
-                    new Date(latestUsageEvent.usageDate)
+                    new Date(usageEventMetrics.latestDate)
                   )
                 : 'None'
             }
@@ -154,13 +142,17 @@ const CustomerDetailsSection = ({
 export interface CustomerBillingSubPageProps {
   customer: Customer.ClientRecord
   payments: Payment.ClientRecord[]
-  usageEvents: UsageEvent.ClientRecord[]
+  usageEventMetrics: {
+    count: number
+    totalAmount: number
+    latestDate: Date | null
+  }
 }
 
 export const CustomerBillingSubPage = ({
   customer,
   payments,
-  usageEvents,
+  usageEventMetrics,
 }: CustomerBillingSubPageProps) => {
   const [
     createSubscriptionModalOpen,
@@ -243,7 +235,7 @@ export const CustomerBillingSubPage = ({
           <CustomerDetailsSection
             customer={customer}
             payments={payments}
-            usageEvents={usageEvents}
+            usageEventMetrics={usageEventMetrics}
             currency={organization.defaultCurrency}
           />
         </ExpandSection>

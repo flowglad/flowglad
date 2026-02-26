@@ -4,8 +4,7 @@ import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
-import { selectPricesAndProductsForOrganization } from '@/db/tableMethods/priceMethods'
-import { selectUsageEvents } from '@/db/tableMethods/usageEventMethods'
+import { selectUsageEventMetrics } from '@/db/tableMethods/usageEventMethods'
 import InternalCustomerDetailsScreen from './InternalCustomerDetailsScreen'
 
 export type CustomerPageParams = {
@@ -55,12 +54,7 @@ const CustomerPage = async ({
           },
           transaction
         )
-        const prices = await selectPricesAndProductsForOrganization(
-          {},
-          organizationId,
-          transaction
-        )
-        const usageEvents = await selectUsageEvents(
+        const usageEventMetrics = await selectUsageEventMetrics(
           {
             customerId: customerResult.customer.id,
           },
@@ -68,9 +62,8 @@ const CustomerPage = async ({
         )
         return Result.ok({
           customer: customerResult.customer,
-          prices,
           paymentsForCustomer,
-          usageEvents,
+          usageEventMetrics,
         })
       }
     )
@@ -80,17 +73,13 @@ const CustomerPage = async ({
     notFound()
   }
 
-  const { customer, prices, paymentsForCustomer, usageEvents } =
-    result
+  const { customer, paymentsForCustomer, usageEventMetrics } = result
 
   return (
     <InternalCustomerDetailsScreen
       customer={customer}
-      prices={prices
-        .filter(({ product }) => product.active)
-        .map(({ price }) => price)}
       payments={paymentsForCustomer}
-      usageEvents={usageEvents}
+      usageEventMetrics={usageEventMetrics}
     />
   )
 }
