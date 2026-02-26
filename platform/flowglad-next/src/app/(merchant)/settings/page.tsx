@@ -321,7 +321,19 @@ const SettingsPage = () => {
 
           {/* API Section */}
           <ExpandSection
-            title="API"
+            title={
+              <span className="flex items-center gap-1.5">
+                API
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    These settings are pricing model scoped
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            }
             defaultExpanded={false}
             contentPadding={false}
           >
