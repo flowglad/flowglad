@@ -1,6 +1,7 @@
 // Tremor usePaginatedTableState [v0.0.0]
 'use client'
 
+import { keepPreviousData } from '@tanstack/react-query'
 import type { TRPCClientErrorLike } from '@trpc/client'
 import type {
   UseTRPCQueryOptions,
@@ -89,7 +90,9 @@ export const usePaginatedTableState = <
     goToFirst,
     goToLast,
   }
-  const { data, isLoading, isFetching } = useQuery(params)
+  const { data, isLoading, isFetching } = useQuery(params, {
+    placeholderData: keepPreviousData,
+  })
 
   // Reset navigation flags after successful query
   useEffect(() => {
