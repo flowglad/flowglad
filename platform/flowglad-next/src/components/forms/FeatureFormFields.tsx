@@ -34,13 +34,7 @@ import core, { titleCase } from '@/utils/core'
 import ResourcesSelect from './ResourcesSelect'
 import UsageMetersSelect from './UsageMetersSelect'
 
-const FeatureFormFields = ({
-  edit = false,
-  pricingModelId,
-}: {
-  edit?: boolean
-  pricingModelId?: string
-}) => {
+const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateFeatureInput>()
 
   const featureType = form.watch('feature.type')
@@ -279,7 +273,6 @@ const FeatureFormFields = ({
           <ResourcesSelect
             name="feature.resourceId"
             control={form.control}
-            pricingModelId={pricingModelId}
           />
         </>
       )}

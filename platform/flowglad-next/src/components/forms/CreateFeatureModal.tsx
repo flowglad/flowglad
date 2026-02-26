@@ -54,7 +54,7 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
         await createFeatureMutation.mutateAsync(data)
       }}
     >
-      <FeatureFormFields pricingModelId={defaultPricingModelId} />
+      <FeatureFormFields />
     </FormModal>
   )
 }
