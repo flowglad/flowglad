@@ -134,13 +134,13 @@ function InternalProductDetailsPage(
       variant: 'secondary' as const,
     },
     {
-      label: 'Preview',
+      label: 'Checkout',
       onClick: () => previewProductHandler(),
       disabled: product.default || isArchived,
       disabledTooltip: isArchived
-        ? 'Cannot preview archived products'
+        ? 'Cannot open checkout for archived products'
         : product.default
-          ? 'Cannot preview checkout for default products.'
+          ? 'Cannot open checkout for default products.'
           : undefined,
       variant: 'secondary' as const,
     },
