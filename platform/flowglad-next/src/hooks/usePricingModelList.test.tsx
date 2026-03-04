@@ -7,6 +7,8 @@ const mockInvalidate = mock(() => Promise.resolve())
 const mockRefetch = mock(() => Promise.resolve())
 const mockMutateAsync = mock(() => Promise.resolve())
 const mockRouterPush = mock()
+const mockRouterRefresh = mock()
+const mockNavigateToParentIfNeeded = mock(() => false)
 
 // Track mutation calls
 let mutationOnSuccess: (() => Promise<void>) | undefined
@@ -56,13 +58,13 @@ const mockFocusedMembership = {
 mock.module('next/navigation', () => ({
   useRouter: () => ({
     push: mockRouterPush,
-    refresh: mock(),
+    refresh: mockRouterRefresh,
   }),
 }))
 
 mock.module('@/hooks/useContextAwareNavigation', () => ({
   useContextAwareNavigation: () => ({
-    navigateToPath: mock(),
+    navigateToParentIfNeeded: mockNavigateToParentIfNeeded,
   }),
 }))
 
@@ -115,6 +117,9 @@ describe('usePricingModelList', () => {
     mockRefetch.mockClear()
     mockMutateAsync.mockClear()
     mockRouterPush.mockClear()
+    mockRouterRefresh.mockClear()
+    mockNavigateToParentIfNeeded.mockClear()
+    mockNavigateToParentIfNeeded.mockReturnValue(false)
     mutationOnSuccess = undefined
 
     // Reset window.location.pathname
@@ -213,8 +218,8 @@ describe('usePricingModelList', () => {
       )
     })
 
-    it('does not navigate when not on a PM detail page', async () => {
-      // Set the pathname to dashboard (not a PM detail page)
+    it('refreshes the page when not on any detail page', async () => {
+      // Set the pathname to dashboard (not a detail page)
       Object.defineProperty(window, 'location', {
         value: { pathname: '/dashboard' },
         writable: true,
@@ -227,6 +232,29 @@ describe('usePricingModelList', () => {
       })
 
       expect(mockRouterPush).not.toHaveBeenCalled()
+      expect(mockNavigateToParentIfNeeded).toHaveBeenCalled()
+      expect(mockRouterRefresh).toHaveBeenCalled()
+    })
+
+    it('navigates to parent list page when on a non-PM detail page', async () => {
+      // Set the pathname to a product detail page
+      Object.defineProperty(window, 'location', {
+        value: { pathname: '/products/prod_abc123' },
+        writable: true,
+      })
+      mockNavigateToParentIfNeeded.mockReturnValue(true)
+
+      const { result } = renderHook(() => usePricingModelList())
+
+      await act(async () => {
+        await result.current.switchPricingModel('pm-test-1')
+      })
+
+      expect(mockRouterPush).not.toHaveBeenCalledWith(
+        expect.stringContaining('/pricing-models/')
+      )
+      expect(mockNavigateToParentIfNeeded).toHaveBeenCalled()
+      expect(mockRouterRefresh).not.toHaveBeenCalled()
     })
   })
 
