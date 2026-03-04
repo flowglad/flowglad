@@ -9,6 +9,7 @@ const mockMutateAsync = mock(() => Promise.resolve())
 const mockRouterPush = mock()
 const mockRouterRefresh = mock()
 const mockNavigateToParentIfNeeded = mock(() => false)
+let mockCurrentPathname = '/dashboard'
 
 // Track mutation calls
 let mutationOnSuccess: (() => Promise<void>) | undefined
@@ -65,6 +66,7 @@ mock.module('next/navigation', () => ({
 mock.module('@/hooks/useContextAwareNavigation', () => ({
   useContextAwareNavigation: () => ({
     navigateToParentIfNeeded: mockNavigateToParentIfNeeded,
+    currentPathname: mockCurrentPathname,
   }),
 }))
 
@@ -120,13 +122,8 @@ describe('usePricingModelList', () => {
     mockRouterRefresh.mockClear()
     mockNavigateToParentIfNeeded.mockClear()
     mockNavigateToParentIfNeeded.mockReturnValue(false)
+    mockCurrentPathname = '/dashboard'
     mutationOnSuccess = undefined
-
-    // Reset window.location.pathname
-    Object.defineProperty(window, 'location', {
-      value: { pathname: '/dashboard' },
-      writable: true,
-    })
   })
 
   describe('Sorting logic', () => {
@@ -201,11 +198,7 @@ describe('usePricingModelList', () => {
     })
 
     it('navigates to new PM detail page when on a PM detail page', async () => {
-      // Set the pathname to a PM detail page
-      Object.defineProperty(window, 'location', {
-        value: { pathname: '/pricing-models/pm-live-1' },
-        writable: true,
-      })
+      mockCurrentPathname = '/pricing-models/pm-live-1'
 
       const { result } = renderHook(() => usePricingModelList())
 
@@ -219,11 +212,7 @@ describe('usePricingModelList', () => {
     })
 
     it('refreshes the page when not on any detail page', async () => {
-      // Set the pathname to dashboard (not a detail page)
-      Object.defineProperty(window, 'location', {
-        value: { pathname: '/dashboard' },
-        writable: true,
-      })
+      mockCurrentPathname = '/dashboard'
 
       const { result } = renderHook(() => usePricingModelList())
 
@@ -237,11 +226,7 @@ describe('usePricingModelList', () => {
     })
 
     it('navigates to parent list page when on a non-PM detail page', async () => {
-      // Set the pathname to a product detail page
-      Object.defineProperty(window, 'location', {
-        value: { pathname: '/products/prod_abc123' },
-        writable: true,
-      })
+      mockCurrentPathname = '/products/prod_abc123'
       mockNavigateToParentIfNeeded.mockReturnValue(true)
 
       const { result } = renderHook(() => usePricingModelList())
