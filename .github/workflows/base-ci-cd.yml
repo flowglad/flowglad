@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v3
         with:
           node-version: '18'
       - name: Setup Bun
@@ -101,7 +101,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v3
         with:
           node-version: '18'
       - name: Setup Bun
@@ -188,7 +188,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v3
         with:
           node-version: '18'
       - name: Setup Bun
@@ -235,7 +235,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v3
         with:
           node-version: '18'
       - name: Setup Bun
@@ -257,7 +257,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v3
         with:
           node-version: '18'
       - name: Setup Bun
@@ -314,7 +314,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v3
         with:
           node-version: '18'
       - name: Setup Bun
@@ -344,7 +344,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v3
         with:
           node-version: '18'
       - name: Setup Bun
