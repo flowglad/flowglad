@@ -127,7 +127,6 @@ function DataTableToolbar({
           onChange={search.onChange}
           placeholder={search.placeholder}
           isLoading={isFetching}
-          disabled={isLoading}
           className="w-full sm:flex-1"
         />
       )}
