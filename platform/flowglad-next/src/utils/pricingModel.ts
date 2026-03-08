@@ -218,7 +218,7 @@ const checkForToggleFeatures = async (
 
 export const createProductTransaction = async (
   payload: {
-    product: Product.ClientInsert
+    product: Product.ClientInsert & { pricingModelId: string }
     prices: CreateProductPriceInput[]
     featureIds?: string[]
   },

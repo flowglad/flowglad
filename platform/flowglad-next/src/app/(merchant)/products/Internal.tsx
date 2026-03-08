@@ -40,8 +40,6 @@ function Internal({ pricingModelId }: InternalProps) {
       <CreateProductModal
         isOpen={isCreateProductOpen}
         setIsOpen={setIsCreateProductOpen}
-        defaultPricingModelId={effectivePricingModelId}
-        hidePricingModelSelect
       />
     </>
   )
