@@ -11,7 +11,7 @@ describe('enqueueTriggerTask', () => {
 
     const mockTask = {
       id: 'test-task-id',
-      trigger: async (_payload: { foo: string }) => ({ id: 'run-1' }),
+      trigger: async (_payload: unknown) => ({ id: 'run-1' }),
     }
 
     enqueueTriggerTask(
