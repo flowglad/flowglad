@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, spyOn } from 'bun:test'
 import {
   createEffectsAccumulator,
   dispatchTriggerTasksAfterCommit,
@@ -91,24 +91,37 @@ describe('dispatchTriggerTasksAfterCommit', () => {
   })
 
   it('should log errors but not throw when a task trigger rejects asynchronously', async () => {
-    const failingTask: QueuedTriggerTask = {
-      key: 'fail-key',
-      task: {
-        id: 'fail-task',
-        trigger: async () => {
-          throw new Error('trigger failed')
+    const consoleErrorSpy = spyOn(
+      console,
+      'error'
+    ).mockImplementation(() => {})
+    try {
+      const failingTask: QueuedTriggerTask = {
+        key: 'fail-key',
+        task: {
+          id: 'fail-task',
+          trigger: async () => {
+            throw new Error('trigger failed')
+          },
         },
-      },
-      payload: {},
+        payload: {},
+      }
+
+      // Should not throw
+      expect(() =>
+        dispatchTriggerTasksAfterCommit([failingTask])
+      ).not.toThrow()
+
+      // Allow the promise rejection to be caught
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      expect(consoleErrorSpy).toHaveBeenCalled()
+      expect(consoleErrorSpy.mock.calls[0][0]).toContain(
+        'Failed to dispatch trigger task'
+      )
+    } finally {
+      consoleErrorSpy.mockRestore()
     }
-
-    // Should not throw
-    expect(() =>
-      dispatchTriggerTasksAfterCommit([failingTask])
-    ).not.toThrow()
-
-    // Allow the promise rejection to be caught
-    await new Promise((resolve) => setTimeout(resolve, 10))
   })
 
   it('should not throw when a task trigger throws synchronously', () => {
