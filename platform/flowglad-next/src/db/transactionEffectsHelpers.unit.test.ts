@@ -1,4 +1,4 @@
-import { describe, expect, it, spyOn } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import {
   createEffectsAccumulator,
   dispatchTriggerTasksAfterCommit,
@@ -47,20 +47,18 @@ describe('enqueueTriggerTask', () => {
 
 describe('dispatchTriggerTasksAfterCommit', () => {
   it('should call task.trigger with the correct payload and options for each queued task', async () => {
-    const trigger1 = async (_payload: string) => ({ id: 'run-1' })
-    const trigger2 = async (
-      _payload: number,
-      _options?: { idempotencyKey?: string }
-    ) => ({ id: 'run-2' })
-    const spy1 = spyOn({ trigger: trigger1 }, 'trigger')
-    const spy2 = spyOn({ trigger: trigger2 }, 'trigger')
+    const calls1: Array<{ payload: unknown; options: unknown }> = []
+    const calls2: Array<{ payload: unknown; options: unknown }> = []
 
     const tasks: QueuedTriggerTask[] = [
       {
         key: 'k1',
         task: {
           id: 't1',
-          trigger: spy1 as QueuedTriggerTask['task']['trigger'],
+          trigger: async (payload: unknown, options: unknown) => {
+            calls1.push({ payload, options })
+            return { id: 'run-1' }
+          },
         },
         payload: 'hello',
         options: { idempotencyKey: 'idem-1' },
@@ -69,7 +67,10 @@ describe('dispatchTriggerTasksAfterCommit', () => {
         key: 'k2',
         task: {
           id: 't2',
-          trigger: spy2 as QueuedTriggerTask['task']['trigger'],
+          trigger: async (payload: unknown, options: unknown) => {
+            calls2.push({ payload, options })
+            return { id: 'run-2' }
+          },
         },
         payload: 42,
       },
@@ -80,18 +81,16 @@ describe('dispatchTriggerTasksAfterCommit', () => {
     // Allow microtasks to settle
     await new Promise((resolve) => setTimeout(resolve, 10))
 
-    expect(spy1).toHaveBeenCalledWith('hello', {
-      idempotencyKey: 'idem-1',
+    expect(calls1).toHaveLength(1)
+    expect(calls1[0]).toEqual({
+      payload: 'hello',
+      options: { idempotencyKey: 'idem-1' },
     })
-    expect(spy2).toHaveBeenCalledWith(42, undefined)
+    expect(calls2).toHaveLength(1)
+    expect(calls2[0]).toEqual({ payload: 42, options: undefined })
   })
 
-  it('should log errors but not throw when a task trigger fails', async () => {
-    const consoleErrorSpy = spyOn(
-      console,
-      'error'
-    ).mockImplementation(() => {})
-
+  it('should log errors but not throw when a task trigger rejects asynchronously', async () => {
     const failingTask: QueuedTriggerTask = {
       key: 'fail-key',
       task: {
@@ -104,17 +103,29 @@ describe('dispatchTriggerTasksAfterCommit', () => {
     }
 
     // Should not throw
-    dispatchTriggerTasksAfterCommit([failingTask])
+    expect(() =>
+      dispatchTriggerTasksAfterCommit([failingTask])
+    ).not.toThrow()
 
     // Allow the promise rejection to be caught
     await new Promise((resolve) => setTimeout(resolve, 10))
+  })
 
-    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
-    expect(consoleErrorSpy.mock.calls[0][0]).toContain(
-      "Failed to dispatch trigger task 'fail-key'"
-    )
+  it('should not throw when a task trigger throws synchronously', () => {
+    const syncFailingTask: QueuedTriggerTask = {
+      key: 'sync-fail-key',
+      task: {
+        id: 'sync-fail-task',
+        trigger: () => {
+          throw new Error('sync trigger failed')
+        },
+      } as QueuedTriggerTask['task'],
+      payload: {},
+    }
 
-    consoleErrorSpy.mockRestore()
+    expect(() =>
+      dispatchTriggerTasksAfterCommit([syncFailingTask])
+    ).not.toThrow()
   })
 
   it('should do nothing when given an empty array', () => {

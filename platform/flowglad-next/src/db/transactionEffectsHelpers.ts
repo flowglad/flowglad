@@ -105,13 +105,20 @@ export function dispatchTriggerTasksAfterCommit(
   triggerTasks: QueuedTriggerTask[]
 ): void {
   for (const queued of triggerTasks) {
-    queued.task
-      .trigger(queued.payload, queued.options)
-      .catch((error) => {
-        console.error(
-          `Failed to dispatch trigger task '${queued.key}' after commit:`,
-          error
-        )
-      })
+    try {
+      queued.task
+        .trigger(queued.payload, queued.options)
+        .catch((error) => {
+          console.error(
+            `Failed to dispatch trigger task '${queued.key}' after commit:`,
+            error
+          )
+        })
+    } catch (error) {
+      console.error(
+        `Failed to dispatch trigger task '${queued.key}' after commit (sync):`,
+        error
+      )
+    }
   }
 }
