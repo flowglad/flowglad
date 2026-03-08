@@ -116,8 +116,7 @@ export const {
   },
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
-    readOnlyColumns: { organizationId: true },
-    createOnlyColumns: { pricingModelId: true },
+    readOnlyColumns: { organizationId: true, pricingModelId: true },
   },
   entityName: 'ToggleFeature',
 })
@@ -153,8 +152,11 @@ export const {
   },
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
-    readOnlyColumns: { organizationId: true, livemode: true },
-    createOnlyColumns: { pricingModelId: true },
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+      pricingModelId: true,
+    },
   },
   entityName: 'UsageCreditGrantFeature',
 })
@@ -188,8 +190,11 @@ export const {
   },
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
-    readOnlyColumns: { organizationId: true, livemode: true },
-    createOnlyColumns: { pricingModelId: true },
+    readOnlyColumns: {
+      organizationId: true,
+      livemode: true,
+      pricingModelId: true,
+    },
   },
   entityName: 'ResourceFeature',
 })

@@ -44,7 +44,6 @@ const CreateFeatureModal: React.FC<CreateFeatureModalProps> = ({
           name: '',
           slug: '',
           description: '',
-          pricingModelId: defaultPricingModelId,
           amount: null,
           usageMeterId: null,
           renewalFrequency: null,
