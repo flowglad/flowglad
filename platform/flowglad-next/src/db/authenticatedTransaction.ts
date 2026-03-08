@@ -4,6 +4,7 @@ import type {
   AuthenticatedTransactionParams,
   CacheRecomputationContext,
   TransactionEffectsContext,
+  TriggerTaskHandle,
 } from '@/db/types'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
@@ -11,6 +12,7 @@ import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
 import {
   createEffectsAccumulator,
+  dispatchTriggerTasksAfterCommit,
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
@@ -51,6 +53,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
   livemode: boolean
   processedEventsCount: number
   processedLedgerCommandsCount: number
+  triggerHandles: Map<string, TriggerTaskHandle>
 }> => {
   const { apiKey, __testOnlyOrganizationId, customerId, authScope } =
     options ?? {}
@@ -127,8 +130,11 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     })
   })
 
-  // Transaction committed successfully - now invalidate caches
+  // Transaction committed successfully - now run post-commit effects
   invalidateCacheAfterCommit(effects.cacheInvalidations)
+  const triggerHandles = await dispatchTriggerTasksAfterCommit(
+    effects.triggerTasks
+  )
 
   return {
     output,
@@ -137,6 +143,7 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     livemode,
     processedEventsCount,
     processedLedgerCommandsCount,
+    triggerHandles,
   }
 }
 

@@ -9,6 +9,7 @@ import type {
   EnqueueTriggerTaskCallback,
   QueuedTriggerTask,
   TransactionEffects,
+  TriggerTaskHandle,
 } from './types'
 
 /**
@@ -94,4 +95,38 @@ export function invalidateCacheAfterCommit(
     const uniqueInvalidations = [...new Set(cacheInvalidations)]
     void invalidateDependencies(uniqueInvalidations)
   }
+}
+
+/**
+ * Dispatches queued trigger tasks after the transaction commits.
+ * Fire-and-forget: errors are logged but don't fail the request.
+ * Returns a map of user-provided keys to trigger handles.
+ */
+export async function dispatchTriggerTasksAfterCommit(
+  triggerTasks: QueuedTriggerTask[]
+): Promise<Map<string, TriggerTaskHandle>> {
+  const handles = new Map<string, TriggerTaskHandle>()
+  if (triggerTasks.length === 0) {
+    return handles
+  }
+  const results = await Promise.allSettled(
+    triggerTasks.map(async (queued) => {
+      const result = await queued.task.trigger(
+        queued.payload,
+        queued.options
+      )
+      return { key: queued.key, id: result.id }
+    })
+  )
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      handles.set(result.value.key, { id: result.value.id })
+    } else {
+      console.error(
+        'Failed to dispatch trigger task after commit:',
+        result.reason
+      )
+    }
+  }
+  return handles
 }
