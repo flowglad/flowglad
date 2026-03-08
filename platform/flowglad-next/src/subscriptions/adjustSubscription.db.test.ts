@@ -6433,4 +6433,18 @@ describe('adjustSubscription Integration Tests', async () => {
       })
     })
   })
+
+  describe('trigger task dispatch after commit', () => {
+    it.skip('should enqueue trigger tasks during adjustSubscription and dispatch after commit', async () => {
+      // Setup: create a subscription with an active billing period
+      // Action: call adjustSubscription with a capturing effects context that tracks enqueueTriggerTask
+      // Expectation: trigger tasks are collected during the transaction and dispatched after commit
+    })
+
+    it.skip('should not dispatch trigger tasks if adjustSubscription transaction rolls back', async () => {
+      // Setup: create a subscription with an active billing period
+      // Action: call adjustSubscription inside a transaction that rolls back
+      // Expectation: no trigger tasks are dispatched
+    })
+  })
 })

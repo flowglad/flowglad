@@ -4740,3 +4740,23 @@ describe('Subscription cancellation cache invalidations', async () => {
     })
   })
 })
+
+describe('cancelSubscription trigger task dispatch after commit', () => {
+  it.skip('should enqueue trigger tasks during cancelSubscriptionImmediately and dispatch after commit', async () => {
+    // Setup: create a subscription with an active billing period
+    // Action: call cancelSubscriptionImmediately with a capturing effects context that tracks enqueueTriggerTask
+    // Expectation: trigger tasks are collected during the transaction and dispatched after commit
+  })
+
+  it.skip('should enqueue trigger tasks during scheduleSubscriptionCancellation and dispatch after commit', async () => {
+    // Setup: create a subscription with an active billing period
+    // Action: call scheduleSubscriptionCancellation with a capturing effects context that tracks enqueueTriggerTask
+    // Expectation: trigger tasks are collected during the transaction and dispatched after commit
+  })
+
+  it.skip('should not dispatch trigger tasks if cancellation transaction rolls back', async () => {
+    // Setup: create a subscription with an active billing period
+    // Action: call cancelSubscriptionImmediately inside a transaction that rolls back
+    // Expectation: no trigger tasks are dispatched
+  })
+})
