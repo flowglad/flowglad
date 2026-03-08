@@ -29,6 +29,7 @@ import core from '@/utils/core'
 import {
   bulkInsertOrDoNothingUsageEventsByTransactionId,
   insertUsageEvent,
+  selectUsageEventMetrics,
   selectUsageEventsPaginated,
   selectUsageEventsTableRowData,
 } from './usageEventMethods'
@@ -1113,5 +1114,96 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
       )
     ).unwrap()
     expect(secondResult).toHaveLength(0) // Should not insert any new events
+  })
+})
+
+describe('selectUsageEventMetrics', () => {
+  // Shared setup - created once in beforeAll (immutable across tests)
+  let org1Data: Awaited<ReturnType<typeof setupOrg>>
+  let org1ApiKeyToken: string
+  let usageMeter1: UsageMeter.Record
+  let price1: Price.Record
+
+  // Per-test setup - created fresh in beforeEach (mutable/test-specific)
+  let customer1: Customer.Record
+  let subscription1: Subscription.Record
+  let billingPeriod1: BillingPeriod.Record
+  let paymentMethod1: PaymentMethod.Record
+
+  beforeAll(async () => {
+    org1Data = await setupOrg()
+    const userApiKeyOrg1 = await setupUserAndApiKey({
+      organizationId: org1Data.organization.id,
+      livemode: true,
+    })
+    if (!userApiKeyOrg1.apiKey.token) {
+      throw new Error('API key token not found after setup for org1')
+    }
+    org1ApiKeyToken = userApiKeyOrg1.apiKey.token
+
+    usageMeter1 = await setupUsageMeter({
+      organizationId: org1Data.organization.id,
+      name: 'Test Usage Meter Metrics',
+      pricingModelId: org1Data.pricingModel.id,
+    })
+
+    price1 = await setupPrice({
+      name: 'Test Price Metrics',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter1.id,
+    })
+  })
+
+  beforeEach(async () => {
+    customer1 = await setupCustomer({
+      organizationId: org1Data.organization.id,
+      email: `customer_metrics+${Date.now()}@test.com`,
+      pricingModelId: org1Data.pricingModel.id,
+    })
+
+    paymentMethod1 = await setupPaymentMethod({
+      organizationId: org1Data.organization.id,
+      customerId: customer1.id,
+      type: PaymentMethodType.Card,
+    })
+
+    subscription1 = await setupSubscription({
+      organizationId: org1Data.organization.id,
+      customerId: customer1.id,
+      paymentMethodId: paymentMethod1.id,
+      priceId: price1.id,
+      status: SubscriptionStatus.Active,
+    })
+
+    billingPeriod1 = await setupBillingPeriod({
+      subscriptionId: subscription1.id,
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+    })
+  })
+
+  it.skip('returns correct metrics for a customer with multiple usage events', () => {
+    // PENDING: Patch 2
+    // setup: create 5 usage events with known amounts (100, 200, 300, 400, 500) and different usageDates
+    // call selectUsageEventMetrics({ customerId: customer1.id }, transaction)
+    // expectations:
+    //   count === 5
+    //   totalAmount === 1500
+    //   latestDate === the max usageDate among the 5 events
+  })
+
+  it.skip('returns zeroed metrics when customer has no usage events', () => {
+    // PENDING: Patch 2
+    // setup: use customer1 from beforeEach (no events created)
+    // call selectUsageEventMetrics({ customerId: customer1.id }, transaction)
+    // expectations:
+    //   count === 0
+    //   totalAmount === 0
+    //   latestDate === null
   })
 })

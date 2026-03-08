@@ -90,6 +90,29 @@ export const selectUsageEvents = createSelectFunction(
   config
 )
 
+export const selectUsageEventMetrics = async (
+  params: { customerId: string },
+  transaction: DbTransaction
+): Promise<{
+  count: number
+  totalAmount: number
+  latestDate: Date | null
+}> => {
+  const [result] = await transaction
+    .select({
+      count: sql<number>`COUNT(*)`,
+      totalAmount: sql<number>`COALESCE(SUM(${usageEvents.amount}), 0)`,
+      latestDate: sql<Date | null>`MAX(${usageEvents.usageDate})`,
+    })
+    .from(usageEvents)
+    .where(eq(usageEvents.customerId, params.customerId))
+  return {
+    count: Number(result?.count ?? 0),
+    totalAmount: Number(result?.totalAmount ?? 0),
+    latestDate: result?.latestDate ?? null,
+  }
+}
+
 const baseBulkInsertOrDoNothingUsageEvents =
   createBulkInsertOrDoNothingFunction(usageEvents, config)
 
