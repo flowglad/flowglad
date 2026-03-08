@@ -1,9 +1,12 @@
-import { describe, expect, it, spyOn } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import {
   createEffectsAccumulator,
   dispatchTriggerTasksAfterCommit,
 } from './transactionEffectsHelpers'
 import type { QueuedTriggerTask } from './types'
+
+const flushMicrotasks = () =>
+  new Promise((resolve) => queueMicrotask(resolve))
 
 describe('enqueueTriggerTask', () => {
   it('should accumulate trigger tasks in effects with the provided key, task, payload, and options', () => {
@@ -79,7 +82,7 @@ describe('dispatchTriggerTasksAfterCommit', () => {
     dispatchTriggerTasksAfterCommit(tasks)
 
     // Allow microtasks to settle
-    await new Promise((resolve) => setTimeout(resolve, 10))
+    await flushMicrotasks()
 
     expect(calls1).toHaveLength(1)
     expect(calls1[0]).toEqual({
@@ -91,10 +94,11 @@ describe('dispatchTriggerTasksAfterCommit', () => {
   })
 
   it('should log errors but not throw when a task trigger rejects asynchronously', async () => {
-    const consoleErrorSpy = spyOn(
-      console,
-      'error'
-    ).mockImplementation(() => {})
+    const consoleErrorCalls: unknown[][] = []
+    const originalConsoleError = console.error
+    console.error = (...args: unknown[]) => {
+      consoleErrorCalls.push(args)
+    }
     try {
       const failingTask: QueuedTriggerTask = {
         key: 'fail-key',
@@ -113,32 +117,49 @@ describe('dispatchTriggerTasksAfterCommit', () => {
       ).not.toThrow()
 
       // Allow the promise rejection to be caught
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await flushMicrotasks()
 
-      expect(consoleErrorSpy).toHaveBeenCalled()
-      expect(consoleErrorSpy.mock.calls[0][0]).toContain(
+      expect(consoleErrorCalls).toHaveLength(1)
+      expect(String(consoleErrorCalls[0][0])).toContain(
         'Failed to dispatch trigger task'
       )
     } finally {
-      consoleErrorSpy.mockRestore()
+      console.error = originalConsoleError
     }
   })
 
-  it('should not throw when a task trigger throws synchronously', () => {
-    const syncFailingTask: QueuedTriggerTask = {
-      key: 'sync-fail-key',
-      task: {
-        id: 'sync-fail-task',
-        trigger: () => {
-          throw new Error('sync trigger failed')
-        },
-      } as QueuedTriggerTask['task'],
-      payload: {},
+  it('should log errors but not throw when a task trigger throws synchronously', () => {
+    const consoleErrorCalls: unknown[][] = []
+    const originalConsoleError = console.error
+    console.error = (...args: unknown[]) => {
+      consoleErrorCalls.push(args)
     }
+    try {
+      const syncFailingTrigger: QueuedTriggerTask['task']['trigger'] =
+        (): Promise<{ id: string }> => {
+          throw new Error('sync trigger failed')
+        }
 
-    expect(() =>
-      dispatchTriggerTasksAfterCommit([syncFailingTask])
-    ).not.toThrow()
+      const syncFailingTask: QueuedTriggerTask = {
+        key: 'sync-fail-key',
+        task: {
+          id: 'sync-fail-task',
+          trigger: syncFailingTrigger,
+        },
+        payload: {},
+      }
+
+      expect(() =>
+        dispatchTriggerTasksAfterCommit([syncFailingTask])
+      ).not.toThrow()
+
+      expect(consoleErrorCalls).toHaveLength(1)
+      expect(String(consoleErrorCalls[0][0])).toContain(
+        'Failed to dispatch trigger task'
+      )
+    } finally {
+      console.error = originalConsoleError
+    }
   })
 
   it('should do nothing when given an empty array', () => {
