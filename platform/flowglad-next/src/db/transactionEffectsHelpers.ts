@@ -9,7 +9,6 @@ import type {
   EnqueueTriggerTaskCallback,
   QueuedTriggerTask,
   TransactionEffects,
-  TriggerTaskHandle,
 } from './types'
 
 /**
@@ -99,34 +98,20 @@ export function invalidateCacheAfterCommit(
 
 /**
  * Dispatches queued trigger tasks after the transaction commits.
- * Fire-and-forget: errors are logged but don't fail the request.
- * Returns a map of user-provided keys to trigger handles.
+ * Truly fire-and-forget: dispatches are not awaited, so they don't
+ * block the request. Errors are logged but never fail the request.
  */
-export async function dispatchTriggerTasksAfterCommit(
+export function dispatchTriggerTasksAfterCommit(
   triggerTasks: QueuedTriggerTask[]
-): Promise<Map<string, TriggerTaskHandle>> {
-  const handles = new Map<string, TriggerTaskHandle>()
-  if (triggerTasks.length === 0) {
-    return handles
+): void {
+  for (const queued of triggerTasks) {
+    queued.task
+      .trigger(queued.payload, queued.options)
+      .catch((error) => {
+        console.error(
+          `Failed to dispatch trigger task '${queued.key}' after commit:`,
+          error
+        )
+      })
   }
-  const results = await Promise.allSettled(
-    triggerTasks.map(async (queued) => {
-      const result = await queued.task.trigger(
-        queued.payload,
-        queued.options
-      )
-      return { key: queued.key, id: result.id }
-    })
-  )
-  for (const result of results) {
-    if (result.status === 'fulfilled') {
-      handles.set(result.value.key, { id: result.value.id })
-    } else {
-      console.error(
-        'Failed to dispatch trigger task after commit:',
-        result.reason
-      )
-    }
-  }
-  return handles
 }

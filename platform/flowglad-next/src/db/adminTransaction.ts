@@ -5,7 +5,6 @@ import type {
   AdminTransactionParams,
   CacheRecomputationContext,
   TransactionEffectsContext,
-  TriggerTaskHandle,
 } from '@/db/types'
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
@@ -39,7 +38,6 @@ async function executeComprehensiveAdminTransaction<T>(
   output: Result<T, Error>
   processedEventsCount: number
   processedLedgerCommandsCount: number
-  triggerHandles: Map<string, TriggerTaskHandle>
 }> {
   // Create effects accumulator and callbacks
   const {
@@ -96,15 +94,12 @@ async function executeComprehensiveAdminTransaction<T>(
 
   // Transaction committed successfully - now run post-commit effects
   invalidateCacheAfterCommit(effects.cacheInvalidations)
-  const triggerHandles = await dispatchTriggerTasksAfterCommit(
-    effects.triggerTasks
-  )
+  dispatchTriggerTasksAfterCommit(effects.triggerTasks)
 
   return {
     output,
     processedEventsCount,
     processedLedgerCommandsCount,
-    triggerHandles,
   }
 }
 

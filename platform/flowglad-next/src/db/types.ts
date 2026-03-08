@@ -58,13 +58,10 @@ export type EnqueueTriggerTaskCallback = <TPayload>(
 
 /**
  * Return type for comprehensive transaction functions.
- * Contains both the user's result and any trigger handles from dispatched tasks.
  */
 export interface TransactionResult<T> {
   /** The result returned by the user's transaction function */
   result: T
-  /** Handles for trigger tasks dispatched after commit, keyed by user-provided key */
-  triggerHandles: Map<string, TriggerTaskHandle>
 }
 
 /**
