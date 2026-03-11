@@ -38,7 +38,6 @@ const FeatureFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateFeatureInput>()
 
   const featureType = form.watch('feature.type')
-  const pricingModelId = form.watch('feature.pricingModelId')
   if (!core.IS_PROD) {
     // eslint-disable-next-line no-console
     console.log('errors', form.formState.errors)

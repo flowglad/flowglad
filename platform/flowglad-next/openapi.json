@@ -12713,9 +12713,6 @@
             "type": "null",
             "const": null
           },
-          "pricingModelId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "null",
             "const": null
@@ -12724,13 +12721,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "type",
-          "slug",
-          "name",
-          "description",
-          "pricingModelId"
-        ]
+        "required": ["type", "slug", "name", "description"]
       },
       "UsageCreditGrantFeatureClientInsertSchema": {
         "type": "object",
@@ -12763,9 +12754,6 @@
             "type": "string",
             "enum": ["once", "every_billing_period"]
           },
-          "pricingModelId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "null",
             "const": null
@@ -12781,8 +12769,7 @@
           "description",
           "amount",
           "usageMeterId",
-          "renewalFrequency",
-          "pricingModelId"
+          "renewalFrequency"
         ]
       },
       "ResourceFeatureClientInsertSchema": {
@@ -12817,9 +12804,6 @@
             "type": "null",
             "const": null
           },
-          "pricingModelId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "string"
           },
@@ -12833,7 +12817,6 @@
           "name",
           "description",
           "amount",
-          "pricingModelId",
           "resourceId"
         ]
       },
