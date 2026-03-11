@@ -9,7 +9,7 @@ metadata:
 
 <!--
 @flowglad/skill
-sources_reviewed: 2026-01-21T12:00:00Z
+sources_reviewed: 2026-02-07T23:00:00Z
 source_files:
   - platform/docs/features/checkout-sessions.mdx
   - platform/docs/sdks/checkout-sessions.mdx
