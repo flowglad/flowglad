@@ -135,7 +135,7 @@ export const {
     hiddenColumns: {
       externalId: true,
     },
-    createOnlyColumns: {
+    readOnlyColumns: {
       pricingModelId: true,
     },
   },
