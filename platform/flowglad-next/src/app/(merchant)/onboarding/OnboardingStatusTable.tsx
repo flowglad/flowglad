@@ -321,11 +321,9 @@ const OnboardingStatusTable = ({
                 onClick={() => {
                   void handleEnablePayments()
                 }}
-                disabled={isEnablePaymentsLoading}
+                disabled
               >
-                {isEnablePaymentsLoading
-                  ? 'Connecting...'
-                  : (item.action ?? 'Connect')}
+                Coming soon
               </Button>
               <ErrorLabel error={enablePaymentsError} />
             </div>
