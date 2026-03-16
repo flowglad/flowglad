@@ -323,7 +323,7 @@ const OnboardingStatusTable = ({
                 }}
                 disabled
               >
-                Coming soon
+                {item.action ?? 'Connect'}
               </Button>
               <ErrorLabel error={enablePaymentsError} />
             </div>
