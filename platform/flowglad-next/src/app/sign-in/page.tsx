@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import Link from 'next/link'
+
 import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import type { FieldErrors } from 'react-hook-form'
@@ -286,12 +286,6 @@ export default function SignIn() {
         >
           Forgot your password?
         </button>
-        <Link
-          href="/sign-up"
-          className="text-[hsl(var(--brownstone-foreground))] hover:text-[hsl(var(--citrine-foreground))] hover:underline hover:decoration-dashed transition-colors"
-        >
-          Sign up
-        </Link>
       </div>
     </div>
   )

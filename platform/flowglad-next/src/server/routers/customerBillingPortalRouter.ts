@@ -40,8 +40,6 @@ import {
 } from '@/subscriptions/schemas'
 import { SubscriptionCancellationArrangement } from '@/types'
 import { customerAuth } from '@/utils/auth/customerAuth'
-import { merchantAuth } from '@/utils/auth/merchantAuth'
-import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
 import {
   customerBillingCreateAddPaymentMethodSession,
   customerBillingCreatePricedCheckoutSession,
@@ -486,25 +484,10 @@ const requestMagicLinkProcedure = publicProcedure
             let userId: string
 
             if (!user || !user.betterAuthId) {
-              // Create new user account for the customer
-              const result = await merchantAuth.api.createUser({
-                body: {
-                  email,
-                  password: core.nanoid(),
-                  name: customers
-                    .map((customer) => customer.name)
-                    .join(' '),
-                },
+              throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'Sign-up is currently disabled',
               })
-              const safelyCreatedUser =
-                await betterAuthUserToApplicationUser(result.user)
-              userId = safelyCreatedUser.id
-
-              // Link customers to the new user
-              await setUserIdForCustomerRecords(
-                { customerEmail: email, userId },
-                transaction
-              )
             } else {
               userId = user.id
 
@@ -865,25 +848,10 @@ const sendOTPToCustomerProcedure = publicProcedure
             let userId: string
 
             if (!user || !user.betterAuthId) {
-              // Create new user account for the customer
-              const result = await merchantAuth.api.createUser({
-                body: {
-                  email,
-                  password: core.nanoid(),
-                  name: customers
-                    .map((customer) => customer.name)
-                    .join(' '),
-                },
+              throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: 'Sign-up is currently disabled',
               })
-              const safelyCreatedUser =
-                await betterAuthUserToApplicationUser(result.user)
-              userId = safelyCreatedUser.id
-
-              // Link customers to the new user
-              await setUserIdForCustomerRecords(
-                { customerEmail: email, userId },
-                transaction
-              )
             } else {
               userId = user.id
 

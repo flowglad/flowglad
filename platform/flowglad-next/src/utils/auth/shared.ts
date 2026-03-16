@@ -12,6 +12,7 @@ import {
 import type { User } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '@/db/client'
+import { panic } from '@/errors'
 import { betterAuthUserToApplicationUser } from '../authHelpers'
 
 /**
@@ -36,6 +37,9 @@ export const sharedDatabaseAdapter = drizzleAdapter(db, {
 export const sharedDatabaseHooks = {
   user: {
     create: {
+      before: async () => {
+        panic('Sign-up is currently disabled')
+      },
       after: async (betterAuthUser: User) => {
         await betterAuthUserToApplicationUser(betterAuthUser)
       },
