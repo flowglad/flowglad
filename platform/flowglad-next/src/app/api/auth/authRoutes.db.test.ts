@@ -17,7 +17,6 @@ import {
   user,
   verification,
 } from '@db-core/schema/betterAuthSchema'
-import { hashPassword } from 'better-auth/crypto'
 import { eq } from 'drizzle-orm'
 import { setupOrg } from '@/../seedDatabase'
 import db from '@/db/client'
@@ -34,38 +33,6 @@ import {
   GET as merchantGet,
   POST as merchantPost,
 } from './merchant/[...all]/route'
-
-/**
- * Helper to seed a merchant user directly in the DB (bypassing sign-up hooks).
- * Creates both the user record and the credential account record so
- * sign-in with email/password works.
- */
-async function seedMerchantUser(
-  email: string,
-  password: string,
-  name: string
-) {
-  const userId = core.nanoid()
-  const hashedPassword = await hashPassword(password)
-  await db.insert(user).values({
-    id: userId,
-    email,
-    name,
-    emailVerified: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  })
-  await db.insert(account).values({
-    id: core.nanoid(),
-    userId,
-    accountId: userId,
-    providerId: 'credential',
-    password: hashedPassword,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  })
-  return userId
-}
 
 /**
  * Helper to parse Set-Cookie headers and extract cookie names
@@ -162,13 +129,30 @@ describe('auth API routes', () => {
   })
 
   describe('/api/auth/merchant/*', () => {
-    it('should handle merchant sign-in with email/password, setting cookies with merchant prefix', async () => {
+    it('should handle merchant sign-up and sign-in with email/password, setting cookies with merchant prefix', async () => {
       const testEmail = createTestEmail()
 
-      // Seed user directly in DB (sign-up is disabled)
-      await seedMerchantUser(testEmail, testPassword, testName)
+      // Step 1: Sign up a new merchant user
+      const signUpRequest = createMerchantRequest('/sign-up/email', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: testEmail,
+          password: testPassword,
+          name: testName,
+        }),
+      })
 
-      // Sign in with the created credentials
+      const signUpResponse = await merchantPost(signUpRequest)
+      expect(signUpResponse.status).toBe(200)
+
+      // Verify sign-up sets merchant cookies
+      const signUpCookieNames = parseCookieNames(signUpResponse)
+      const hasMerchantCookie = signUpCookieNames.some((name) =>
+        name.startsWith(`${MERCHANT_COOKIE_PREFIX}.`)
+      )
+      expect(hasMerchantCookie).toBe(true)
+
+      // Step 2: Sign in with the created credentials
       const signInRequest = createMerchantRequest('/sign-in/email', {
         method: 'POST',
         body: JSON.stringify({
@@ -197,21 +181,20 @@ describe('auth API routes', () => {
     it('should handle merchant sign-out and clear only merchant session cookie', async () => {
       const testEmail = createTestEmail()
 
-      // Seed user directly in DB and sign in to get a session
-      await seedMerchantUser(testEmail, testPassword, testName)
-      const signInResponse = await merchantPost(
-        createMerchantRequest('/sign-in/email', {
-          method: 'POST',
-          body: JSON.stringify({
-            email: testEmail,
-            password: testPassword,
-          }),
-        })
-      )
-      expect(signInResponse.status).toBe(200)
+      // First sign up and sign in to get a session
+      const signUpRequest = createMerchantRequest('/sign-up/email', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: testEmail,
+          password: testPassword,
+          name: testName,
+        }),
+      })
+      const signUpResponse = await merchantPost(signUpRequest)
+      expect(signUpResponse.status).toBe(200)
 
-      // Extract session cookie from sign-in response
-      const setCookieHeaders = signInResponse.headers.getSetCookie()
+      // Extract session cookie from sign-up response
+      const setCookieHeaders = signUpResponse.headers.getSetCookie()
       const sessionCookie = setCookieHeaders.find((cookie) =>
         cookie.startsWith(`${MERCHANT_COOKIE_PREFIX}.session_token=`)
       )
@@ -432,21 +415,21 @@ describe('auth API routes', () => {
     it('merchant sign-in does not affect customer session cookies', async () => {
       const testEmail = createTestEmail()
 
-      // Seed user and sign in
-      await seedMerchantUser(testEmail, testPassword, testName)
-      const signInResponse = await merchantPost(
-        createMerchantRequest('/sign-in/email', {
-          method: 'POST',
-          body: JSON.stringify({
-            email: testEmail,
-            password: testPassword,
-          }),
-        })
-      )
-      expect(signInResponse.status).toBe(200)
+      // Sign up merchant
+      const signUpRequest = createMerchantRequest('/sign-up/email', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: testEmail,
+          password: testPassword,
+          name: testName,
+        }),
+      })
+
+      const signUpResponse = await merchantPost(signUpRequest)
+      expect(signUpResponse.status).toBe(200)
 
       // Check that only merchant cookies are set, not customer cookies
-      const cookieNames = parseCookieNames(signInResponse)
+      const cookieNames = parseCookieNames(signUpResponse)
 
       const merchantCookies = cookieNames.filter((name) =>
         name.startsWith(`${MERCHANT_COOKIE_PREFIX}.`)
@@ -493,21 +476,25 @@ describe('auth API routes', () => {
       it('merchant and customer can have active sessions at the same time with different tokens', async () => {
         const merchantEmail = createTestEmail()
 
-        // Step 1: Seed merchant user and sign in
-        await seedMerchantUser(merchantEmail, testPassword, testName)
-        const merchantSignInResponse = await merchantPost(
-          createMerchantRequest('/sign-in/email', {
+        // Step 1: Sign up merchant
+        const merchantSignUpRequest = createMerchantRequest(
+          '/sign-up/email',
+          {
             method: 'POST',
             body: JSON.stringify({
               email: merchantEmail,
               password: testPassword,
+              name: testName,
             }),
-          })
+          }
         )
-        expect(merchantSignInResponse.status).toBe(200)
+        const merchantSignUpResponse = await merchantPost(
+          merchantSignUpRequest
+        )
+        expect(merchantSignUpResponse.status).toBe(200)
 
         const merchantToken = extractSessionToken(
-          merchantSignInResponse,
+          merchantSignUpResponse,
           MERCHANT_COOKIE_PREFIX
         )
         expect(typeof merchantToken).toBe('string')
@@ -573,22 +560,22 @@ describe('auth API routes', () => {
       it('session tokens from merchant and customer use different cookie prefixes', async () => {
         const merchantEmail = createTestEmail()
 
-        // Seed merchant user and sign in
-        await seedMerchantUser(merchantEmail, testPassword, testName)
-        const merchantSignInResponse = await merchantPost(
-          createMerchantRequest('/sign-in/email', {
+        // Sign up merchant
+        const merchantSignUpResponse = await merchantPost(
+          createMerchantRequest('/sign-up/email', {
             method: 'POST',
             body: JSON.stringify({
               email: merchantEmail,
               password: testPassword,
+              name: testName,
             }),
           })
         )
-        expect(merchantSignInResponse.status).toBe(200)
+        expect(merchantSignUpResponse.status).toBe(200)
 
         // Verify merchant cookies use merchant prefix
         const merchantCookies =
-          merchantSignInResponse.headers.getSetCookie()
+          merchantSignUpResponse.headers.getSetCookie()
         const hasMerchantPrefix = merchantCookies.some((c) =>
           c.startsWith(`${MERCHANT_COOKIE_PREFIX}.`)
         )
@@ -610,22 +597,22 @@ describe('auth API routes', () => {
       it('signing out merchant does not invalidate customer session cookie', async () => {
         const merchantEmail = createTestEmail()
 
-        // Seed merchant user and sign in to get session
-        await seedMerchantUser(merchantEmail, testPassword, testName)
-        const merchantSignInResponse = await merchantPost(
-          createMerchantRequest('/sign-in/email', {
+        // Sign up merchant and get session
+        const merchantSignUpResponse = await merchantPost(
+          createMerchantRequest('/sign-up/email', {
             method: 'POST',
             body: JSON.stringify({
               email: merchantEmail,
               password: testPassword,
+              name: testName,
             }),
           })
         )
-        expect(merchantSignInResponse.status).toBe(200)
+        expect(merchantSignUpResponse.status).toBe(200)
 
         // Get merchant session cookie for sign-out
         const merchantCookies =
-          merchantSignInResponse.headers.getSetCookie()
+          merchantSignUpResponse.headers.getSetCookie()
         const merchantSessionCookie = merchantCookies.find((c) =>
           c.startsWith(`${MERCHANT_COOKIE_PREFIX}.session_token=`)
         )
@@ -752,19 +739,17 @@ describe('auth API routes', () => {
     })
 
     describe('session token uniqueness', () => {
-      it('multiple merchant sign-ins create unique session tokens', async () => {
+      it('multiple merchant sign-ups create unique session tokens', async () => {
         const email1 = createTestEmail()
         const email2 = createTestEmail()
 
-        await seedMerchantUser(email1, testPassword, testName)
-        await seedMerchantUser(email2, testPassword, testName)
-
         const response1 = await merchantPost(
-          createMerchantRequest('/sign-in/email', {
+          createMerchantRequest('/sign-up/email', {
             method: 'POST',
             body: JSON.stringify({
               email: email1,
               password: testPassword,
+              name: testName,
             }),
           })
         )
@@ -775,11 +760,12 @@ describe('auth API routes', () => {
         )
 
         const response2 = await merchantPost(
-          createMerchantRequest('/sign-in/email', {
+          createMerchantRequest('/sign-up/email', {
             method: 'POST',
             body: JSON.stringify({
               email: email2,
               password: testPassword,
+              name: testName,
             }),
           })
         )
@@ -799,14 +785,14 @@ describe('auth API routes', () => {
       it('can sign in to merchant, then customer, then merchant again without interference', async () => {
         const merchantEmail = createTestEmail()
 
-        // Seed merchant user and first sign-in
-        await seedMerchantUser(merchantEmail, testPassword, testName)
+        // First merchant sign-in
         const merchantResponse1 = await merchantPost(
-          createMerchantRequest('/sign-in/email', {
+          createMerchantRequest('/sign-up/email', {
             method: 'POST',
             body: JSON.stringify({
               email: merchantEmail,
               password: testPassword,
+              name: testName,
             }),
           })
         )
