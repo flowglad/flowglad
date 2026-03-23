@@ -3,63 +3,23 @@
 import { SubscriptionStatus } from '@db-core/enums'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { ColumnDef } from '@tanstack/react-table'
-import { X } from 'lucide-react'
-import * as React from 'react'
-import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
-import {
-  type ActionMenuItem,
-  EnhancedDataTableActionsMenu,
-} from '@/components/ui/enhanced-data-table-actions-menu'
 import { SubscriptionStatusTag } from '@/components/ui/status-tag'
 import { formatDate } from '@/utils/core'
+import { SubscriptionActionsMenu } from './SubscriptionActionsMenu'
 
-function SubscriptionActionsMenu({
-  subscription,
-}: {
-  subscription: Subscription.ClientRecord
-}) {
-  const [isCancelOpen, setIsCancelOpen] = React.useState(false)
-
-  const isCanceled =
-    subscription.status === SubscriptionStatus.Canceled
-  const isFreePlan = subscription.isFreePlan === true
-  const cannotCancel = isCanceled || isFreePlan
-
-  // Get the appropriate helper text for why cancel is disabled
-  const getCancelHelperText = (): string | undefined => {
-    if (isFreePlan) {
-      return 'Default free plans cannot be canceled'
-    }
-    if (isCanceled) {
-      return 'Subscription is already canceled'
-    }
-    return undefined
-  }
-
-  const actionItems: ActionMenuItem[] = [
-    {
-      label: 'Cancel Subscription',
-      icon: <X className="h-4 w-4" />,
-      handler: () => setIsCancelOpen(true),
-      destructive: true,
-      disabled: cannotCancel,
-      helperText: getCancelHelperText(),
-    },
-  ]
-
-  return (
-    <EnhancedDataTableActionsMenu items={actionItems}>
-      <CancelSubscriptionModal
-        isOpen={isCancelOpen}
-        setIsOpen={setIsCancelOpen}
-        subscriptionId={subscription.id}
-      />
-    </EnhancedDataTableActionsMenu>
-  )
+export interface SubscriptionAdjustTarget {
+  pricingModelId: string
+  subscriptionId: string
 }
 
-export const columns: ColumnDef<Subscription.TableRowData>[] = [
+interface SubscriptionColumnsOptions {
+  onAdjustSubscription: (target: SubscriptionAdjustTarget) => void
+}
+
+export const createColumns = ({
+  onAdjustSubscription,
+}: SubscriptionColumnsOptions): ColumnDef<Subscription.TableRowData>[] => [
   {
     id: 'createdAt',
     accessorFn: (row) => row.subscription.createdAt,
@@ -140,12 +100,22 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     enableResizing: false,
     cell: ({ row }) => {
       const subscription = row.original.subscription
+      const price = row.original.price
       return (
         <div
           className="w-8 flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
-          <SubscriptionActionsMenu subscription={subscription} />
+          <SubscriptionActionsMenu
+            onAdjust={() =>
+              onAdjustSubscription({
+                subscriptionId: subscription.id,
+                pricingModelId: price.pricingModelId,
+              })
+            }
+            priceType={price.type}
+            subscription={subscription}
+          />
         </div>
       )
     },

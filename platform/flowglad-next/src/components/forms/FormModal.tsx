@@ -121,6 +121,11 @@ interface FormModalProps<T extends FieldValues>
    * Whether the submit button should be disabled. Defaults to false.
    */
   submitDisabled?: boolean
+  /**
+   * Recomputes and reapplies default values while the modal is open when this
+   * key changes. Useful for async-loaded form data that arrives after open.
+   */
+  defaultValuesKey?: string | number | boolean | null
 }
 
 interface NestedFormModalProps<T extends FieldValues>
@@ -134,6 +139,7 @@ export const NestedFormModal = <T extends FieldValues>({
   setIsOpen,
   isOpen,
   defaultValues,
+  defaultValuesKey,
   onSubmit,
   title,
   children,
@@ -150,15 +156,21 @@ export const NestedFormModal = <T extends FieldValues>({
   // This prevents expensive computations (like schema.parse()) from running
   // on every render when the modal is closed
   const lastIsOpenRef = useRef(false)
+  const lastDefaultValuesKeyRef = useRef(defaultValuesKey)
   const defaultValuesRef = useRef<DefaultValues<T> | undefined>(
     undefined
   )
 
-  if (isOpen && !lastIsOpenRef.current) {
+  if (
+    isOpen &&
+    (!lastIsOpenRef.current ||
+      lastDefaultValuesKeyRef.current !== defaultValuesKey)
+  ) {
     // Modal is transitioning from closed to open - compute fresh default values
     defaultValuesRef.current = defaultValues()
   }
   lastIsOpenRef.current = isOpen
+  lastDefaultValuesKeyRef.current = defaultValuesKey
 
   const resolvedDefaultValues = defaultValuesRef.current
 
@@ -168,7 +180,7 @@ export const NestedFormModal = <T extends FieldValues>({
     if (isOpen && form && defaultValuesRef.current) {
       form.reset(defaultValuesRef.current)
     }
-  }, [isOpen, form])
+  }, [defaultValuesKey, form, isOpen])
 
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
@@ -292,6 +304,7 @@ const FormModal = <T extends FieldValues>({
   mode = 'modal',
   allowContentOverflow = false,
   submitDisabled = false,
+  defaultValuesKey,
 }: FormModalProps<T>) => {
   const id = useId()
   const router = useRouter()
@@ -299,15 +312,21 @@ const FormModal = <T extends FieldValues>({
   // This prevents expensive computations (like schema.parse()) from running
   // on every render when the modal is closed
   const lastIsOpenRef = useRef(false)
+  const lastDefaultValuesKeyRef = useRef(defaultValuesKey)
   const defaultValuesRef = useRef<DefaultValues<T> | undefined>(
     undefined
   )
 
-  if (isOpen && !lastIsOpenRef.current) {
+  if (
+    isOpen &&
+    (!lastIsOpenRef.current ||
+      lastDefaultValuesKeyRef.current !== defaultValuesKey)
+  ) {
     // Modal is transitioning from closed to open - compute fresh default values
     defaultValuesRef.current = defaultValues()
   }
   lastIsOpenRef.current = isOpen
+  lastDefaultValuesKeyRef.current = defaultValuesKey
 
   const resolvedDefaultValues = defaultValuesRef.current
   const form = useForm<T>({
@@ -368,7 +387,7 @@ const FormModal = <T extends FieldValues>({
     if (isOpen && defaultValuesRef.current) {
       form.reset(defaultValuesRef.current)
     }
-  }, [isOpen, form])
+  }, [defaultValuesKey, form, isOpen])
 
   const hardResetFormValues = useCallback(() => {
     if (!resolvedDefaultValues) return

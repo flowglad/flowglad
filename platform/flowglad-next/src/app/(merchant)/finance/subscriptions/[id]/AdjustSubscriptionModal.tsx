@@ -3,6 +3,7 @@
 import { CurrencyCode, PriceType } from '@db-core/enums'
 import type { Price } from '@db-core/schema/prices'
 import { encodeCursor } from '@db-core/tableUtils'
+import { skipToken } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
@@ -22,10 +23,19 @@ import {
   adjustSubscriptionFormSchema,
 } from './adjustSubscriptionFormSchema'
 
-interface AdjustSubscriptionModalProps extends ModalInterfaceProps {
-  subscription: RichSubscription
-  pricingModelId: string
-}
+type AdjustSubscriptionModalProps = ModalInterfaceProps &
+  (
+    | {
+        subscription: RichSubscription
+        subscriptionId?: never
+      }
+    | {
+        subscription?: never
+        subscriptionId: string
+      }
+  ) & {
+    pricingModelId: string
+  }
 
 /**
  * Builds the adjustment payload from form values.
@@ -70,15 +80,13 @@ function buildAdjustmentPayload(
  * Inner component that has access to the form context for watching values
  * and triggering preview requests.
  */
-const AdjustSubscriptionModalContent = ({
+const AdjustSubscriptionModalLoadedContent = ({
   subscription,
   availablePrices,
-  isLoadingPrices,
   onPreviewStateChange,
 }: {
   subscription: RichSubscription
   availablePrices: Price.ClientRecord[]
-  isLoadingPrices: boolean
   onPreviewStateChange: (canAdjust: boolean | undefined) => void
 }) => {
   const form = useFormContext<AdjustSubscriptionFormValues>()
@@ -139,21 +147,6 @@ const AdjustSubscriptionModalContent = ({
     subscription.subscriptionItems[0]?.price.currency ??
     CurrencyCode.USD
 
-  if (isLoadingPrices) {
-    return (
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       <AdjustSubscriptionFormFields
@@ -172,10 +165,34 @@ const AdjustSubscriptionModalContent = ({
   )
 }
 
+const AdjustSubscriptionModalLoadingContent = () => (
+  <div className="space-y-6">
+    <div className="space-y-2">
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-10 w-full" />
+    </div>
+    <div className="space-y-2">
+      <Skeleton className="h-4 w-20" />
+      <Skeleton className="h-10 w-full" />
+    </div>
+  </div>
+)
+
+const AdjustSubscriptionModalErrorContent = ({
+  message,
+}: {
+  message: string
+}) => (
+  <div className="rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+    {message}
+  </div>
+)
+
 export const AdjustSubscriptionModal = ({
   isOpen,
   setIsOpen,
   subscription,
+  subscriptionId,
   pricingModelId,
 }: AdjustSubscriptionModalProps) => {
   const router = useRouter()
@@ -183,6 +200,24 @@ export const AdjustSubscriptionModal = ({
   const [previewCanAdjust, setPreviewCanAdjust] = useState<
     boolean | undefined
   >(undefined)
+  const resolvedSubscriptionId = subscription?.id ?? subscriptionId
+
+  const {
+    data: adjustContextData,
+    error: adjustContextError,
+    isLoading: isLoadingSubscription,
+  } = trpc.subscriptions.getAdjustContext.useQuery(
+    isOpen && !subscription && subscriptionId
+      ? { id: subscriptionId }
+      : skipToken,
+    {
+      refetchOnMount: 'always',
+      staleTime: 0,
+    }
+  )
+
+  const resolvedSubscription =
+    subscription ?? adjustContextData?.subscription ?? null
 
   // Fetch prices for the pricing model
   const { data: pricesData, isLoading: isLoadingPrices } =
@@ -213,7 +248,8 @@ export const AdjustSubscriptionModal = ({
   }, [pricesData])
 
   // Get current subscription item details for defaults
-  const currentSubscriptionItem = subscription.subscriptionItems[0]
+  const currentSubscriptionItem =
+    resolvedSubscription?.subscriptionItems[0]
   const currentPriceId = currentSubscriptionItem?.price.id
   const currentQuantity = currentSubscriptionItem?.quantity ?? 1
 
@@ -228,9 +264,13 @@ export const AdjustSubscriptionModal = ({
   const handleSubmit = async (
     values: AdjustSubscriptionFormValues
   ) => {
+    if (!resolvedSubscriptionId) {
+      throw new Error('Subscription details are not loaded yet')
+    }
+
     try {
       const result = await adjustMutation.mutateAsync({
-        id: subscription.id,
+        id: resolvedSubscriptionId,
         adjustment: buildAdjustmentPayload(
           values.priceId,
           values.quantity,
@@ -266,9 +306,46 @@ export const AdjustSubscriptionModal = ({
   // - Mutation is pending
   // - Preview explicitly says canAdjust: false
   const submitDisabled =
+    !resolvedSubscription ||
     !availablePrices.length ||
     adjustMutation.isPending ||
-    previewCanAdjust === false
+    previewCanAdjust === false ||
+    isLoadingSubscription ||
+    isLoadingPrices
+
+  const defaultValuesKey = resolvedSubscription
+    ? `${resolvedSubscription.id}:${currentPriceId ?? ''}:${currentQuantity}`
+    : `loading:${resolvedSubscriptionId}`
+
+  useEffect(() => {
+    setPreviewCanAdjust(undefined)
+  }, [defaultValuesKey, isOpen])
+
+  const renderContent = () => {
+    if (adjustContextError) {
+      return (
+        <AdjustSubscriptionModalErrorContent
+          message={adjustContextError.message}
+        />
+      )
+    }
+
+    if (
+      !resolvedSubscription ||
+      isLoadingSubscription ||
+      isLoadingPrices
+    ) {
+      return <AdjustSubscriptionModalLoadingContent />
+    }
+
+    return (
+      <AdjustSubscriptionModalLoadedContent
+        subscription={resolvedSubscription}
+        availablePrices={availablePrices}
+        onPreviewStateChange={setPreviewCanAdjust}
+      />
+    )
+  }
 
   return (
     <FormModal
@@ -277,16 +354,12 @@ export const AdjustSubscriptionModal = ({
       title="Adjust Subscription"
       formSchema={adjustSubscriptionFormSchema}
       defaultValues={getDefaultValues}
+      defaultValuesKey={defaultValuesKey}
       onSubmit={handleSubmit}
       submitButtonText="Confirm Adjustment"
       submitDisabled={submitDisabled}
     >
-      <AdjustSubscriptionModalContent
-        subscription={subscription}
-        availablePrices={availablePrices}
-        isLoadingPrices={isLoadingPrices}
-        onPreviewStateChange={setPreviewCanAdjust}
-      />
+      {renderContent()}
     </FormModal>
   )
 }

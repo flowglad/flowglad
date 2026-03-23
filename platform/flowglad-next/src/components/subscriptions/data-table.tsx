@@ -28,7 +28,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { columns } from './columns'
+import {
+  createColumns,
+  type SubscriptionAdjustTarget,
+} from './columns'
 
 export interface SubscriptionsTableFilters {
   status?: SubscriptionStatus
@@ -101,6 +104,7 @@ interface SubscriptionsDataTableProps {
   hiddenColumns?: string[]
   /** Default plan type filter value. Defaults to 'paid'. */
   defaultPlanType?: 'all' | 'paid' | 'free'
+  onAdjustSubscription: (target: SubscriptionAdjustTarget) => void
 }
 
 export function SubscriptionsDataTable({
@@ -109,6 +113,7 @@ export function SubscriptionsDataTable({
   onCreateSubscription,
   hiddenColumns = [],
   defaultPlanType = 'paid',
+  onAdjustSubscription,
 }: SubscriptionsDataTableProps) {
   const router = useRouter()
 
@@ -251,6 +256,14 @@ export function SubscriptionsDataTable({
     )
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
+
+  const columns = React.useMemo(
+    () =>
+      createColumns({
+        onAdjustSubscription,
+      }),
+    [onAdjustSubscription]
+  )
 
   const tableData = data?.items || []
 

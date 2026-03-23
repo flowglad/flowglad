@@ -64,6 +64,7 @@ import {
   selectCurrentlyActiveSubscriptionItems,
   selectSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   assertSubscriptionNotTerminal,
   isSubscriptionCurrent,
@@ -94,6 +95,7 @@ import {
   cancelScheduledAdjustmentInputSchema,
   cancelScheduledAdjustmentOutputSchema,
   previewAdjustSubscriptionOutputSchema,
+  richSubscriptionClientSelectSchema,
   scheduleSubscriptionCancellationSchema,
   uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
@@ -708,6 +710,40 @@ const getSubscriptionProcedure = protectedProcedure
         }
       )
     ).unwrap()
+  })
+
+// TRPC-only procedure, not exposed as REST API
+const getAdjustContextProcedure = protectedProcedure
+  .input(idInputSchema)
+  .output(
+    z.object({
+      subscription: richSubscriptionClientSelectSchema,
+    })
+  )
+  .query(async ({ input, ctx }) => {
+    return unwrapOrThrow(
+      await authenticatedTransaction(
+        async ({ transaction, cacheRecomputationContext }) => {
+          const [subscription] =
+            await selectRichSubscriptionsAndActiveItems(
+              { id: input.id },
+              transaction,
+              cacheRecomputationContext.livemode
+            )
+
+          if (!subscription) {
+            throw new NotFoundError('Subscription', input.id)
+          }
+
+          return Result.ok({
+            subscription,
+          })
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    )
   })
 
 export const createSubscriptionInputSchema = z
@@ -1468,6 +1504,7 @@ export const subscriptionsRouter = router({
   cancelScheduledAdjustment: cancelScheduledAdjustmentProcedure,
   list: listSubscriptionsProcedure,
   get: getSubscriptionProcedure,
+  getAdjustContext: getAdjustContextProcedure,
   create: createSubscriptionProcedure,
   getCountsByStatus: getCountsByStatusProcedure,
   retryBillingRunProcedure,

@@ -1,105 +1,31 @@
 'use client'
 
-import { PriceType, SubscriptionStatus } from '@db-core/enums'
+import { SubscriptionStatus } from '@db-core/enums'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Settings2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import * as React from 'react'
-import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
+import { SubscriptionActionsMenu } from '@/components/subscriptions/SubscriptionActionsMenu'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
-import {
-  type ActionMenuItem,
-  EnhancedDataTableActionsMenu,
-} from '@/components/ui/enhanced-data-table-actions-menu'
 import { SubscriptionStatusTag } from '@/components/ui/status-tag'
 import { formatDate } from '@/utils/core'
 
-function SubscriptionActionsMenu({
+const FinanceSubscriptionActionsCell = ({
+  priceType,
   subscription,
-  price,
 }: {
+  priceType: Subscription.TableRowData['price']['type']
   subscription: Subscription.ClientRecord
-  price: { type: PriceType }
-}) {
+}) => {
   const router = useRouter()
-  const [isCancelOpen, setIsCancelOpen] = React.useState(false)
-
-  const isCanceled =
-    subscription.status === SubscriptionStatus.Canceled
-  const isFreePlan = subscription.isFreePlan === true
-  const isUsageBased = price.type === PriceType.Usage
-  const hasPendingCancellation =
-    subscription.status === SubscriptionStatus.CancellationScheduled
-  const hasPendingAdjustment =
-    subscription.scheduledAdjustmentAt !== null
-
-  const cannotCancel = isCanceled || isFreePlan
-  const cannotAdjust =
-    isCanceled ||
-    isFreePlan ||
-    isUsageBased ||
-    hasPendingCancellation ||
-    hasPendingAdjustment
-
-  // Get the appropriate helper text for why cancel is disabled
-  const getCancelHelperText = (): string | undefined => {
-    if (isFreePlan) {
-      return 'Default free plans cannot be canceled'
-    }
-    if (isCanceled) {
-      return 'Subscription is already canceled'
-    }
-    return undefined
-  }
-
-  // Get the appropriate helper text for why adjust is disabled
-  const getAdjustHelperText = (): string | undefined => {
-    if (isCanceled) {
-      return 'Cannot adjust a canceled subscription'
-    }
-    if (isFreePlan) {
-      return 'Free plans cannot be adjusted'
-    }
-    if (isUsageBased) {
-      return 'Usage-based subscriptions cannot be adjusted'
-    }
-    if (hasPendingCancellation) {
-      return 'Cannot adjust while a cancellation is scheduled'
-    }
-    if (hasPendingAdjustment) {
-      return 'A scheduled adjustment is already pending'
-    }
-    return undefined
-  }
-
-  const actionItems: ActionMenuItem[] = [
-    {
-      label: 'Adjust Plan',
-      icon: <Settings2 className="h-4 w-4" />,
-      handler: () =>
-        router.push(`/finance/subscriptions/${subscription.id}`),
-      disabled: cannotAdjust,
-      helperText: getAdjustHelperText(),
-    },
-    {
-      label: 'Cancel Subscription',
-      icon: <X className="h-4 w-4" />,
-      handler: () => setIsCancelOpen(true),
-      destructive: true,
-      disabled: cannotCancel,
-      helperText: getCancelHelperText(),
-    },
-  ]
 
   return (
-    <EnhancedDataTableActionsMenu items={actionItems}>
-      <CancelSubscriptionModal
-        isOpen={isCancelOpen}
-        setIsOpen={setIsCancelOpen}
-        subscriptionId={subscription.id}
-      />
-    </EnhancedDataTableActionsMenu>
+    <SubscriptionActionsMenu
+      onAdjust={() =>
+        router.push(`/finance/subscriptions/${subscription.id}`)
+      }
+      priceType={priceType}
+      subscription={subscription}
+    />
   )
 }
 
@@ -190,9 +116,9 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
           className="w-8 flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
-          <SubscriptionActionsMenu
+          <FinanceSubscriptionActionsCell
+            priceType={price.type}
             subscription={subscription}
-            price={price}
           />
         </div>
       )

@@ -116,6 +116,23 @@ describe('subscriptionsRouter', () => {
       )
     })
   })
+
+  describe('getAdjustContextProcedure', () => {
+    it('returns a rich subscription payload for the adjust modal', async () => {
+      const caller = createCaller(organization, apiKeyToken)
+
+      const result = await caller.getAdjustContext({
+        id: doNotChargeSubscription.id,
+      })
+
+      expect(result.subscription.id).toBe(doNotChargeSubscription.id)
+      expect(result.subscription.pricingModelId).toBe(
+        doNotChargeSubscription.pricingModelId
+      )
+      expect(result.subscription.subscriptionItems).toBeArray()
+      expect(result.subscription.current).toBeBoolean()
+    })
+  })
 })
 
 describe('validateAndResolvePriceForSubscription', () => {
