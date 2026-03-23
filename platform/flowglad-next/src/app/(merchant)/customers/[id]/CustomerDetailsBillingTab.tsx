@@ -7,6 +7,7 @@ import type { UsageEvent } from '@db-core/schema/usageEvents'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
+import { AdjustSubscriptionModal } from '@/app/(merchant)/finance/subscriptions/[id]/AdjustSubscriptionModal'
 import { DetailLabel } from '@/components/DetailLabel'
 import { ExpandSection } from '@/components/ExpandSection'
 import { CreateSubscriptionFormModal } from '@/components/forms/CreateSubscriptionFormModal'
@@ -166,6 +167,11 @@ export const CustomerBillingSubPage = ({
     createSubscriptionModalOpen,
     setCreateSubscriptionModalOpen,
   ] = useState(false)
+  const [adjustSubscriptionTarget, setAdjustSubscriptionTarget] =
+    useState<{
+      pricingModelId: string
+      subscriptionId: string
+    } | null>(null)
 
   const { organization } = useAuthenticatedContext()
 
@@ -257,6 +263,7 @@ export const CustomerBillingSubPage = ({
             externalFilters={{
               customerId: customer.id,
             }}
+            onAdjustSubscription={setAdjustSubscriptionTarget}
             onCreateSubscription={
               shouldShow && !isLoading && !hasError
                 ? () => setCreateSubscriptionModalOpen(true)
@@ -311,6 +318,18 @@ export const CustomerBillingSubPage = ({
         setIsOpen={setCreateSubscriptionModalOpen}
         customerId={customer.id}
       />
+      {adjustSubscriptionTarget ? (
+        <AdjustSubscriptionModal
+          isOpen={true}
+          setIsOpen={(isOpen) => {
+            if (!isOpen) {
+              setAdjustSubscriptionTarget(null)
+            }
+          }}
+          subscriptionId={adjustSubscriptionTarget.subscriptionId}
+          pricingModelId={adjustSubscriptionTarget.pricingModelId}
+        />
+      ) : null}
     </>
   )
 }

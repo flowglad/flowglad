@@ -3,10 +3,31 @@
 import { SubscriptionStatus } from '@db-core/enums'
 import type { Subscription } from '@db-core/schema/subscriptions'
 import type { ColumnDef } from '@tanstack/react-table'
+import { useRouter } from 'next/navigation'
 import { SubscriptionActionsMenu } from '@/components/subscriptions/SubscriptionActionsMenu'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import { SubscriptionStatusTag } from '@/components/ui/status-tag'
 import { formatDate } from '@/utils/core'
+
+const FinanceSubscriptionActionsCell = ({
+  priceType,
+  subscription,
+}: {
+  priceType: Subscription.TableRowData['price']['type']
+  subscription: Subscription.ClientRecord
+}) => {
+  const router = useRouter()
+
+  return (
+    <SubscriptionActionsMenu
+      onAdjust={() =>
+        router.push(`/finance/subscriptions/${subscription.id}`)
+      }
+      priceType={priceType}
+      subscription={subscription}
+    />
+  )
+}
 
 export const columns: ColumnDef<Subscription.TableRowData>[] = [
   {
@@ -95,8 +116,7 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
           className="w-8 flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
-          <SubscriptionActionsMenu
-            adjustBehavior="navigate"
+          <FinanceSubscriptionActionsCell
             priceType={price.type}
             subscription={subscription}
           />

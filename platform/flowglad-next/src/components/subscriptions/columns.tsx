@@ -8,7 +8,18 @@ import { SubscriptionStatusTag } from '@/components/ui/status-tag'
 import { formatDate } from '@/utils/core'
 import { SubscriptionActionsMenu } from './SubscriptionActionsMenu'
 
-export const columns: ColumnDef<Subscription.TableRowData>[] = [
+export interface SubscriptionAdjustTarget {
+  pricingModelId: string
+  subscriptionId: string
+}
+
+interface SubscriptionColumnsOptions {
+  onAdjustSubscription: (target: SubscriptionAdjustTarget) => void
+}
+
+export const createColumns = ({
+  onAdjustSubscription,
+}: SubscriptionColumnsOptions): ColumnDef<Subscription.TableRowData>[] => [
   {
     id: 'createdAt',
     accessorFn: (row) => row.subscription.createdAt,
@@ -96,7 +107,12 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
           onClick={(e) => e.stopPropagation()}
         >
           <SubscriptionActionsMenu
-            adjustBehavior="modal"
+            onAdjust={() =>
+              onAdjustSubscription({
+                subscriptionId: subscription.id,
+                pricingModelId: price.pricingModelId,
+              })
+            }
             priceType={price.type}
             subscription={subscription}
           />
