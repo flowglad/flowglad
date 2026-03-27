@@ -187,6 +187,8 @@ The `prorate` option only applies to `immediately` and `auto` timing. When using
 
 Subscription adjustments have the following restrictions:
 *   The subscription must be in an active state (not `canceled`, `incomplete_expired`, etc.)
+*   The subscription cannot have a pending cancellation (status cannot be `cancellation_scheduled`)
+*   The subscription cannot have a pending scheduled adjustment (e.g., a downgrade already scheduled for the end of the billing period)
 *   The subscription must be a renewing subscription (not a one-time purchase)
 *   The subscription cannot be a free plan (use `createSubscription` to upgrade from free)
 *   The subscription cannot have the `doNotCharge` flag set

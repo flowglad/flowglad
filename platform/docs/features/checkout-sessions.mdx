@@ -23,7 +23,9 @@ This type is ideal for scenarios where the customer doesn't need to be logged in
 
 The "Add Payment Method" checkout session provides a flow for customers to securely save a payment method to their Flowglad profile.
 
-Upon successful completion, the payment method is stored. Optionally, if a `targetSubscriptionId` is provided when creating the session, the newly added payment method will automatically become the default payment method for that specific subscription.
+Upon successful completion, the payment method is stored. Optionally, if a `targetSubscriptionId` is provided when creating the session, the newly added payment method will automatically become the default payment method for that specific subscription. You can also set `automaticallyUpdateSubscriptions: true` to update the payment method for all of the customer's current subscriptions.
+
+This session type is particularly useful when you need to collect a payment method before performing a [subscription adjustment](/features/subscriptions#adjusting-a-subscription), since proration charges require a valid payment method.
 
 ### Invoice Checkout Session
 

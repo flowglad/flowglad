@@ -56,7 +56,19 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
 export const checkoutSessionsRouteConfigs = routeConfigs
 
 export const createCheckoutSession = protectedProcedure
-  .meta(openApiMetas.POST)
+  .meta({
+    ...openApiMetas.POST,
+    openapi: {
+      ...openApiMetas.POST.openapi!,
+      method: 'POST',
+      path: '/api/v1/checkout-sessions',
+      description:
+        'Create a checkout session for various purposes:\n\n' +
+        '**Product checkout (type: "product"):** Creates a session for purchasing a product/subscription. Requires priceId or priceSlug.\n\n' +
+        '**Add payment method (type: "add_payment_method"):** Creates a session to collect a payment method from the customer without making a purchase. Use this to collect payment details before calling `/subscriptions/{id}/adjust` for subscriptions that require a payment method. Optionally set `targetSubscriptionId` to automatically assign the new payment method to a subscription, or `automaticallyUpdateSubscriptions` to update all current subscriptions.\n\n' +
+        '**Activate subscription (type: "activate_subscription"):** Creates a session to add a payment method and pay any outstanding invoices for a subscription. Requires targetSubscriptionId.',
+    },
+  })
   .input(createCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(
