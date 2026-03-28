@@ -1,6 +1,6 @@
 ---
 name: pm
-description: Create incident postmortems by reading Slack incident channels and creating structured postmortem documents in Notion. Use when conducting postmortem reviews or documenting incident responses.
+description: "Create incident postmortems by reading Slack incident channels and creating structured postmortem documents in Notion. Use when conducting a post-mortem, postmortem, RCA, root cause analysis, incident report, retrospective, incident review, or documenting incident responses."
 ---
 
 # Incident Postmortem Generator
@@ -9,10 +9,10 @@ Create comprehensive incident postmortem documents by reading Slack incident cha
 
 ## When to Use
 
-- After resolving a production incident
-- When conducting postmortem reviews
+- After resolving a production incident that needs a post-mortem or RCA
+- When conducting retrospectives or incident reviews
 - When documenting incident responses for team learning
-- To generate action items from incident discussions
+- To generate root cause analysis and action items from incident discussions
 
 ## Prerequisites
 
@@ -31,221 +31,107 @@ Ask the user for the Slack channel name or ID. The channel should be the dedicat
 
 ### 2. Read Slack Channel History
 
-Use the Slack MCP to fetch the channel's message history:
+List channels to find the incident channel:
 
-```
-mcp__slack__slack_list_channels
-```
-
-Find the channel ID, then fetch history:
-
-```
-mcp__slack__slack_get_channel_history with channel_id
+```json
+mcp__slack__slack_list_channels({
+  "limit": 200
+})
 ```
 
-For threaded discussions, also fetch thread replies:
+**Validation:** Confirm the channel exists in the response before proceeding. If not found, ask the user to verify the channel name.
 
-```
-mcp__slack__slack_get_thread_replies with channel_id and thread_ts
+Fetch the channel message history:
+
+```json
+mcp__slack__slack_get_channel_history({
+  "channel_id": "C0123INCIDENT",
+  "limit": 500
+})
 ```
 
-Get user information to resolve mentions:
+**Validation:** Confirm messages were returned. If the channel is empty, inform the user.
 
+For threaded discussions, fetch thread replies:
+
+```json
+mcp__slack__slack_get_thread_replies({
+  "channel_id": "C0123INCIDENT",
+  "thread_ts": "1678901234.567890"
+})
 ```
-mcp__slack__slack_get_users
+
+Resolve user mentions to real names:
+
+```json
+mcp__slack__slack_get_users({})
 ```
 
 ### 3. Analyze the Incident
 
 From the Slack messages, extract:
 
-1. **Timeline**: Key events in chronological order
-   - When was the incident first detected?
-   - When was it acknowledged?
-   - What investigation steps were taken?
-   - When was it mitigated/resolved?
-
-2. **Root Cause**: The underlying technical issue
-   - What broke?
-   - Why did it break?
-   - What dependencies were involved?
-
-3. **Impact**: The effect on users/systems
-   - What services were affected?
-   - How many users impacted?
-   - What was the duration?
-
-4. **Open Questions**: Unresolved items from discussion
-   - Unclear technical details
-   - Areas needing further investigation
-   - Decisions that need to be made
-
-5. **Action Items**: Follow-up tasks with assignees
-   - Preventive measures
-   - Monitoring improvements
-   - Documentation updates
-   - Process changes
+1. **Timeline**: Key events in chronological order (detection, acknowledgement, investigation steps, mitigation, resolution)
+2. **Root Cause**: What broke, why it broke, and what dependencies were involved
+3. **Impact**: Affected services, user count, and duration
+4. **Open Questions**: Unresolved items needing further investigation
+5. **Action Items**: Follow-up tasks with assignees, priorities, and preventive measures
 
 ### 4. Generate Postmortem Document
 
-Create a markdown document following this structure:
-
-```markdown
-# Incident Postmortem: [Brief Title]
-
-**Date:** [Incident Date]
-**Severity:** [P0/P1/P2/P3]
-**Duration:** [Total incident duration]
-**Author:** [Person creating postmortem]
-
-## Summary
-
-[2-3 sentence summary of what happened and the impact]
-
-## Timeline
-
-| Time (UTC) | Event |
-|------------|-------|
-| HH:MM | Incident detected via [source] |
-| HH:MM | Team alerted |
-| HH:MM | Investigation began |
-| HH:MM | Root cause identified |
-| HH:MM | Mitigation deployed |
-| HH:MM | Incident resolved |
-
-## Impact
-
-- **Services Affected:** [List of affected services]
-- **Users Impacted:** [Number or percentage]
-- **Duration:** [How long users were affected]
-- **Data Loss:** [Yes/No, details if applicable]
-
-## Root Cause Analysis
-
-### What Happened
-
-[Detailed technical explanation of the failure]
-
-### Why It Happened
-
-[Contributing factors, systemic issues]
-
-### Detection
-
-[How was the incident discovered? Could we have detected it sooner?]
-
-## Telemetry & Monitoring
-
-[If Betterstack MCP is available, include relevant links]
-
-- **Uptime Dashboard:** [Link]
-- **Error Metrics:** [Link]
-- **Relevant Alerts:** [Link]
-
-## Open Questions
-
-- [ ] [Unresolved question 1]
-- [ ] [Unresolved question 2]
-
-## Action Items
-
-| Action | Assignee | Priority | Status |
-|--------|----------|----------|--------|
-| [Action description] | @[username] | High/Medium/Low | Open |
-| [Action description] | @[username] | High/Medium/Low | Open |
-
-## Lessons Learned
-
-### What Went Well
-
-- [Positive aspects of incident response]
-
-### What Could Be Improved
-
-- [Areas for improvement]
-
-## References
-
-- **Incident Channel:** #[channel-name]
-- **Related PRs:** [Links to fix PRs]
-- **Related Docs:** [Links to relevant documentation]
-```
+Use the template in [`TEMPLATE.md`](./TEMPLATE.md) to create the postmortem document. Fill in all sections with data extracted from the Slack channel analysis. Use blameless language throughout (focus on systems and processes, not individuals).
 
 ### 5. Create Notion Page
 
-Use the Notion MCP to create the postmortem in the Notes database:
+Search for the Notes database:
 
-First, search for the Notes database:
-
-```
-mcp__claude_ai_Notion__notion-search with query: "Notes"
-```
-
-Or use the Notion skill:
-
-```
-Skill: notion-search with "Notes database"
+```json
+mcp__claude_ai_Notion__notion-search({
+  "query": "Notes",
+  "filter": { "property": "object", "value": "database" }
+})
 ```
 
-Then create the page with the postmortem content:
+**Validation:** Confirm the database was found and extract its ID. If multiple databases match, ask the user which one to use.
 
+Create the page with the postmortem content:
+
+```json
+mcp__claude_ai_Notion__notion-create-pages({
+  "parent": { "database_id": "abc123-notes-db-id" },
+  "properties": {
+    "title": [{ "text": { "content": "Incident Postmortem: Brief Title" } }],
+    "Tags": { "multi_select": [{ "name": "eng" }, { "name": "postmortem" }] }
+  },
+  "children": "<<generated markdown blocks>>"
+})
 ```
-mcp__claude_ai_Notion__notion-create-pages with:
-- parent: Notes database ID
-- title: "Incident Postmortem: [Brief Title]"
-- content: [Generated markdown content]
-```
 
-**Important:** Add the required tags to the page:
-- `eng`
-- `postmortem`
+**Validation:** Confirm the page was created successfully and capture the returned page ID and URL. If creation fails, report the error to the user.
 
-If the Notion MCP supports tags/properties, set them during creation. Otherwise, use the update page tool:
+If tags could not be set during creation, update the page:
 
-```
-mcp__claude_ai_Notion__notion-update-page with:
-- page_id: [created page ID]
-- properties: { tags: ["eng", "postmortem"] }
+```json
+mcp__claude_ai_Notion__notion-update-page({
+  "page_id": "created-page-id-here",
+  "properties": {
+    "Tags": { "multi_select": [{ "name": "eng" }, { "name": "postmortem" }] }
+  }
+})
 ```
 
 ### 6. Share Results
 
-After creating the postmortem:
+Post a summary back to the Slack incident channel:
 
-1. Provide the Notion page link to the user
-2. Optionally post a summary back to the Slack channel:
-
-```
-mcp__slack__slack_post_message with:
-- channel: [incident channel ID]
-- text: "Postmortem document created: [Notion link]"
+```json
+mcp__slack__slack_post_message({
+  "channel_id": "C0123INCIDENT",
+  "text": "Postmortem document created: https://notion.so/page-link"
+})
 ```
 
-## Tips for Quality Postmortems
-
-### Blameless Culture
-
-- Focus on systems and processes, not individuals
-- Use "the system failed to..." rather than "person X failed to..."
-- Treat failures as learning opportunities
-
-### Be Specific
-
-- Include exact timestamps when available
-- Reference specific commits, PRs, or deployments
-- Quantify impact with numbers when possible
-
-### Actionable Items
-
-- Each action item should be specific and achievable
-- Assign clear owners
-- Set priorities to help with planning
-
-### Capture Context
-
-- Include relevant Slack threads and discussions
-- Link to monitoring dashboards and alerts
-- Reference any related incidents
+**Validation:** Confirm the message was posted. If posting fails (e.g., bot not in channel), provide the Notion link directly to the user instead.
 
 ## Output
 

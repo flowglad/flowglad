@@ -1,6 +1,6 @@
 ---
 name: flowglad-feature-gating
-description: Implement feature access checks using Flowglad to gate premium features, create paywalls, and restrict functionality based on subscription status. Use this skill when adding paid-only features or checking user entitlements.
+description: "Implement feature access checks using Flowglad to gate premium features, create paywalls, and restrict functionality based on subscription status. Use when adding paywall, monetization, pro features, freemium, upgrade prompt, feature flags, paid-only features, or checking user entitlements."
 license: MIT
 metadata:
   author: flowglad
@@ -38,6 +38,8 @@ Implement feature access checks using Flowglad's `checkFeatureAccess` method to 
 5. [Redirect to Upgrade Patterns](#5-redirect-to-upgrade-patterns) — **MEDIUM**
    - 5.1 [Client-Side Redirect](#51-client-side-redirect)
    - 5.2 [Server-Side Redirect](#52-server-side-redirect)
+6. [Validation and Testing](#6-validation-and-testing) — **MEDIUM**
+   - 6.1 [Verifying Feature Gating](#61-verifying-feature-gating)
 
 ---
 
@@ -45,7 +47,7 @@ Implement feature access checks using Flowglad's `checkFeatureAccess` method to 
 
 **Impact: CRITICAL**
 
-The billing hook loads asynchronously. While loading, `checkFeatureAccess` is `null` (not a function). If you try to call it before loading completes, you'll get a runtime error or incorrect behavior. This causes premium users to see upgrade prompts or paywalls incorrectly.
+The billing hook loads asynchronously. While loading, `checkFeatureAccess` is `null` (not a function). Calling it before loading completes causes runtime errors or shows upgrade prompts to paying users.
 
 > **Note:** The `flowglad()` factory function used in server-side examples must be set up in your project (typically at `@/lib/flowglad`). See the [setup skill](../setup/SKILL.md) for configuration instructions.
 
@@ -53,29 +55,17 @@ The billing hook loads asynchronously. While loading, `checkFeatureAccess` is `n
 
 **Impact: CRITICAL (prevents flash of incorrect content)**
 
-Users with active subscriptions will see upgrade prompts flash briefly if you don't wait for billing to load before checking access.
-
-**Incorrect: checks access before billing loads**
-
 ```tsx
+// INCORRECT: checkFeatureAccess is null while loading — this throws
 function PremiumFeature() {
   const { checkFeatureAccess } = useBilling()
-
-  // BUG: checkFeatureAccess is null while loading!
-  // This will throw: "checkFeatureAccess is not a function"
   if (!checkFeatureAccess('premium-feature')) {
     return <UpgradePrompt />
   }
-
   return <PremiumContent />
 }
-```
 
-This crashes because `checkFeatureAccess` is `null` until billing data loads, not a callable function.
-
-**Correct: check both loaded and checkFeatureAccess**
-
-```tsx
+// CORRECT: check both loaded and checkFeatureAccess
 function PremiumFeature() {
   const { loaded, checkFeatureAccess } = useBilling()
 
@@ -91,29 +81,13 @@ function PremiumFeature() {
 }
 ```
 
-Always check both `loaded` and `checkFeatureAccess` before calling the function to ensure billing data is available.
+Always check both `loaded` and `checkFeatureAccess` before calling the function.
 
 ### 1.2 Skeleton Loading Patterns
 
 **Impact: CRITICAL (prevents layout shift)**
 
-Show appropriate loading states that match the expected content dimensions to prevent layout shift.
-
-**Incorrect: shows nothing or spinner**
-
-```tsx
-function Dashboard() {
-  const { loaded, checkFeatureAccess } = useBilling()
-
-  if (!loaded) {
-    return null // Content disappears!
-  }
-
-  return <DashboardContent />
-}
-```
-
-**Correct: show skeleton matching content layout**
+Show loading states that match expected content dimensions to prevent layout shift.
 
 ```tsx
 function Dashboard() {
@@ -138,7 +112,7 @@ function Dashboard() {
 
 **Impact: HIGH**
 
-Client-side feature checks are for UI purposes only. Any sensitive operation or data access must verify subscription status server-side. Users can bypass client-side checks by modifying frontend code or using browser developer tools.
+Client-side feature checks are for UI purposes only. Sensitive operations and data access must verify subscription status server-side.
 
 ### 2.1 Verify Access on Server
 
@@ -146,24 +120,17 @@ Client-side feature checks are for UI purposes only. Any sensitive operation or 
 
 Never trust client-side access checks for operations that cost money, access sensitive data, or perform privileged actions.
 
-**Incorrect: trusts client-side check for sensitive operation**
-
 ```typescript
-// API route
+// INCORRECT: trusts a client-sent flag
 export async function POST(req: Request) {
-  // Client could bypass this by modifying frontend code
   const { hasAccess } = await req.json()
   if (!hasAccess) {
     return Response.json({ error: 'No access' }, { status: 403 })
   }
   return performSensitiveOperation()
 }
-```
 
-**Correct: verify server-side**
-
-```typescript
-// API route
+// CORRECT: verify server-side with Flowglad
 import { flowglad } from '@/lib/flowglad'
 import { auth } from '@/lib/auth'
 
@@ -187,33 +154,7 @@ export async function POST(req: Request) {
 
 **Impact: HIGH (prevents unauthorized access)**
 
-Create a reusable pattern for protecting multiple API routes with feature checks.
-
-**Incorrect: duplicates check logic everywhere**
-
-```typescript
-// routes/generate.ts
-export async function POST(req: Request) {
-  const session = await auth()
-  const billing = await flowglad(session.user.id).getBilling()
-  if (!billing.checkFeatureAccess('ai-generation')) {
-    return Response.json({ error: 'Upgrade required' }, { status: 403 })
-  }
-  // ... generation logic
-}
-
-// routes/export.ts
-export async function POST(req: Request) {
-  const session = await auth()
-  const billing = await flowglad(session.user.id).getBilling()
-  if (!billing.checkFeatureAccess('export')) {
-    return Response.json({ error: 'Upgrade required' }, { status: 403 })
-  }
-  // ... export logic
-}
-```
-
-**Correct: create reusable middleware/helper**
+Create a reusable helper to avoid duplicating billing checks across routes.
 
 ```typescript
 // lib/requireFeature.ts
@@ -235,7 +176,7 @@ export async function requireFeature(featureSlug: string) {
   return { userId: session.user.id, billing }
 }
 
-// routes/generate.ts
+// Usage in any route
 export async function POST(req: Request) {
   const result = await requireFeature('ai-generation')
   if ('error' in result) {
@@ -253,30 +194,18 @@ export async function POST(req: Request) {
 
 **Impact: MEDIUM**
 
-How you reference features affects code maintainability and environment portability.
-
 ### 3.1 Use Slugs Not IDs
 
 **Impact: MEDIUM (environment portability)**
 
-Feature IDs are auto-generated and differ between development, staging, and production environments. Slugs are stable identifiers you control.
-
-**Incorrect: hardcoding Flowglad IDs**
+Feature IDs are auto-generated and differ between environments. Slugs are stable identifiers you control.
 
 ```typescript
-// IDs change between environments!
-if (billing.checkFeatureAccess('feat_abc123xyz')) {
-  // Works in dev, breaks in production
-}
-```
+// INCORRECT: IDs change between environments
+if (billing.checkFeatureAccess('feat_abc123xyz')) { ... }
 
-**Correct: use slugs**
-
-```typescript
-// Slugs are stable across environments
-if (billing.checkFeatureAccess('advanced-analytics')) {
-  // Works everywhere
-}
+// CORRECT: slugs are stable across environments
+if (billing.checkFeatureAccess('advanced-analytics')) { ... }
 ```
 
 Define feature slugs in your Flowglad dashboard and reference them consistently in code.
@@ -293,31 +222,7 @@ Reusable patterns for gating components reduce boilerplate and ensure consistent
 
 **Impact: MEDIUM (reduces boilerplate)**
 
-Create a declarative component for gating content.
-
-**Incorrect: repeats gate logic in every component**
-
-```tsx
-function AnalyticsDashboard() {
-  const { loaded, checkFeatureAccess } = useBilling()
-
-  if (!loaded || !checkFeatureAccess) return <Skeleton />
-  if (!checkFeatureAccess('analytics')) return <UpgradePrompt feature="analytics" />
-
-  return <Analytics />
-}
-
-function ExportButton() {
-  const { loaded, checkFeatureAccess } = useBilling()
-
-  if (!loaded || !checkFeatureAccess) return <Skeleton />
-  if (!checkFeatureAccess('export')) return <UpgradePrompt feature="export" />
-
-  return <ExportUI />
-}
-```
-
-**Correct: create reusable FeatureGate component**
+Create a declarative component for gating content instead of repeating loading/access checks in every component.
 
 ```tsx
 // components/FeatureGate.tsx
@@ -372,74 +277,7 @@ function ExportButton() {
 
 **Impact: MEDIUM (alternative pattern for class components or full-page gates)**
 
-Use HOC pattern when you need to gate entire pages or components.
-
-**Incorrect: duplicates page-level checks**
-
-```tsx
-// pages/analytics.tsx
-export default function AnalyticsPage() {
-  const { loaded, checkFeatureAccess } = useBilling()
-
-  if (!loaded || !checkFeatureAccess) return <PageSkeleton />
-  if (!checkFeatureAccess('analytics')) {
-    // Using redirect() in a client component - this won't work!
-    redirect('/pricing')
-    return null
-  }
-
-  return <AnalyticsDashboard />
-}
-```
-
-**Correct: create withFeatureAccess HOC**
-
-```tsx
-'use client'
-
-// lib/withFeatureAccess.tsx
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useBilling } from '@flowglad/nextjs'
-import { ComponentType } from 'react'
-
-export function withFeatureAccess<P extends object>(
-  WrappedComponent: ComponentType<P>,
-  feature: string,
-  redirectTo = '/pricing'
-) {
-  return function WithFeatureAccess(props: P) {
-    const { loaded, checkFeatureAccess } = useBilling()
-    const router = useRouter()
-
-    useEffect(() => {
-      if (loaded && checkFeatureAccess && !checkFeatureAccess(feature)) {
-        router.push(redirectTo)
-      }
-    }, [loaded, checkFeatureAccess, router])
-
-    if (!loaded || !checkFeatureAccess) {
-      return <PageSkeleton />
-    }
-
-    if (!checkFeatureAccess(feature)) {
-      // Show skeleton while redirecting
-      return <PageSkeleton />
-    }
-
-    return <WrappedComponent {...props} />
-  }
-}
-
-// Usage
-function AnalyticsDashboard() {
-  return <div>Analytics content</div>
-}
-
-export default withFeatureAccess(AnalyticsDashboard, 'analytics')
-```
-
-Note: For better UX without flash, prefer server-side gating (see Section 5.2) when possible.
+Use the HOC pattern when you need to gate entire pages or components. See [PATTERNS.md](./PATTERNS.md#higher-order-component-pattern) for the full `withFeatureAccess` implementation and usage examples.
 
 ---
 
@@ -453,25 +291,7 @@ When users lack access, redirect them to upgrade rather than showing error state
 
 **Impact: MEDIUM (better UX than error states)**
 
-Redirect users to pricing/upgrade page when they try to access gated features.
-
-**Incorrect: shows error message**
-
-```tsx
-function PremiumPage() {
-  const { loaded, checkFeatureAccess } = useBilling()
-
-  if (!loaded || !checkFeatureAccess) return <Skeleton />
-
-  if (!checkFeatureAccess('premium')) {
-    return <div>Error: You don't have access to this feature</div>
-  }
-
-  return <PremiumContent />
-}
-```
-
-**Correct: redirect to upgrade with context**
+Redirect users to a pricing/upgrade page when they try to access gated features, preserving a return URL so they come back after upgrading.
 
 ```tsx
 'use client'
@@ -487,7 +307,6 @@ function PremiumPage() {
 
   useEffect(() => {
     if (loaded && checkFeatureAccess && !checkFeatureAccess('premium')) {
-      // Redirect with return URL so user comes back after upgrade
       router.push(`/pricing?upgrade=premium&returnTo=${encodeURIComponent(pathname)}`)
     }
   }, [loaded, checkFeatureAccess, router, pathname])
@@ -504,22 +323,7 @@ function PremiumPage() {
 
 **Impact: MEDIUM (prevents page flash)**
 
-For server components or middleware, check access server-side before rendering.
-
-**Incorrect: client-side check causes flash**
-
-```tsx
-// Page loads, then redirects - user sees flash
-export default function PremiumPage() {
-  return (
-    <ClientSideGate feature="premium">
-      <PremiumContent />
-    </ClientSideGate>
-  )
-}
-```
-
-**Correct: check in server component or middleware**
+For server components, check access server-side before rendering to avoid any flash of gated content.
 
 ```tsx
 // app/premium/page.tsx (Server Component)
@@ -543,38 +347,48 @@ export default async function PremiumPage() {
 }
 ```
 
-Or using middleware for multiple routes:
+For middleware-based multi-route gating, see [PATTERNS.md](./PATTERNS.md#middleware-pattern-for-multi-route-gating).
+
+---
+
+## 6. Validation and Testing
+
+**Impact: MEDIUM**
+
+Verify that feature gating works correctly across subscription states.
+
+### 6.1 Verifying Feature Gating
+
+Test these scenarios to confirm correct gating behavior:
+
+| Scenario | Expected Result |
+|----------|----------------|
+| User with active subscription | Feature renders, no upgrade prompt |
+| User without subscription | Upgrade prompt or redirect shown |
+| Billing still loading | Loading skeleton shown (no flash) |
+| Server-side check with no session | 401 Unauthorized response |
+| Server-side check without feature access | 403 Upgrade required response |
+| Expired subscription | Treated as no access |
 
 ```typescript
-// middleware.ts
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+// Example: integration test for requireFeature helper
+import { requireFeature } from '@/lib/requireFeature'
 
-const PREMIUM_ROUTES = ['/analytics', '/export', '/api-access']
+// Verify gated route rejects unauthenticated requests
+const unauthResult = await requireFeature('premium')
+expect(unauthResult).toEqual({ error: 'Unauthorized', status: 401 })
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+// Verify gated route rejects users without the feature
+// (with authenticated user who lacks the feature)
+const noAccessResult = await requireFeature('premium')
+expect(noAccessResult).toEqual({ error: 'Upgrade required', status: 403 })
 
-  // Check if this is a premium route
-  if (PREMIUM_ROUTES.some((route) => pathname.startsWith(route))) {
-    // Note: Full billing check requires server-side call
-    // For middleware, you might check a session flag or JWT claim
-    // set during login that indicates subscription tier
-    const session = await getSession(request)
-
-    if (!session?.isPremium) {
-      return NextResponse.redirect(
-        new URL(`/pricing?returnTo=${pathname}`, request.url)
-      )
-    }
-  }
-
-  return NextResponse.next()
-}
-
-export const config = {
-  matcher: ['/analytics/:path*', '/export/:path*', '/api-access/:path*'],
-}
+// Verify gated route allows users with the feature
+const accessResult = await requireFeature('premium')
+expect('userId' in accessResult).toBe(true)
 ```
 
-Note: Full Flowglad billing checks in middleware require additional setup. For most cases, server component checks (pattern above) are simpler and recommended.
+For client-side validation, confirm that:
+- The `<FeatureGate>` component shows its `loading` prop while `loaded` is false
+- The `fallback` prop renders when `checkFeatureAccess` returns false
+- The `children` render when access is granted

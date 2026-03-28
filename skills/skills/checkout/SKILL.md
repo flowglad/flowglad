@@ -17,12 +17,6 @@ source_files:
 
 # Checkout
 
-## Abstract
-
-This skill covers implementing checkout sessions for purchasing subscriptions and products with Flowglad. It includes creating upgrade buttons, handling redirects to hosted checkout pages, and displaying pricing information from the pricing model.
-
----
-
 ## Table of Contents
 
 1. [Success and Cancel URL Handling](#1-success-and-cancel-url-handling) — **CRITICAL**
@@ -39,6 +33,9 @@ This skill covers implementing checkout sessions for purchasing subscriptions an
 5. [Displaying Pricing from pricingModel](#5-displaying-pricing-from-pricingmodel) — **MEDIUM**
    - 5.1 [Accessing Prices and Products](#51-accessing-prices-and-products)
    - 5.2 [Formatting Price Display](#52-formatting-price-display)
+6. [Verifying Checkout Completion](#6-verifying-checkout-completion) — **HIGH**
+   - 6.1 [Check Subscription Status After Redirect](#61-check-subscription-status-after-redirect)
+   - 6.2 [Handle Webhook Events for Confirmation](#62-handle-webhook-events-for-confirmation)
 
 ---
 
@@ -52,30 +49,13 @@ Checkout sessions require `successUrl` and `cancelUrl` parameters. These URLs de
 
 **Impact: CRITICAL (relative URLs will fail)**
 
-Flowglad's hosted checkout redirects users via HTTP redirect, which requires fully-qualified absolute URLs.
-
-**Incorrect: using relative URLs**
+Flowglad's hosted checkout runs on a different domain, so `successUrl` and `cancelUrl` must be fully-qualified absolute URLs. Relative paths like `/dashboard` will fail.
 
 ```typescript
 const handleUpgrade = async () => {
   await createCheckoutSession({
     priceSlug: 'pro-monthly',
-    // FAILS: relative URLs don't work with external redirects
-    successUrl: '/dashboard?upgraded=true',
-    cancelUrl: '/pricing',
-    autoRedirect: true,
-  })
-}
-```
-
-Relative URLs cause redirect failures because the hosted checkout page is on a different domain and cannot resolve relative paths.
-
-**Correct: use absolute URLs with window.location.origin**
-
-```typescript
-const handleUpgrade = async () => {
-  await createCheckoutSession({
-    priceSlug: 'pro-monthly',
+    // Always use absolute URLs — relative paths fail on the hosted checkout domain
     successUrl: `${window.location.origin}/dashboard?upgraded=true`,
     cancelUrl: `${window.location.origin}/pricing`,
     autoRedirect: true,
@@ -87,20 +67,7 @@ const handleUpgrade = async () => {
 
 **Impact: MEDIUM (improves user experience)**
 
-Include query parameters in success URLs to trigger appropriate UI feedback.
-
-**Incorrect: no context after checkout**
-
-```typescript
-await createCheckoutSession({
-  priceSlug: 'pro-monthly',
-  successUrl: `${window.location.origin}/dashboard`,
-  cancelUrl: window.location.href,
-  autoRedirect: true,
-})
-```
-
-User returns to dashboard with no indication that checkout succeeded.
+Include query parameters in success URLs to trigger post-checkout UI feedback.
 
 **Correct: include success context**
 
@@ -133,27 +100,11 @@ Flowglad supports referencing prices by either `priceId` or `priceSlug`. Using s
 
 **Impact: HIGH (IDs differ between environments)**
 
-Price IDs are auto-generated and differ between development, staging, and production environments. Slugs are user-defined and consistent.
-
-**Incorrect: hardcoding price IDs**
+Price IDs are auto-generated and differ between environments. Slugs are user-defined and consistent across dev, staging, and production.
 
 ```typescript
 await createCheckoutSession({
-  // This ID only exists in production!
-  priceId: 'price_abc123xyz',
-  successUrl: `${window.location.origin}/success`,
-  cancelUrl: window.location.href,
-  autoRedirect: true,
-})
-```
-
-Code breaks when deployed to different environments because each environment has different price IDs.
-
-**Correct: use price slugs**
-
-```typescript
-await createCheckoutSession({
-  // Slugs are consistent across all environments
+  // Use priceSlug, not priceId — IDs differ per environment
   priceSlug: 'pro-monthly',
   successUrl: `${window.location.origin}/success`,
   cancelUrl: window.location.href,
@@ -161,7 +112,7 @@ await createCheckoutSession({
 })
 ```
 
-When using `priceSlug`, ensure the slug is defined in your Flowglad dashboard for all environments. Slugs are case-sensitive.
+Ensure the slug is defined in your Flowglad dashboard for all environments. Slugs are case-sensitive.
 
 ---
 
@@ -175,27 +126,7 @@ The `autoRedirect` option controls whether users are automatically sent to the h
 
 **Impact: MEDIUM (simplifies common flows)**
 
-For most checkout buttons, `autoRedirect: true` provides the expected behavior.
-
-**Incorrect: manually redirecting when autoRedirect would suffice**
-
-```typescript
-const handleUpgrade = async () => {
-  const result = await createCheckoutSession({
-    priceSlug: 'pro-monthly',
-    successUrl: `${window.location.origin}/success`,
-    cancelUrl: window.location.href,
-    // Missing autoRedirect
-  })
-
-  // Unnecessary manual redirect
-  if (result.url) {
-    window.location.href = result.url
-  }
-}
-```
-
-**Correct: use autoRedirect for simple flows**
+For most checkout buttons, `autoRedirect: true` handles the redirect automatically:
 
 ```typescript
 const handleUpgrade = async () => {
@@ -203,9 +134,8 @@ const handleUpgrade = async () => {
     priceSlug: 'pro-monthly',
     successUrl: `${window.location.origin}/success`,
     cancelUrl: window.location.href,
-    autoRedirect: true,
+    autoRedirect: true, // User is sent to checkout automatically
   })
-  // No manual redirect needed - user is automatically sent to checkout
 }
 ```
 
@@ -367,30 +297,7 @@ The `pricingModel` from `useBilling` contains all products, prices, and usage me
 
 **Impact: MEDIUM (use helper functions for cleaner code)**
 
-Use the `getPrice` and `getProduct` helper functions instead of manually searching arrays.
-
-**Incorrect: manually searching arrays**
-
-```tsx
-function PricingCard({ priceSlug }: { priceSlug: string }) {
-  const { pricingModel } = useBilling()
-
-  // Verbose and error-prone
-  const price = pricingModel?.prices.find(p => p.slug === priceSlug)
-  const product = pricingModel?.products.find(
-    p => p.id === price?.productId
-  )
-
-  return (
-    <div>
-      <h3>{product?.name}</h3>
-      <p>${price?.unitPrice}</p>
-    </div>
-  )
-}
-```
-
-**Correct: use helper functions**
+Use the `getPrice` and `getProduct` helper functions instead of manually searching `pricingModel` arrays.
 
 ```tsx
 function PricingCard({ priceSlug }: { priceSlug: string }) {
@@ -420,21 +327,7 @@ function PricingCard({ priceSlug }: { priceSlug: string }) {
 
 **Impact: MEDIUM (prices are in cents)**
 
-Prices in `pricingModel` are stored in cents (the smallest currency unit). Format for display.
-
-**Incorrect: displaying raw price value**
-
-```tsx
-function PriceDisplay({ priceSlug }: { priceSlug: string }) {
-  const { getPrice } = useBilling()
-  const price = getPrice(priceSlug)
-
-  // Shows "1999" instead of "$19.99"
-  return <span>{price?.unitPrice}</span>
-}
-```
-
-**Correct: format price for display**
+Prices in `pricingModel` are stored in cents. Always divide by 100 and use `Intl.NumberFormat` for display.
 
 ```tsx
 function PriceDisplay({ priceSlug }: { priceSlug: string }) {
@@ -457,3 +350,72 @@ function PriceDisplay({ priceSlug }: { priceSlug: string }) {
 ```
 
 For building complete pricing pages with product cards, monthly/annual toggles, and current plan highlighting, see the `pricing-ui` skill.
+
+---
+
+## 6. Verifying Checkout Completion
+
+**Impact: HIGH**
+
+A successful redirect to `successUrl` does not guarantee the subscription is active. Always verify checkout completion server-side.
+
+### 6.1 Check Subscription Status After Redirect
+
+**Impact: HIGH (prevents granting access before payment is confirmed)**
+
+After the user lands on the success page, reload billing data and verify the subscription status before unlocking features.
+
+```tsx
+function SuccessPage() {
+  const { loaded, billing, reload } = useBilling()
+  const [verified, setVerified] = useState(false)
+
+  useEffect(() => {
+    // Reload billing data to pick up the new subscription
+    reload().then(() => setVerified(true))
+  }, [reload])
+
+  if (!loaded || !verified) {
+    return <LoadingSkeleton />
+  }
+
+  const isActive = billing?.subscription?.status === 'active'
+
+  return isActive
+    ? <SuccessBanner>Your subscription is now active.</SuccessBanner>
+    : <PendingBanner>Your payment is being processed.</PendingBanner>
+}
+```
+
+### 6.2 Handle Webhook Events for Confirmation
+
+**Impact: HIGH (server-side source of truth)**
+
+For server-side verification, listen for Flowglad webhook events rather than relying on the client redirect. This ensures your backend grants access only after payment is confirmed.
+
+```typescript
+// In your webhook handler (e.g., /api/webhooks/flowglad)
+import { FlowgladWebhooks } from '@flowglad/node'
+
+export async function POST(req: Request) {
+  const body = await req.text()
+  const signature = req.headers.get('flowglad-signature')!
+
+  const event = FlowgladWebhooks.verify(body, signature, process.env.FLOWGLAD_WEBHOOK_SECRET!)
+
+  switch (event.type) {
+    case 'checkout.completed':
+      // Payment confirmed — activate the subscription in your database
+      await activateSubscription(event.data.customerId, event.data.priceSlug)
+      break
+    case 'checkout.expired':
+      // Session expired without payment — log or notify
+      console.warn('Checkout expired:', event.data.checkoutSessionId)
+      break
+  }
+
+  return new Response('ok')
+}
+```
+
+Never grant premium access based solely on the `successUrl` redirect. The webhook is the authoritative confirmation that payment succeeded.
